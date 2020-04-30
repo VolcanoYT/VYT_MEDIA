@@ -1,4 +1,4 @@
-let ajaxUrl = "https://api.volcanoyt.com/site/stats.json";
+let ajaxUrl = URL_API+"site/stats.json";
 let dataSet = [];
 let VdataSet = [];
 let lowdataSet = [];
@@ -95,7 +95,7 @@ $(window).on('load', function() {
         "processing": true,
         "serverSide": true,
         "ajax": {
-            "url": "https://api.volcanoyt.com/earthquake/geo.json",
+            "url": URL_API+"earthquake/geo.json",
             "data": function(d) {
                 d.limit = 10;
                 d.format = 'jsonp';
@@ -155,7 +155,7 @@ $(window).on('load', function() {
             data: {
                 update: localDate
             },
-            url: "https://api.volcanoyt.com/streaminfo.json",
+            url: URL_API+"streaminfo.json",
         }).done(function(data) {
             try {
                 //console.log(data);

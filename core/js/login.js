@@ -80,7 +80,7 @@ $("form").submit(function (e) {
                         token: token,
                         gtoken: gcode
                     },
-                    url: 'https://api.volcanoyt.com/account/v4/' + url_cek + '.json',
+                    url: URL_API+"account/v4/' + url_cek + '.json',
                 }).done(function (data) {
                     Go(data);
                 }).fail(function (a) {
@@ -99,7 +99,7 @@ var errnyt = true;
 
 function gogoogle(r = true, a = true) {
     isVaild('Login Google...', 'info', false);
-    var newWindow = open('https://api.volcanoyt.com/google/login.json?redirect=' + r + '&autologin=' + a + '', 'Google Login', 'width=500,height=800')
+    var newWindow = open(URL_API+'google/login.json?redirect=' + r + '&autologin=' + a + '', 'Google Login', 'width=500,height=800')
     newWindow.focus();
     var pollTimer = window.setInterval(function () {
         if (newWindow.closed !== false) { // !== is required for compatibility with Opera
@@ -112,9 +112,10 @@ function gogoogle(r = true, a = true) {
 }
 
 function receiveMessage(event) {
-
-    if (event.origin !== "https://api.volcanoyt.com")
-        return;
+   
+   // TODO: multi api
+   // if (event.origin !== URL_API)
+   //     return;
 
     if (event.data.api == "login") {
         errnyt = false;

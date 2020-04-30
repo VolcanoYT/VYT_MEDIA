@@ -80,7 +80,7 @@ setInterval(random, 1000 * 60);
 random();
 
 if (!isEmpty(camid)) {
-    GetJson("https://api.volcanoyt.com/camera/view.json?ceklive=true&id=" + camid)
+    GetJson(URL_API+"camera/view.json?ceklive=true&id=" + camid)
         .then(response => {
             apiplayer = response;
             RunLive();
@@ -138,7 +138,7 @@ function RunLive() {
         console.log("API Start", c);
 
         //API Sudah di Set
-        setimg = "https://api.volcanoyt.com/timelapse/" + camid + "/" + tp + ".jpg";
+        setimg = URL_API+"timelapse/" + camid + "/" + tp + ".jpg";
         types = c.type;
         sereload = c.refresh;
         displayz[0] = "Cam: " + c.name;
@@ -404,7 +404,7 @@ setInterval(function () {
 }, 1000 * 60);
 
 function FastCek() {
-    GetJson("https://api.volcanoyt.com/camera/view.json?id=" + camid + "&ceklive=true")
+    GetJson(URL_API+"camera/view.json?id=" + camid + "&ceklive=true")
         .then(c => {
             apiplayer = c;
             RunLive();
@@ -526,7 +526,7 @@ $('#proses').on('click', function (e) {
         $('#loadff').hide();
         $('#cloban').show();
         if (data.code == 200) {
-            $('#msg').append('<div class="form-group"><video width="100%" height="240" controls autoplay mute loop><source src="https://api.volcanoyt.com/collection/' + data.md5 + '.mp4" type="video/mp4"></video><label>Download Link</label><div class="input-group"><input type="text" class="form-control" value="https://api.volcanoyt.com/collection/' + data.md5 + '.mp4"></div></div>');
+            $('#msg').append('<div class="form-group"><video width="100%" height="240" controls autoplay mute loop><source src="'+URL_API+'collection/' + data.md5 + '.mp4" type="video/mp4"></video><label>Download Link</label><div class="input-group"><input type="text" class="form-control" value="'+URL_API+'collection/' + data.md5 + '.mp4"></div></div>');
         }
         $('#msg').append('<div class="alert alert-warning" role="alert">' + data.status + '</div>');
     }).fail(function (a) {
@@ -551,7 +551,7 @@ $('.timelapse_bt').on('click', function (e) {
             dropdown.append('<option selected="true" disabled>Choose</option>');
             dropdown.prop('selectedIndex', 0);
 
-            $.getJSON("https://api.volcanoyt.com/camera/data.json?id=" + camid + "&type=2").done(function (z) {
+            $.getJSON(URL_API+"camera/data.json?id=" + camid + "&type=2").done(function (z) {
 
                 var options = [];
                 $.each(z.file, function (key, entry) {
@@ -569,7 +569,7 @@ $('.timelapse_bt').on('click', function (e) {
                     return ((x < y) ? -1 : ((x > y) ? 1 : 0));
                 });
                 $.each(options, function (i, option) {
-                    dropdown.append($('<option></option>').attr('value', "https://api.volcanoyt.com" + option.value).text(moment.unix(option.label).format("DD-MM-YYYY HH:mm:ss")));
+                    dropdown.append($('<option></option>').attr('value', URL_API+option.value).text(moment.unix(option.label).format("DD-MM-YYYY HH:mm:ss")));
                 });
 
                 //API Pilih
@@ -588,7 +588,7 @@ $('.timelapse_bt').on('click', function (e) {
                         }
 
                         //Api load type find file
-                        $.getJSON("https://api.volcanoyt.com/camera/data.json?id=" + camid + "&type=" + isjoin, async function (z) {
+                        $.getJSON(URL_API+"camera/data.json?id=" + camid + "&type=" + isjoin, async function (z) {
 
                             var options2 = [];
                             $.each(z.file, function (key, entry) {
@@ -612,7 +612,7 @@ $('.timelapse_bt').on('click', function (e) {
                                     break;
                                 }
 
-                                var datax = await Addimg("https://api.volcanoyt.com" + value.value.replace("..", ''), value.label, true, div_tl_raw);
+                                var datax = await Addimg(URL_API+value.value.replace("..", ''), value.label, true, div_tl_raw);
                                 countx++;
                                 proses(percentage(countx, options2.length));
                                 if (datax.code == 200) {

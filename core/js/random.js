@@ -4,7 +4,7 @@ async function updatecek() {
             method: "GET",
             dataType: "json",
             cache: false,
-            url: "https://api.volcanoyt.com/camera/list.json",
+            url: URL_API+"camera/list.json",
         }).done(async function(c) {
             for (i in c.results) {
                 var addme = c.results[i];
@@ -23,7 +23,7 @@ async function updatecek() {
 function get(addme) {
     return new Promise(resolve => {
         jQuery.ajax({
-            url: "https://api.volcanoyt.com/timelapse/" + addme.id + "/raw.jpg",
+            url: URL_API+"timelapse/" + addme.id + "/raw.jpg",
             cache: false,
             xhr: function() {
                 var xhr = new XMLHttpRequest();

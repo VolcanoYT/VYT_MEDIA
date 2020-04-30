@@ -1,3 +1,6 @@
+URL_API="https://beta.volcanoyt.com/";
+URL_CDN="https://cdn.volcanoyt.com/";
+URL_APP="https://tapp.volcanoyt.com/";
 const delay = ms => new Promise(res => setTimeout(res, ms));
 var Base64 = {
     _keyStr: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",
@@ -388,7 +391,7 @@ function NotifMe(x, m, info = "info", audio = false, lg = "id", volume = 0.5) {
             }
             $.each(arr, function () {
                 listaudio.push({
-                    url: "https://api.volcanoyt.com/google/voice.mp3?say=" + encodeURI(this.trim()) + "&lg=" + lg,
+                    url: URL_API+"google/voice.mp3?say=" + encodeURI(this.trim()) + "&lg=" + lg,
                     volume: volume
                 });
             });

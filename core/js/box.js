@@ -52,11 +52,11 @@ function CameraMove(idp) {
     online();
     idcamp = idp;
     if (idp == "random") {
-        bb.html('<iframe src="https://api.volcanoyt.com/spanel/random.html?update=' + new Date().getTime() + '"></iframe>');
+        bb.html('<iframe src="'+URL_API+'spanel/random.html?update=' + new Date().getTime() + '"></iframe>');
     } else if (idp == "blank") {
         bb.html('');
     } else {
-        bb.html('<iframe src="https://api.volcanoyt.com/spanel/player.php?cam=' + idp + '&autoplay=true&mute=0&hidebt=' + hidebt + '&tp=raw&force=true&flash=' + flash + '&rtyt=' + rtyt + '&uproxy=' + uproxy + '"></iframe>');
+        bb.html('<iframe src="'+URL_API+'spanel/player.php?cam=' + idp + '&autoplay=true&mute=0&hidebt=' + hidebt + '&tp=raw&force=true&flash=' + flash + '&rtyt=' + rtyt + '&uproxy=' + uproxy + '"></iframe>');
         //versi=' + Math.floor(Date.now() / 1000) + '&//&byjam=' + byjam + '&bysource=' + bysource + '&uproxy=' + uproxy + '&hidehd=' + hidehd + '
     }
 }

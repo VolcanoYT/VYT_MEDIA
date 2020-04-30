@@ -52,7 +52,7 @@ function GetApi() {
             upto: 2.4,
             source: source_eq
         },
-        url: "https://api.volcanoyt.com/earthquake/geo.json",
+        url: URL_API+"earthquake/geo.json",
     }).done(function(data) {
         if (data && data.meta) {
             if (data.meta.code == 200) {
@@ -99,7 +99,7 @@ function GetVolcano() {
             allow_by: 'source',
             search: name_volcano,
         },
-        url: "https://api.volcanoyt.com/report/list.json",
+        url: URL_API+"report/list.json",
     }).done(function(data) {
         if (data && data.results) {
             data.results.sort(comp2);

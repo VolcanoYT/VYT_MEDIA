@@ -31,7 +31,7 @@ $(document).ready(function () {
     var vcot = $('#countv').DataTable({
         "processing": true,
         "ajax": {
-            "url": "https://api.volcanoyt.com/virus/get.json",
+            "url": URL_API+"virus/get.json",
             "data": function (d) {
                 d.count = true;
                 d.cache = true;
@@ -97,7 +97,7 @@ $(document).ready(function () {
         "searching": false,
         "bLengthChange": false,
         "ajax": {
-            "url": "https://api.volcanoyt.com/virus/get.json",
+            "url": URL_API+"virus/get.json",
             "data": function (d) {
                 d.limit = 10;
                 d.cache = true;
@@ -168,7 +168,7 @@ $(document).ready(function () {
             method: "GET",
             dataType: "json",
             cache: false,
-            url: "https://api.volcanoyt.com/virus/get.json",
+            url: URL_API+"virus/get.json",
             data: {
                 count: true,
                 cache: true

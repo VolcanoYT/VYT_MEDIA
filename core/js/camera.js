@@ -10,14 +10,14 @@ window.onload = function() {
 };
 
 function vd(id){
-  $("#videohere").prepend('<video id="MY_VIDEO_1" class="video-js vjs-default-skin vjs-fluid" poster="https://api.volcanoyt.com/timelapse/'+id+'/last.jpg" data-setup="{}"><source src="https://api.volcanoyt.com/timelapse/'+id+'/last.mp4"><p class="vjs-no-js">To view this video please enable JavaScript, and consider upgrading to a web browser that <a href="http://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a></p></video>');
+  $("#videohere").prepend('<video id="MY_VIDEO_1" class="video-js vjs-default-skin vjs-fluid" poster="'+URL_API+'timelapse/'+id+'/last.jpg" data-setup="{}"><source src="'+URL_API+'timelapse/'+id+'/last.mp4"><p class="vjs-no-js">To view this video please enable JavaScript, and consider upgrading to a web browser that <a href="http://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a></p></video>');
   videois=videojs("MY_VIDEO_1", { "controls": true, "autoplay": false, "preload": "none" });
   var dropdown = $('#pilihvideo');
   dropdown.empty();
   dropdown.append('<option selected="true" disabled>Choose</option>');
   dropdown.prop('selectedIndex', 0);
   
-  $.getJSON("https://api.volcanoyt.com/camera/data.json?id="+id+"&type=2", function (z) {
+  $.getJSON(URL_API+"camera/data.json?id="+id+"&type=2", function (z) {
   var options = [];
   $.each(z.data.file, function (key, entry) {
     var tp = entry.url.replace(/^.*[\\\/]/, '').replace(".mp4", '');
@@ -33,9 +33,9 @@ function vd(id){
    });
 
   $.each(options, function(i, option) {
-    dropdown.append($('<option></option>').attr('value', "https://api.volcanoyt.com"+option.value).text(moment.unix(option.label).format("DD-MM-YYYY HH:mm:ss")));
+    dropdown.append($('<option></option>').attr('value', URL_API+option.value).text(moment.unix(option.label).format("DD-MM-YYYY HH:mm:ss")));
   });
-  dropdown.append($('<option></option>').attr('value', "https://api.volcanoyt.com/timelapse/"+id+"/last.mp4").text("The Latest"));
+  dropdown.append($('<option></option>').attr('value', URL_API+id+"/last.mp4").text("The Latest"));
   dropdown.change(function() {
 
     if($('option:selected', this).text() == "The Latest"){
@@ -56,7 +56,7 @@ function vd(id){
   });
 }
 function snap(id){
-  $.getJSON("https://api.volcanoyt.com/camera/data.json?id="+id+"&type=1", function (z) {
+  $.getJSON(URL_API+"camera/data.json?id="+id+"&type=1", function (z) {
     stop();
     var options2 = [];    
     $.each(z.data.file, function (key, entry) {
@@ -74,7 +74,7 @@ function snap(id){
      $("#console").hide();
      var count=0;
      $.each(options2, async function( key, value ) {      
-      await Addimg("https://api.volcanoyt.com"+value.value.replace("..",''),value.label,true);
+      await Addimg(URL_API+value.value.replace("..",''),value.label,true);
       count++;
       if(count == options2.length){
         tinysort('div#CCTV0>div>img',{attr:'id'});

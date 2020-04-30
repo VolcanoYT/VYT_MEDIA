@@ -1,4 +1,4 @@
-window.CESIUM_BASE_URL = 'https://volcanoyt.com/core/t/Cesium/';
+window.CESIUM_BASE_URL = 'https://cdn.volcanoyt.com/core/t/Cesium/';
 Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJjNzlhNGNlYy0zMjM1LTRmNGMtYmNjNy0yMzA1ZjA1ZDc4Y2UiLCJpZCI6MTk2NDEsInNjb3BlcyI6WyJhc3IiLCJnYyJdLCJpYXQiOjE1NzU5NTA2MDZ9.uhcwif9N5JHaQmLl22pzkf1bh8EhsngQTXLFnY4CKz4';
 var keymapbox = "pk.eyJ1IjoidGVtYmxvciIsImEiOiI5MjdjOTMxNTJiZmFlZmU1ZGI0ZjAwNTZlNjEyOWEwNyJ9.a1_DS6D2ipZAP1AS2OyAHQ";
 var eqwatch = [];
@@ -325,7 +325,7 @@ function GetApi() {
             update: localDate,
             hour: 24
         },
-        url: "https://api.volcanoyt.com/earthquake/geo.json",
+        url: URL_API+"earthquake/geo.json",
     }).done(function (data) {
         if (data && data.meta) {
             if (data.meta.code == 200) {

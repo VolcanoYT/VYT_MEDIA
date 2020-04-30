@@ -264,7 +264,7 @@ function GetApi() {
             update: localDate,
             hour: 24
         },
-        url: "https://api.volcanoyt.com/earthquake/geo.json",
+        url: URL_API+"earthquake/geo.json",
     }).done(function(data) {
         if (data && data.meta) {
             if (data.meta.code == 200) {
@@ -291,7 +291,7 @@ function GetLaut() {
         method: "GET",
         dataType: "json",
         cache: true,
-        url: "https://api.volcanoyt.com/spanel/laut.json",
+        url: URL_API+"spanel/laut.json",
     }).done(function(data) {
         if (data) {
             for (b in data) {
@@ -322,7 +322,7 @@ function GetCamera() {
         method: "GET",
         dataType: "json",
         cache: true,
-        url: "https://api.volcanoyt.com/camera/list.json",
+        url: URL_API+"camera/list.json",
     }).done(function(data) {
         console.log(data);
         data = data['results'];
@@ -361,7 +361,7 @@ function GetVolcano() {
         method: "GET",
         dataType: "json",
         cache: true,
-        url: "https://api.volcanoyt.com/volcano/list.json",
+        url: URL_API+"volcano/list.json",
     }).done(function(data) {
         if (data) {
             volcanodata = data.results;
