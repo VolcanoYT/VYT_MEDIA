@@ -10,7 +10,7 @@ window.onload = function() {
 };
 
 function vd(id){
-  $("#videohere").prepend('<video id="MY_VIDEO_1" class="video-js vjs-default-skin vjs-fluid" poster="'+URL_API+'timelapse/'+id+'/last.jpg" data-setup="{}"><source src="'+URL_API+'timelapse/'+id+'/last.mp4"><p class="vjs-no-js">To view this video please enable JavaScript, and consider upgrading to a web browser that <a href="http://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a></p></video>');
+  $("#videohere").prepend('<video id="MY_VIDEO_1" class="video-js vjs-default-skin vjs-fluid" poster="'+URL_CDN+'timelapse/'+id+'/last.jpg" data-setup="{}"><source src="'+URL_CDN+'timelapse/'+id+'/last.mp4"><p class="vjs-no-js">To view this video please enable JavaScript, and consider upgrading to a web browser that <a href="http://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a></p></video>');
   videois=videojs("MY_VIDEO_1", { "controls": true, "autoplay": false, "preload": "none" });
   var dropdown = $('#pilihvideo');
   dropdown.empty();

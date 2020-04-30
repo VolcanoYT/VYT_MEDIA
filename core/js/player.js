@@ -138,7 +138,7 @@ function RunLive() {
         console.log("API Start", c);
 
         //API Sudah di Set
-        setimg = URL_API+"timelapse/" + camid + "/" + tp + ".jpg";
+        setimg = URL_CDN+"timelapse/" + camid + "/" + tp + ".jpg";
         types = c.type;
         sereload = c.refresh;
         displayz[0] = "Cam: " + c.name;

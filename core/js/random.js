@@ -23,7 +23,7 @@ async function updatecek() {
 function get(addme) {
     return new Promise(resolve => {
         jQuery.ajax({
-            url: URL_API+"timelapse/" + addme.id + "/raw.jpg",
+            url: URL_CDN+"timelapse/" + addme.id + "/raw.jpg",
             cache: false,
             xhr: function() {
                 var xhr = new XMLHttpRequest();
