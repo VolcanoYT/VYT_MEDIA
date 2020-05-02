@@ -526,7 +526,7 @@ $('#proses').on('click', function (e) {
         $('#loadff').hide();
         $('#cloban').show();
         if (data.code == 200) {
-            $('#msg').append('<div class="form-group"><video width="100%" height="240" controls autoplay mute loop><source src="'+URL_API+'collection/' + data.md5 + '.mp4" type="video/mp4"></video><label>Download Link</label><div class="input-group"><input type="text" class="form-control" value="'+URL_API+'collection/' + data.md5 + '.mp4"></div></div>');
+            $('#msg').append('<div class="form-group"><video width="100%" height="240" controls autoplay mute loop><source src="'+URL_CDN+'collection/' + data.md5 + '.mp4" type="video/mp4"></video><label>Download Link</label><div class="input-group"><input type="text" class="form-control" value="'+URL_CDN+'collection/' + data.md5 + '.mp4"></div></div>');
         }
         $('#msg').append('<div class="alert alert-warning" role="alert">' + data.status + '</div>');
     }).fail(function (a) {
@@ -569,7 +569,7 @@ $('.timelapse_bt').on('click', function (e) {
                     return ((x < y) ? -1 : ((x > y) ? 1 : 0));
                 });
                 $.each(options, function (i, option) {
-                    dropdown.append($('<option></option>').attr('value', URL_API+option.value).text(moment.unix(option.label).format("DD-MM-YYYY HH:mm:ss")));
+                    dropdown.append($('<option></option>').attr('value', URL_CDN+option.value).text(moment.unix(option.label).format("DD-MM-YYYY HH:mm:ss")));
                 });
 
                 //API Pilih
@@ -612,7 +612,7 @@ $('.timelapse_bt').on('click', function (e) {
                                     break;
                                 }
 
-                                var datax = await Addimg(URL_API+value.value.replace("..", ''), value.label, true, div_tl_raw);
+                                var datax = await Addimg(URL_CDN+value.value.replace("..", ''), value.label, true, div_tl_raw);
                                 countx++;
                                 proses(percentage(countx, options2.length));
                                 if (datax.code == 200) {
