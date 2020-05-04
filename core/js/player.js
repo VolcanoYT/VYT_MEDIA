@@ -535,7 +535,7 @@ $('#proses').on('click', function (e) {
         $('#loadff').hide();
         $('#msg').append('<div class="alert alert-warning" role="alert">Error Load</div>');
     });
-})
+}) 
 
 //Tombol Timelaspe
 $('.timelapse_bt').on('click', function (e) {
