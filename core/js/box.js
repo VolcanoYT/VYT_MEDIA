@@ -16,7 +16,7 @@ var rtyt = getAllUrlParams().rtyt;
 //var byjam = getAllUrlParams().byjam;
 //var bysource = getAllUrlParams().bysource;
 
-var boxio = io('https://app.volcanoyt.com/box', {
+var boxio = io('https://tapp.volcanoyt.com/box', {
     transports: ['websocket'],
     upgrade: false
 });
@@ -87,7 +87,7 @@ function AutoIndex() {
         method: "GET",
         dataType: "json",
         cache: false,
-        url: "https://app.volcanoyt.com/scene",
+        url: "https://tapp.volcanoyt.com/scene",
         data: {
             name: namaserver
         }

@@ -311,7 +311,7 @@ async function UpdateMe() {
 
         //Live Mode
         if (jpgr) {
-            realimg = "https://app.volcanoyt.com/img?url=" + camid + '&timeout=' + sereload + 2;
+            realimg = "https://tapp.volcanoyt.com/img?url=" + camid + '&timeout=' + sereload + 2;
         }
 
         //API Player
@@ -520,7 +520,7 @@ $('#proses').on('click', function (e) {
             tweet: tweet,
             cam: camid
         },
-        url: 'https://app.volcanoyt.com/timelapse',
+        url: 'https://tapp.volcanoyt.com/timelapse',
     }).done(function (data) {
         $('#getinfo').show();
         $('#loadff').hide();

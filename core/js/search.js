@@ -357,7 +357,7 @@ $('body').on('click', '.post-id', async function (e) {
 
             if (multi.value) {
                 $.ajax({
-                        url: 'https://app.volcanoyt.com/bb?query=' + multi.value + '|' + id + '&password=TeamVolcanoYT&user=' + myprofil.username,
+                        url: 'https://tapp.volcanoyt.com/bb?query=' + multi.value + '|' + id + '&password=TeamVolcanoYT&user=' + myprofil.username,
                         type: "get",
                         cache: false,
                         beforeSend: function () {

@@ -186,7 +186,7 @@ $(window).on('load', function() {
             data: {
                 update: localDate
             },
-            url: "https://app.volcanoyt.com/online",
+            url: "https://tapp.volcanoyt.com/online",
         }).done(function(data) {
             try {
                 //console.log(data);

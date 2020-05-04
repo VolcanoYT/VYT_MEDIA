@@ -82,7 +82,7 @@ gn.init(args).then(function () {
 });
 
 //API Socket
-ewsio = io('https://app.volcanoyt.com/ews', {
+ewsio = io('https://tapp.volcanoyt.com/ews', {
     transports: ['websocket'],
     upgrade: false
 });
@@ -219,7 +219,7 @@ function SetGPS(Latitude, Longitude, isfake = false) {
     }
 }
 
-$.getJSON('https://app.volcanoyt.com/warning', function (data) {
+$.getJSON('https://tapp.volcanoyt.com/warning', function (data) {
     try {
         for (let b in data) {
             OnData({
