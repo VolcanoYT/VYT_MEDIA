@@ -2,12 +2,16 @@
 if (location.protocol != 'https:') {
     location.replace('https:' + window.location.href.substring(window.location.protocol.length));
 }
+var URL_API="https://beta.volcanoyt.com/";
 var wtf = "Login";
 var url_cek = 'login';
 var autoclose = getAllUrlParams().autoclose;
 
 $('#Wanttodo').change(function (e) {
     wtf = $(this).val();
+
+    isVaild('', 'info', true); // recek
+
     if (wtf == "Login") {
         $("#tusername").show();
         $("#tname").hide();
@@ -36,8 +40,8 @@ $('#Wanttodo').change(function (e) {
         $("#ttoken").show();
         $("#tpassword").hide();
         url_cek = 'verification';
-    } else if (wtf == "Login with Google Acount") {
-        isVaild('Click Submit to connect to Google API', 'info', true);
+    } else if (wtf == "Login with Google Acount" || wtf == "Login with Twitter Acount") {
+        isVaild('Click Submit to login with your social network account', 'info', true);
         $("#tusername").hide();
         $("#tname").hide();
         $("#temail").hide();
@@ -53,6 +57,9 @@ $("form").submit(function (e) {
     event.preventDefault();
     if (wtf == "Login with Google Acount") {
         return gogoogle();
+    }
+    if (wtf == "Login with Twitter Acount") {
+        return gotwitter();
     }
     var username = $('#username').val();
     var password = $("#password").val();
@@ -80,14 +87,14 @@ $("form").submit(function (e) {
                         token: token,
                         gtoken: gcode
                     },
-                    url: URL_API+"account/v4/' + url_cek + '.json',
+                    url: URL_API+"account/v4/" + url_cek + ".json"
                 }).done(function (data) {
                     Go(data);
                 }).fail(function (a) {
                     isVaild('There is a problem with server, try asking admin');
                 });
             } else {
-                isVaild('You are not human or Google fails to think you are human');
+                isVaild('You are not human or Google fails to think you are human :(');
             }
         });;
     }); //if faild by google
@@ -106,6 +113,20 @@ function gogoogle(r = true, a = true) {
             window.clearInterval(pollTimer);
             if (errnyt) {
                 isVaild('There is a problem with respon api google, try asking admin');
+            }
+        }
+    }, 200);
+}
+
+function gotwitter(r = true, a = true) {
+    isVaild('Login Twitter...', 'info', false);
+    var newWindow = open(URL_API+'twitter/login.json?redirect=' + r + '&autologin=' + a + '', 'Twitter Login', 'width=500,height=800')
+    newWindow.focus();
+    var pollTimer = window.setInterval(function () {
+        if (newWindow.closed !== false) { // !== is required for compatibility with Opera
+            window.clearInterval(pollTimer);
+            if (errnyt) {
+                isVaild('There is a problem with respon api twitter, try asking admin');
             }
         }
     }, 200);
@@ -133,7 +154,7 @@ function Go(data) {
             $("#loading").hide();
             try {
                 $('#token_private').val(data.token_private);
-                if (wtf == "Login" || wtf == "Login with Google Acount") {
+                if (wtf == "Login" || wtf == "Login with Google Acount"  || wtf == "Login with Twitter Acount") {
                     if (autoclose == "true") {
                         $('#pesan').html('<div class="alert alert-info" role="alert">' + data.status + ', windows login will close automatically in 5 seconds</div>');
                         window.opener.postMessage({"api":"login", "data":data}, "*");

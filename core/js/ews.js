@@ -85,7 +85,7 @@ gn.init(args).then(function () {
 ewsio = io('https://tapp.volcanoyt.com/ews', {
     transports: ['websocket'],
     upgrade: false
-});
+}); 
 ewsio.on('disconnect', function () {
     if (document.getElementById("putmap") !== null) {
         $('#isonline').html("Offline");

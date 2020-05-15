@@ -2,234 +2,26 @@ URL_API="https://beta.volcanoyt.com/";
 URL_CDN="https://cdn.volcanoyt.com/";
 URL_APP="https://tapp.volcanoyt.com/";
 const delay = ms => new Promise(res => setTimeout(res, ms));
-var Base64 = {
-    _keyStr: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",
-    encode: function (e) {
-        var t = "";
-        var n, r, i, s, o, u, a;
-        var f = 0;
-        e = Base64._utf8_encode(e);
-        while (f < e.length) {
-            n = e.charCodeAt(f++);
-            r = e.charCodeAt(f++);
-            i = e.charCodeAt(f++);
-            s = n >> 2;
-            o = (n & 3) << 4 | r >> 4;
-            u = (r & 15) << 2 | i >> 6;
-            a = i & 63;
-            if (isNaN(r)) {
-                u = a = 64
-            } else if (isNaN(i)) {
-                a = 64
-            }
-            t = t + this._keyStr.charAt(s) + this._keyStr.charAt(o) + this._keyStr.charAt(u) + this._keyStr.charAt(a)
-        }
-        return t
-    },
-    decode: function (e) {
-        var t = "";
-        var n, r, i;
-        var s, o, u, a;
-        var f = 0;
-        e = e.replace(/[^A-Za-z0-9\+\/\=]/g, "");
-        while (f < e.length) {
-            s = this._keyStr.indexOf(e.charAt(f++));
-            o = this._keyStr.indexOf(e.charAt(f++));
-            u = this._keyStr.indexOf(e.charAt(f++));
-            a = this._keyStr.indexOf(e.charAt(f++));
-            n = s << 2 | o >> 4;
-            r = (o & 15) << 4 | u >> 2;
-            i = (u & 3) << 6 | a;
-            t = t + String.fromCharCode(n);
-            if (u != 64) {
-                t = t + String.fromCharCode(r)
-            }
-            if (a != 64) {
-                t = t + String.fromCharCode(i)
-            }
-        }
-        t = Base64._utf8_decode(t);
-        return t
-    },
-    _utf8_encode: function (e) {
-        e = e.replace(/\r\n/g, "\n");
-        var t = "";
-        for (var n = 0; n < e.length; n++) {
-            var r = e.charCodeAt(n);
-            if (r < 128) {
-                t += String.fromCharCode(r)
-            } else if (r > 127 && r < 2048) {
-                t += String.fromCharCode(r >> 6 | 192);
-                t += String.fromCharCode(r & 63 | 128)
-            } else {
-                t += String.fromCharCode(r >> 12 | 224);
-                t += String.fromCharCode(r >> 6 & 63 | 128);
-                t += String.fromCharCode(r & 63 | 128)
-            }
-        }
-        return t
-    },
-    _utf8_decode: function (e) {
-        var t = "";
-        var n = 0;
-        var r = c1 = c2 = 0;
-        while (n < e.length) {
-            r = e.charCodeAt(n);
-            if (r < 128) {
-                t += String.fromCharCode(r);
-                n++
-            } else if (r > 191 && r < 224) {
-                c2 = e.charCodeAt(n + 1);
-                t += String.fromCharCode((r & 31) << 6 | c2 & 63);
-                n += 2
-            } else {
-                c2 = e.charCodeAt(n + 1);
-                c3 = e.charCodeAt(n + 2);
-                t += String.fromCharCode((r & 15) << 12 | (c2 & 63) << 6 | c3 & 63);
-                n += 3
-            }
-        }
-        return t
-    }
-}
-var usemp3 = false;
-var socketrun = false;
-var socket;
-var context;
-var userLang = navigator.language || navigator.userLanguage;
-console.log(userLang);
-var localDate;
-var BrowserDetect = {
-    init: function () {
-        this.browser = this.searchString(this.dataBrowser) || "Unknown Browser", this.version = this.searchVersion(navigator.userAgent) || this.searchVersion(navigator.appVersion) || "Unknown Version", this.OS = this.searchString(this.dataOS) || "Unknown OS"
-    },
-    searchString: function (i) {
-        for (var n = 0; n < i.length; n++) {
-            var r = i[n].string,
-                t = i[n].prop;
-            if (this.versionSearchString = i[n].versionSearch || i[n].identity, r) {
-                if (-1 != r.indexOf(i[n].subString)) return i[n].identity
-            } else if (t) return i[n].identity
-        }
-    },
-    searchVersion: function (i) {
-        var n = i.indexOf(this.versionSearchString);
-        if (-1 != n) return parseFloat(i.substring(n + this.versionSearchString.length + 1))
-    },
-    dataBrowser: [{
-        string: navigator.userAgent,
-        subString: "Chrome",
-        identity: "Chrome"
-    }, {
-        string: navigator.userAgent,
-        subString: "OmniWeb",
-        versionSearch: "OmniWeb/",
-        identity: "OmniWeb"
-    }, {
-        string: navigator.vendor,
-        subString: "Apple",
-        identity: "Safari",
-        versionSearch: "Version"
-    }, {
-        prop: window.opera,
-        identity: "Opera",
-        versionSearch: "Version"
-    }, {
-        string: navigator.vendor,
-        subString: "iCab",
-        identity: "iCab"
-    }, {
-        string: navigator.vendor,
-        subString: "KDE",
-        identity: "Konqueror"
-    }, {
-        string: navigator.userAgent,
-        subString: "Firefox",
-        identity: "Firefox"
-    }, {
-        string: navigator.vendor,
-        subString: "Camino",
-        identity: "Camino"
-    }, {
-        string: navigator.userAgent,
-        subString: "Netscape",
-        identity: "Netscape"
-    }, {
-        string: navigator.userAgent,
-        subString: "MSIE",
-        identity: "Explorer",
-        versionSearch: "MSIE"
-    }, {
-        string: navigator.userAgent,
-        subString: "Gecko",
-        identity: "Mozilla",
-        versionSearch: "rv"
-    }, {
-        string: navigator.userAgent,
-        subString: "Mozilla",
-        identity: "Netscape",
-        versionSearch: "Mozilla"
-    }],
-    dataOS: [{
-        string: navigator.platform,
-        subString: "Win",
-        identity: "Windows"
-    }, {
-        string: navigator.platform,
-        subString: "Mac",
-        identity: "Mac"
-    }, {
-        string: navigator.userAgent,
-        subString: "iPhone",
-        identity: "iPhone/iPod"
-    }, {
-        string: navigator.platform,
-        subString: "Linux",
-        identity: "Linux"
-    }]
-};
-BrowserDetect.init();
-var isMobile = {
-    Android: function () {
-        return navigator.userAgent.match(/Android/i)
-    },
-    BlackBerry: function () {
-        return navigator.userAgent.match(/BlackBerry/i)
-    },
-    iOS: function () {
-        return navigator.userAgent.match(/iPhone|iPad|iPod/i)
-    },
-    Opera: function () {
-        return navigator.userAgent.match(/Opera Mini/i)
-    },
-    Windows: function () {
-        return navigator.userAgent.match(/IEMobile/i)
-    },
-    any: function () {
-        return isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Opera() || isMobile.Windows()
-    }
-};
 
+var context;
+var usemp3 = false;
 try {
     context = new AudioContext();
-} catch (e) {
-    console.log(e);
-    usemp3 = true;
-}
-
-try {
     document.querySelector('button').addEventListener('click', function () {
         context.resume().then(() => {
             console.log("Playback resumed successfully");
         });
     });
-} catch (error) {
-    //tidak harus di pakai   
+} catch (e) {
+    console.log(e);
+    usemp3 = true;
 }
-setInterval(function () {
-    localDate = Math.floor(new Date().getTime() / 1000);
+
+var localDate;
+setInterval(function () {    
     try {
-        $('#mytime').text("" + moment().utc().format('YYYY/MM/DD HH:mm:ss') + " GMT | " + moment().format('YYYY/MM/DD HH:mm:ss') + " LocalTime");
+        localDate = Math.floor(new Date().getTime() / 1000);
+        $('#mytime').text("" + moment().utc().format('DD/MM/YYYY HH:mm:ss') + " GMT | " + moment().format('DD/MM/YYYY HH:mm:ss') + " LocalTime");
     } catch (error) {
         //tidak harus di pakai 
     }
@@ -254,17 +46,6 @@ async function GetJson(url, loop = 2, cache = false) {
     })
 }
 
-function sendme(status, message, password) {
-    try {
-        socket.emit('admin', {
-            status: status,
-            message: message,
-            password: password
-        });
-    } catch (error) {
-        console.log(error);
-    }
-}
 //This function takes in latitude and longitude of two location and returns the distance between them as the crow flies (in km)
 function calcCrow(lat1, lon1, lat2, lon2) {
     var R = 6371; // km
@@ -756,12 +537,6 @@ function getAllUrlParams(url) {
         }
     }
     return obj;
-}
-
-if (window.location.protocol != 'https:') {
-    if (getAllUrlParams().nossl !== "true") {
-        location.href = location.href.replace("http://", "https://");
-    }
 }
 
 function number_format (number, decimals, decPoint, thousandsSep) {  

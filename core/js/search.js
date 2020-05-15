@@ -123,7 +123,7 @@ $('body').on('click', '.reloadlisupload', async function (e) {
 
     }
     lisupload = $('#GoListUpload').DataTable({
-        "ajax": URL_API+'camera/upload/view.json' + setcamerasetting,
+        "ajax": URL_API + 'camera/upload/view.json' + setcamerasetting,
         "columns": [{
                 "class": "detailscm fas fa-chevron-circle-up",
                 "orderable": false,
@@ -239,7 +239,7 @@ $('body').on('click', '.addaccupload', async function (e) {
 
     if (open == "youtubead") {
 
-        var newWindow = window.open(URL_API+'google/login.json' + setcamerasetting + 'autologin=true&gl=youtube', 'VolcanoYT Login', 'width=500,height=800')
+        var newWindow = window.open(URL_API + 'google/login.json' + setcamerasetting + 'autologin=true&gl=youtube', 'VolcanoYT Login', 'width=500,height=800')
         newWindow.focus();
         var pollTimer = window.setInterval(function () {
             if (newWindow.closed !== false) { // !== is required for compatibility with Opera
@@ -270,7 +270,7 @@ $('body').on('click', '.addaccupload', async function (e) {
             if (result.value) {
 
                 $.ajax({
-                        url: URL_API+'google/ytcode.json' + setcamerasetting + 'code=' + result.value,
+                        url: URL_API + 'google/ytcode.json' + setcamerasetting + 'code=' + result.value,
                         type: "get",
                         cache: false,
                         beforeSend: function () {
@@ -404,7 +404,7 @@ $('body').on('click', '.post-id', async function (e) {
             setcamerasetting = '?id=' + id + '&token_user=' + myprofil.token.private + '&';
             setselectidsetting = id;
             $.ajax({
-                    url: URL_API+'camera/view.json' + setcamerasetting,
+                    url: URL_API + 'camera/view.json' + setcamerasetting,
                     type: "get",
                     cache: false,
                     beforeSend: function () {
@@ -500,7 +500,7 @@ function GetMirova(n) {
             id: n
         },
         cache: false,
-        url: URL_API+"volcano/stats/mirova.json",
+        url: URL_API + "volcano/stats/mirova.json",
     }).done(function (bb) {
         if (bb && bb.code) {
             if (bb.code == 200) {
@@ -590,7 +590,7 @@ function onme(on = true) {
 var CheckIfScrollBottom = debouncer(function () {
     if (getDocHeight() == getScrollXY()[1] + window.innerHeight) {
         if ($("#load").length >= 1) {
-            $('#load').click();
+            //$('#load').click();
         }
     }
 }, 500);
@@ -634,7 +634,7 @@ $('body').on('click', '#like,#dislike', function (e) {
     }
     Swal.fire('Wait...');
     $.ajax({
-            url: URL_API+'camera/like.json',
+            url: URL_API + 'camera/like.json',
             type: "get",
             cache: false,
             data: {
@@ -660,6 +660,28 @@ $('body').on('click', '#like,#dislike', function (e) {
             })
         });
 })
+$('body').on('click', '#diqus_loader', function (e) {
+    // Prepare the trigger and target
+    var disqus_trigger = document.getElementById('diqus_loader'),
+        disqus_target = document.getElementById('disqus_thread'),
+        disqus_embed = document.createElement('script'),
+        disqus_hook = (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]);
+
+    // Load script asynchronously only when the trigger and target exist
+    if (disqus_target && disqus_trigger) {
+        disqus_embed.type = 'text/javascript';
+        disqus_embed.async = true;
+        disqus_embed.src = '//https-camera-volcanoyt-com.disqus.com/embed.js';
+        disqus_hook.appendChild(disqus_embed);
+        disqus_trigger.remove();
+        console.log('Disqus loaded.');
+    }
+})
+
+$('body').on('click', '#share', function (e) {
+console.log(e);
+
+})
 
 $('body').on('click', '#load', function (e) {
     var a = $(this);
@@ -678,7 +700,7 @@ $('body').on('click', '#load', function (e) {
     }
 
     $.ajax({
-            url: URL_API+type + '/list.json?search=' + cari + '&sort=' + getsort + '&limit=' + limit + '&pages=' + p + '&noallow=' + noallow + '&noallow_by=' + noallowby + '&allow=&allow_by=',
+            url: URL_API + type + '/list.json?search=' + cari + '&sort=' + getsort + '&limit=' + limit + '&pages=' + p + '&noallow=' + noallow + '&noallow_by=' + noallowby + '&allow=&allow_by=',
             type: "get",
             cache: false,
             beforeSend: onme(false),
@@ -694,7 +716,7 @@ $('body').on('click', '#load', function (e) {
                         if (isEmpty(idimg)) {
                             idimg = "error";
                         }
-                        $("#post-data").append('<a class="col-xl-3 col-sm-6 mb-3" href="/volcano/' + data.id + '/' + data.seo_url + '"><div class="card bg-dark shadow-none"><img loading="lazy" class="vidt lazyload" data-src="'+URL_API+'val/' + idimg + '.jpg"><h2 class="card-img-overlay yo">' + data.name + ' (' + data.Country + ')</h2></div></a>');
+                        $("#post-data").append('<a class="col-xl-3 col-sm-6 mb-3" href="/volcano/' + data.id + '/' + data.seo_url + '"><div class="card bg-dark shadow-none"><img loading="lazy" class="vidt lazyload" data-src="' + URL_API + 'val/' + idimg + '.jpg"><h2 class="card-img-overlay yo">' + data.name + ' (' + data.Country + ')</h2></div></a>');
                     } else if (type == "report") { //alt="' + data.name + '"
                         var eh = '<div class="card shadow-none">';
                         if (!isEmpty(data.pic)) {
@@ -711,9 +733,9 @@ $('body').on('click', '#load', function (e) {
                         eh += '</div></div>';
                         $(".blogvolcano").append(eh);
                     } else if (type == "camera") {
-                        var nobeta = '<img class="vidt reloadthis lazyload" id="' + data.id + '" data-src="'+URL_CDN+'timelapse/' + data.id + '/tumb.jpg?time=' + timep + '">';
+                        var nobeta = '<img class="vidt lazyload" id="' + data.id + '" data-src="' + URL_CDN + 'timelapse/' + data.id + '/tumb.jpg?time=' + timep + '">';
                         if (isbeta == 'true') {
-                            nobeta = '<video loading="lazy" class="vidt" poster="'+URL_CDN+'timelapse/' + data.id + '/tumb.jpg?time=' + timep + '" autoplay loop muted playsinline><source src="'+URL_CDN+'timelapse/' + data.id + '/gif.mp4?time=' + timep + '" type="video/mp4"></video>';
+                            nobeta = '<video loading="lazy" class="vidt" poster="' + URL_CDN + 'timelapse/' + data.id + '/tumb.jpg?time=' + timep + '" autoplay loop muted playsinline><source src="' + URL_CDN + 'timelapse/' + data.id + '/gif.mp4?time=' + timep + '" type="video/mp4"></video>';
                         }
                         $("#post-data").append('<a class="col-xl-3 col-sm-6 mb-3 post-id" data-id="' + data.id + '" href="/camera/' + data.id + '/' + data.seo_url + '"><div class="card shadow-none">' + nobeta + '<h2 class="card-img-overlay">' + data.name + '</h2></div></a> ');
                     } else {
@@ -756,7 +778,7 @@ function loginweb() {
             }
         })
     } else {
-        var newWindow = open(URL_API+'login.php?autoclose=true', 'VolcanoYT Login', 'width=500,height=800')
+        var newWindow = open(URL_API + 'login.php?autoclose=true', 'VolcanoYT Login', 'width=500,height=800')
         newWindow.focus();
         var pollTimer = window.setInterval(function () {
             if (newWindow.closed !== false) { // !== is required for compatibility with Opera
@@ -780,7 +802,7 @@ window.onerror = function (err) {
 window.addEventListener("message", pesanku, false);
 navigator.serviceWorker.addEventListener("message", pesanku, false);
 
-function pesanku(event){
+function pesanku(event) {
     if ((event.origin).includes("volcanoyt")) {
         var data = event.data;
         if (data.api == 'login') {
@@ -815,7 +837,7 @@ function pesanku(event){
         } else if (data.api == 'push') {
             //todo filiter pesan
             data = data.data;
-            NotifMe(data.title+': '+data.body);
+            NotifMe(data.title + ': ' + data.body);
         } else {
             console.log('belum support');
             console.log(data);
@@ -850,7 +872,7 @@ if (islogin && !isEmpty(islogin.token_private)) {
                 fields: 'account',
                 //gtoken: token youtube
             },
-            url: URL_API+'account/v4/access.json',
+            url: URL_API + 'account/v4/access.json',
         }).done(function (data) {
             if (data.code == 200) {
                 var cekprofil = data.fields.account;
