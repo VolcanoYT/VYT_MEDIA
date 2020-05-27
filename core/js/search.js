@@ -837,6 +837,7 @@ function pesanku(event) {
         } else if (data.api == 'push') {
             //todo filiter pesan
             data = data.data;
+            console.log('puss data co',data);
             NotifMe(data.title + ': ' + data.body);
         } else {
             console.log('belum support');

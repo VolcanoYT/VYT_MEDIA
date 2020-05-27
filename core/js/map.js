@@ -1,4 +1,7 @@
 var eqwatch = [];
+var auto_mode = getAllUrlParams().auto;
+var auto_twait=0;
+var auto_gwait=60;
 
 var GroupBlue = L.layerGroup();
 var TsunamiStation = L.layerGroup();
@@ -54,12 +57,14 @@ var platetectonics = new L.TileLayer("https://earthquake.usgs.gov/basemap/tiles/
 var places = new L.TileLayer("https://services.arcgisonline.com/arcgis/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}");
 var highrisk = new L.TileLayer("https://{s}.tiles.mapbox.com/v4/temblor.d2byhogx/{z}/{x}/{y}.jpg?access_token=" + keymapbox);
 highrisk.setOpacity(0.4);
-var krb = L.esri.featureLayer({ url: 'https://services7.arcgis.com/g7FCBALNv7UNIenl/arcgis/rest/services/KRB_GA_ID2/FeatureServer/0' });
+var krb = L.esri.featureLayer({
+    url: 'https://services7.arcgis.com/g7FCBALNv7UNIenl/arcgis/rest/services/KRB_GA_ID2/FeatureServer/0'
+});
 
 var map = new L.Map('map', {
     attributionControl: true,
-    
-    layers: [googleSat, GroupBlue, platetectonics, GroupEWS, GroupVolcano, places,CameraList]
+
+    layers: [googleSat, GroupBlue, platetectonics, GroupEWS, GroupVolcano, places, CameraList]
 }).fitWorld();
 map.setView([-1.62, 120.13], 5.4);
 map.locate({
@@ -222,7 +227,7 @@ function add(spawn) {
         if (gg.length > 0) {
             str += '<br><br>Volcano Nearby:';
         }
-        $.each(gg, function(key, entry) {
+        $.each(gg, function (key, entry) {
             str += '<br><a href="https://volcanoyt.com/volcano/' + entry['id'] + '/' + entry['url'] + '" target="_blank">' + entry['name'] + '</a> (' + entry['jarak'] + 'km)';
         });
         if (gg.length >= 0) {
@@ -248,11 +253,11 @@ function add(spawn) {
     }
 }
 
-map.on('overlayadd', function(e) {
+map.on('overlayadd', function (e) {
     console.log(e);
 });
 
-map.on('overlayremove', function(e) {
+map.on('overlayremove', function (e) {
     console.log(e);
 });
 
@@ -264,8 +269,8 @@ function GetApi() {
             update: localDate,
             hour: 24
         },
-        url: URL_API+"earthquake/geo.json",
-    }).done(function(data) {
+        url: URL_API + "earthquake/geo.json",
+    }).done(function (data) {
         if (data && data.meta) {
             if (data.meta.code == 200) {
                 if (data.features) {
@@ -281,7 +286,7 @@ function GetApi() {
         } else {
             NotifMe("Earthquake: Unknown problem");
         }
-    }).fail(function(a) {
+    }).fail(function (a) {
         NotifMe("Earthquake: Failed to update!");
     });
 }
@@ -291,8 +296,8 @@ function GetLaut() {
         method: "GET",
         dataType: "json",
         cache: true,
-        url: URL_API+"spanel/laut.json",
-    }).done(function(data) {
+        url: URL_API + "spanel/laut.json",
+    }).done(function (data) {
         if (data) {
             for (b in data) {
                 var newico = new L.marker(new L.LatLng(data[b]['lat'], data[b]['lng'], 0), {
@@ -303,7 +308,7 @@ function GetLaut() {
                         prefix: 'fa'
                     }),
                     datap: data[b]
-                }).on('click', function(e) {
+                }).on('click', function (e) {
                     window.open('http://tides.big.go.id:8888/kacrut/' + this.options.datap['code'] + '/' + this.options.datap['code'] + '.html', '_blank').focus();
                 });
                 TsunamiStation.addLayer(newico);
@@ -312,7 +317,7 @@ function GetLaut() {
             NotifMe("TsunamiStation: Unknown problem");
         }
         GetVolcano();
-    }).fail(function(a) {
+    }).fail(function (a) {
         NotifMe("TsunamiStation: Failed to update!");
     });
 }
@@ -322,15 +327,15 @@ function GetCamera() {
         method: "GET",
         dataType: "json",
         cache: true,
-        url: URL_API+"camera/list.json",
-    }).done(function(data) {
+        url: URL_API + "camera/list.json",
+    }).done(function (data) {
         console.log(data);
         data = data['results'];
         console.log(data);
         if (data) {
             for (b in data) {
                 //console.log(data[b]);
-                if(!isEmpty(data[b]['location']['latitude'])){
+                if (!isEmpty(data[b]['location']['latitude'])) {
                     var newico = new L.marker(new L.LatLng(data[b]['location']['latitude'], data[b]['location']['longitude'], 0), {
                         icon: L.ExtraMarkers.icon({
                             icon: "fa-camera",
@@ -339,17 +344,17 @@ function GetCamera() {
                             prefix: 'fa'
                         }),
                         datap: data[b]
-                    }).on('click', function(e) {
+                    }).on('click', function (e) {
                         window.open('https://volcanoyt.com/camera/' + this.options.datap['id'], '_blank').focus();
                     });
                     CameraList.addLayer(newico);
-                }                
+                }
             }
         } else {
             NotifMe("Camera: Unknown problem");
         }
         GetLaut();
-    }).fail(function(a) {
+    }).fail(function (a) {
         NotifMe("Camera: Failed to update!");
     });
 }
@@ -361,8 +366,8 @@ function GetVolcano() {
         method: "GET",
         dataType: "json",
         cache: true,
-        url: URL_API+"volcano/list.json",
-    }).done(function(data) {
+        url: URL_API + "volcano/list.json",
+    }).done(function (data) {
         if (data) {
             volcanodata = data.results;
             for (let v of data.results) {
@@ -380,7 +385,7 @@ function GetVolcano() {
                         prefix: 'fa'
                     }),
                     datap: v
-                }).on('click', function(e) {
+                }).on('click', function (e) {
                     window.open('https://volcanoyt.com/volcano/' + this.options.datap['id'] + '/' + this.options.datap['seo_url'] + '', '_blank').focus()
                 });
                 GroupVolcano.addLayer(newico);
@@ -389,14 +394,14 @@ function GetVolcano() {
             NotifMe("Volcano: Unknown problem");
         }
         GetApi();
-    }).fail(function(a) {
+    }).fail(function (a) {
         NotifMe("Volcano: Failed to update!");
     });
 }
 
 function nearvolcano(lat, lot, limit = 1, upto = 0) {
     var datasan = [];
-    $.each(volcanodata, function(key, entry) {
+    $.each(volcanodata, function (key, entry) {
         datasan.push({
             id: entry['id'],
             url: entry['seo_url'],
@@ -404,7 +409,7 @@ function nearvolcano(lat, lot, limit = 1, upto = 0) {
             jarak: calcCrow(lat, lot, entry['location']['latitude'], entry['location']['longitude']).toFixed(0)
         });
     });
-    datasan.sort(function(a, b) {
+    datasan.sort(function (a, b) {
         function getV(o) {
             //console.log(o);
             return o['jarak'];
@@ -412,7 +417,7 @@ function nearvolcano(lat, lot, limit = 1, upto = 0) {
         return getV(a) - getV(b);
     });
     if (upto > 0) {
-        datasan = datasan.filter(function(item) {
+        datasan = datasan.filter(function (item) {
             return item.jarak < upto
         });
     }
@@ -436,7 +441,15 @@ function updateTime() {
     }
 }
 
-setInterval(function() {
+setInterval(function () {
+    if (auto_mode) {
+        console.log('cek...');
+    } else {
+        console.log('no cek pw');
+    }
+}, 1000);
+
+setInterval(function () {
     GetApi();
     updateTime();
 }, 60000);
