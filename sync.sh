@@ -154,6 +154,7 @@ npmjs tempusdominus-bootstrap-4 5.1.2 build
 npmjs videojs-abloop 1.1.2 dist
 # npmjs videojs-contrib-hls 5.15.0 dist
 npmjs videojs-flash 2.2.1 dist
+npmjs videojs-youtube 2.6.1 dist
 npmjs http-streaming 2.0.0-rc.2 dist @videojs
 
 cd $tmp || exit
@@ -162,7 +163,7 @@ echo "Download CDN...."
 mkdir cdn && cd cdn || exit
 
 wget https://markknol.github.io/console-log-viewer/console-log-viewer.js
-wget https://s.ytimg.com/yts/jsbin/www-widgetapi-vflh3Z-Yc/www-widgetapi.js -O youtube.js
+# wget https://s.ytimg.com/yts/jsbin/www-widgetapi-vflh3Z-Yc/www-widgetapi.js -O youtube.js
 
 cp * $patch
 
