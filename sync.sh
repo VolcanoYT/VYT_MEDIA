@@ -88,55 +88,76 @@ cp -r jquery-ui-$versi_jsui/* ${patch}jquery-ui/
 
 cd $tmp || exit
 
-echo "Download Sweetalert2"
-mkdir -p $tmp/sweetalert2 && cd $tmp/sweetalert2 || exit
-versi_sweetalert2=9.13.1
-wget https://registry.npmjs.org/sweetalert2/-/sweetalert2-$versi_sweetalert2.tgz
-tar zxvf sweetalert2-$versi_sweetalert2.tgz | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
-rm -rf ${patch}sweetalert2/ && mkdir -p ${patch}sweetalert2/
-cp -r package/dist/* ${patch}sweetalert2/
+npmjs(){
+  nama=$1
+  versi=$2
+  folder=$3
+  owner=$4
+
+  echo "Download $nama: $versi"
+  mkdir -p $tmp/$nama && cd $tmp/$nama || exit
+
+  # https://registry.npmjs.org/@videojs/http-streaming/-/http-streaming-1.13.3.tgz
+  # http-streaming-1.13.3.tgz
+
+  if [ ! -z "$owner" ]
+  then
+    wget https://registry.npmjs.org/$owner/$nama/-/$nama-$versi.tgz
+  else
+    wget https://registry.npmjs.org/$nama/-/$nama-$versi.tgz
+  fi
+
+  tar zxvf $nama-$versi.tgz | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
+  rm -rf ${patch}${nama}/ && mkdir -p ${patch}${nama}/
+
+  if [ ! -z "$folder" ]
+  then
+    cp -r package/$folder/* ${patch}${nama}/
+  else
+    cp -r package/* ${patch}${nama}/
+  fi
+
+  echo "Install done..."
+
+  cd $tmp || exit
+
+  sleep 3
+
+}
+
+#TODO: why no just use http://browserify.org/?
+
+npmjs js-cookie 3.0.0-rc.0 dist
+npmjs socket.io-client 2.3.0 dist
+npmjs esri-leaflet 2.4.1 dist
+npmjs jquery 3.5.1 dist
+npmjs sweetalert2 9.13.1 dist
+npmjs moment 2.26.0 dist
+npmjs moment-timezone 0.5.31 builds
+npmjs jquery-ui-dist 1.12.1
+npmjs toastify-js 1.7.0 src
+npmjs tinysort 3.2.7 dist
+npmjs lazysizes 5.2.2
+
+npmjs videojs-abloop 1.1.2 dist
+npmjs videojs-contrib-hls 5.15.0 dist
+npmjs videojs-flash 2.2.1 dist
+npmjs http-streaming 2.0.0-rc.2 dist @videojs
 
 cd $tmp || exit
 
-echo "Download Jquery"
-mkdir -p $tmp/jquery && cd $tmp/jquery || exit
-versi_jquery=3.5.1
-wget https://registry.npmjs.org/jquery/-/jquery-$versi_jquery.tgz
-tar zxvf jquery-$versi_jquery.tgz | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
-rm -rf ${patch}jquery/ && mkdir -p ${patch}jquery/
-cp -r package/dist/* ${patch}jquery/
+echo "Download CDN...."
+mkdir cdn && cd cdn || exit
+
+wget https://markknol.github.io/console-log-viewer/console-log-viewer.js
+
+cp * $patch
 
 cd $tmp || exit
-
-echo "Download Esri for Map"
-mkdir -p $tmp/esri && cd $tmp/esri || exit
-versi_esri=2.4.1
-wget https://registry.npmjs.org/esri-leaflet/-/esri-leaflet-$versi_esri.tgz
-tar zxvf esri-leaflet-$versi_esri.tgz | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
-rm -rf ${patch}esri/ && mkdir -p ${patch}esri/
-cp -r package/dist/* ${patch}esri/
-
-cd $tmp || exit
-
-echo "Download socket.io-client for realtime data (Move to engine.io)"
-mkdir -p $tmp/socket && cd $tmp/socket || exit
-versi_socket=2.3.0
-wget https://registry.npmjs.org/socket.io-client/-/socket.io-client-$versi_socket.tgz
-tar zxvf socket.io-client-$versi_socket.tgz | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
-rm -rf ${patch}socket/ && mkdir -p ${patch}socket/
-cp -r package/dist/* ${patch}socket/
-
-cd $tmp || exit
-
-#echo "Download CDN...."
-#mkdir cdn && cd cdn || exit
-
-#wget https://markknol.github.io/console-log-viewer/console-log-viewer.js
-#wget 
 
 echo "Buat Folder agar bisa di akses user lain"
 # https://chmodcommand.com/chmod-755/
 chmod -R 755 $patch
 
 echo "bye..."
-rm -rf $tmp/*
+rm -rf $tmp
