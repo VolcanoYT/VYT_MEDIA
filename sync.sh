@@ -163,6 +163,7 @@ echo "Download CDN...."
 mkdir cdn && cd cdn || exit
 
 wget https://markknol.github.io/console-log-viewer/console-log-viewer.js
+wget https://raw.githubusercontent.com/joewalnes/smoothie/master/smoothie.js
 # wget https://s.ytimg.com/yts/jsbin/www-widgetapi-vflh3Z-Yc/www-widgetapi.js -O youtube.js
 
 cp * $patch

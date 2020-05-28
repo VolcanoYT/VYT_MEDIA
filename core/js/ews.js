@@ -44,11 +44,13 @@ var args = {
     screenAdjusted: true // ( If set to true it will return screen adjusted values. )
 };
 var gn = new GyroNorm();
+var arrayGal = []
 gn.init(args).then(function () {
     gn.start(function (data) {
         var isAvailable = gn.isAvailable();
         try {
 
+            /*
             //send to server
             if (isAvailable.accelerationAvailable) {
                 var send = {
@@ -58,8 +60,33 @@ gn.init(args).then(function () {
                 };
                 ewsio.emit('user_ews', send);
             }
+*/
 
-            //local view data
+            arrayGal.push(data.dm.y);
+
+            $('#x').html(data.dm.x);
+            $('#y').html(data.dm.y);
+            $('#z').html(data.dm.z);
+
+            //ambil sampel 20 kali?
+            if (arrayGal.length == 20) {
+                gal = Math.max(...arrayGal);
+                while (arrayGal.length > 0) {
+                    arrayGal.pop();
+                }
+                $('#gal').html(gal);
+                if (gal >= 10 && gal <= 88) {
+                    NotifMe("Terjadi gempa skala intensitas BMKG II (dirasakan) dengan Peak Ground Acceleration : " + gal + " gal");
+                } else if (gal > 88 && gal <= 167) {
+                    NotifMe("Terjadi gempa skala intensitas BMKG III (kerusakan ringan) dengan Peak Ground Acceleration : " + gal + " gal");
+                } else if (gal > 167 && gal <= 564) {
+                    NotifMe("Terjadi gempa skala intensitas BMKG IV (kerusakan sedang) dengan Peak Ground Acceleration : " + gal + " gal");
+                } else if (gal > 564) {
+                    NotifMe("Terjadi gempa skala intensitas BMKG V (kerusakan berat) dengan Peak Ground Acceleration : " + gal + " gal");
+                }
+            }
+
+            //local view data seimo
             if (document.getElementById("local") !== null) {
                 if (isAvailable.accelerationAvailable) {
                     addstream('local', [data.dm.x, data.dm.y, data.dm.z]);
@@ -75,6 +102,7 @@ gn.init(args).then(function () {
                     }
                 }
             }
+
         } catch (e) {
             console.log(e);
         }
