@@ -13,6 +13,7 @@ var setselectidsetting;
 $.fn.modal.Constructor.prototype._enforceFocus = function () {};
 var isbeta = getAllUrlParams().beta;
 
+//buat ambil info dasar
 try {
     var rootz = document.location.pathname.split('/');
     tp = rootz[1]; //type  
@@ -29,6 +30,7 @@ try {
     console.log(error);
 }
 
+// buat cari info
 $('.search').on('click', async function (e) {
     console.log(idv + ' | ' + tp);
     var home = false;
@@ -98,9 +100,9 @@ $('.search').on('click', async function (e) {
     })
 })
 
+//ini buat list upload
 var lisupload;
 var detailRows = [];
-
 function format(d) {
     console.log(d);
     var htmlp = "";
@@ -112,7 +114,6 @@ function format(d) {
     }
     return htmlp;
 }
-
 $('body').on('click', '.reloadlisupload', async function (e) {
     console.log(e);
     try {
@@ -194,11 +195,9 @@ $('body').on('click', '.reloadlisupload', async function (e) {
     });
 
 })
-
 $('.opensettings').on('shown.bs.modal', function () {
     $(document).off('focusin.modal');
 });
-
 $('body').on('click', 'tr td.detailscm', function () {
     var tr = $(this).closest('tr');
     var row = lisupload.row(tr);
@@ -221,6 +220,7 @@ $('body').on('click', 'tr td.detailscm', function () {
     }
 });
 
+// ajax add akun youtube buat auto upload
 $('body').on('click', '.addaccupload', async function (e) {
     //var id = $(this).attr("data-id");
     const {
@@ -310,6 +310,8 @@ $('body').on('click', '.addaccupload', async function (e) {
     }
 
 })
+
+//ajax post-id
 $('body').on('click', '.post-id', async function (e) {
     if (!isonline) {
         return;
@@ -492,6 +494,7 @@ $('#type').change(function () {
     console.log(numbrty);
 });
 
+// buat ambil data dari Mirova
 function GetMirova(n) {
     $.ajax({
         method: "GET",
@@ -577,6 +580,7 @@ function GetMirova(n) {
     });
 }
 
+// buat loading animasi
 function onme(on = true) {
     if (on) {
         $('#load').html('More Data');
@@ -587,6 +591,7 @@ function onme(on = true) {
     }
 }
 
+// buat auto scroll
 var CheckIfScrollBottom = debouncer(function () {
     if (getDocHeight() == getScrollXY()[1] + window.innerHeight) {
         if ($("#load").length >= 1) {
@@ -595,7 +600,6 @@ var CheckIfScrollBottom = debouncer(function () {
     }
 }, 500);
 document.addEventListener('scroll', CheckIfScrollBottom);
-
 function debouncer(a, b, c) {
     var d;
     return function () {
@@ -608,17 +612,17 @@ function debouncer(a, b, c) {
         clearTimeout(d), d = setTimeout(g, b), h && a.apply(e, f)
     }
 }
-
 function getScrollXY() {
     var a = 0,
         b = 0;
     return "number" == typeof window.pageYOffset ? (b = window.pageYOffset, a = window.pageXOffset) : document.body && (document.body.scrollLeft || document.body.scrollTop) ? (b = document.body.scrollTop, a = document.body.scrollLeft) : document.documentElement && (document.documentElement.scrollLeft || document.documentElement.scrollTop) && (b = document.documentElement.scrollTop, a = document.documentElement.scrollLeft), [a, b]
 }
-
 function getDocHeight() {
     var a = document;
     return Math.max(a.body.scrollHeight, a.documentElement.scrollHeight, a.body.offsetHeight, a.documentElement.offsetHeight, a.body.clientHeight, a.documentElement.clientHeight)
 }
+
+//ini buat like
 $('body').on('click', '#like,#dislike', function (e) {
 
     if (!isonline) {
@@ -660,6 +664,8 @@ $('body').on('click', '#like,#dislike', function (e) {
             })
         });
 })
+
+//ini buat koment
 $('body').on('click', '#diqus_loader', function (e) {
     // Prepare the trigger and target
     var disqus_trigger = document.getElementById('diqus_loader'),
@@ -680,7 +686,6 @@ $('body').on('click', '#diqus_loader', function (e) {
 
 $('body').on('click', '#share', function (e) {
 console.log(e);
-
 })
 
 $('body').on('click', '#load', function (e) {
@@ -806,7 +811,7 @@ function pesanku(event) {
     if ((event.origin).includes("volcanoyt")) {
         var data = event.data;
         if (data.api == 'login') {
-            console.log('login it');
+            // ini buat login
             data = data.data;
             errnyt = false;
             if (data.status == "Account Upload Successfully added") {
@@ -823,8 +828,8 @@ function pesanku(event) {
                 }
             }
         } else if (data.api == 'player_update') {
+            // ini data buat update data player dari ie
             data = data.data;
-            //console.log(data);
             $("#got").html(' (Update in ' + (data.count) + ' seconds)');
             if (data.aw) {
                 if (data.aw.code == 200) {
@@ -835,21 +840,26 @@ function pesanku(event) {
                 }
             }
         } else if (data.api == 'push') {
-            //todo filiter pesan
+            // data disini di kirim lewat push data
             data = data.data;
-            console.log('puss data co',data);
+            if(data.tag == "earthquake"){
+                console.log('ini gempa')
+            }else if(data.tag == "volcano"){
+                console.log('ini volcano')
+            }else{
+                console.log('raw push: ',data);
+            }
             NotifMe(data.title + ': ' + data.body);
         } else {
-            console.log('belum support');
-            console.log(data);
+            console.log("Type Event ini tidak tersedia: ",data);
         }
     } else {
-        console.log('Notif: ', event);
+        console.log('Info Bukan dari VolcanoYT: ', event);
     }
 }
 
 try {
-    // From your client pages:
+    // Ping lewat BroadcastChannel (gak di pakai)
     const channel = new BroadcastChannel('sw-volcanoyt');
     channel.addEventListener('message', event => {
         console.log('Received', event);
@@ -858,6 +868,7 @@ try {
 
 }
 
+//ini buat login
 var islogin = tryParse(Cookies.get('login'));
 if (islogin && !isEmpty(islogin.token_private)) {
     var dbprofil = tryParse(Cookies.get('profil'));
@@ -893,10 +904,10 @@ if (islogin && !isEmpty(islogin.token_private)) {
         });
     }
 } else {
-    console.log('no login');
+    console.log('Belum Login');
 }
 
-
+//ini buat set profil jika sudah login atau edit
 function setprofil(data) {
     isonline = true;
     var username = data.username;

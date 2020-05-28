@@ -11,9 +11,11 @@ if (navigator.geolocation) {
 } else {
     NotifMe("Geolocation is not supported by your browser.");
 }
+
 function showPosition(position) {
     SetGPS(position.coords.latitude, position.coords.longitude);
 }
+
 function showError(error) {
     switch (error.code) {
         case error.PERMISSION_DENIED:
@@ -54,7 +56,7 @@ gn.init(args).then(function () {
                     acceleration: data,
                     isAvailable: isAvailable
                 };
-                ewsio.emit('user_ews', send);        
+                ewsio.emit('user_ews', send);
             }
 
             //local view data
@@ -82,10 +84,10 @@ gn.init(args).then(function () {
 });
 
 //API Socket
-ewsio = io('https://tapp.volcanoyt.com/ews', {
+ewsio = io(URL_APP + 'ews', {
     transports: ['websocket'],
     upgrade: false
-}); 
+});
 ewsio.on('disconnect', function () {
     if (document.getElementById("putmap") !== null) {
         $('#isonline').html("Offline");
@@ -111,7 +113,7 @@ ewsio.on('info', function (x) {
 function OnData(x) {
     console.log(x);
     datap = x.data;
-    
+
     if (document.getElementById("map") !== null) {
         if (x.type == "earthquake") {
             var loc = L.latLng(datap.eq_lat, datap.eq_lon);
@@ -121,10 +123,10 @@ function OnData(x) {
     } else if (document.getElementById("putmap") !== null) {
         if (x.type == "earthquake") {
             var loc = L.latLng(datap.eq_lat, datap.eq_lon);
-            var whereeq = ''+Number(datap.distance).toFixed(2)+' miles of '+datap.city+' - '+datap.country+'';
+            var whereeq = '' + Number(datap.distance).toFixed(2) + ' miles of ' + datap.city + ' - ' + datap.country + '';
             var toutc = datap.data;
             var loctxt = '' + (datap.eq_lat).toFixed(4) + ',' + (datap.eq_lon).toFixed(4) + '';
-            $('#timeutc').html(toutc);
+            $('#timeutc').html('<time data-now="' + toutc + '">' + toutc + '</time>');
             $('#mag').html((datap.magnitude).toFixed(2));
             $('#tymag').html(datap.mt);
             $('#deep').html((datap.depth).toFixed(0));
@@ -135,13 +137,11 @@ function OnData(x) {
         } else {
             var loc = L.latLng(datap.latitude, datap.longitude);
             var info = datap.info;
-            var sumber = datap.source;
-            if (sumber == "Mirova") {
-                info = "Hotspot detected " + datap.title + "mw near volcano";
-            }
+            //var sumber = datap.source;
+
             $('#vcjudul').html(datap.nama);
             $('#fullvc').html(datap.info);
-            $('#timevc').html(datap.date_input);
+            $('#timevc').html('<time data-now="' + datap.date_input + '">' + datap.date_input + '</time>');
             $('#lvvc').html(OnStatus(datap.status));
             $('#elevation').html(datap.elevation);
             $('#typesvc').html(datap.types);
@@ -151,7 +151,7 @@ function OnData(x) {
 }
 
 //Set Map
-function OnMap(latp, judul, idtmp = "ewsmap", idreal = "putmap") {
+function OnMap(latp, judul, idtmp = "ewsmap", idreal = "putmap", iscircle = true) {
     $('#' + idreal + '').html('<div id="' + idtmp + '"></div>');
     var map = L.map(idtmp, {
         zoomControl: false,
@@ -168,27 +168,35 @@ function OnMap(latp, judul, idtmp = "ewsmap", idreal = "putmap") {
         maxZoom: 12,
         minZoom: 3
     }).addTo(map);
+    var showicon = URL_CDN + 'core/img/magnitude.png';
+    if (idreal == "vcmap") {
+        showicon = URL_CDN + 'core/img/volcano.png';
+    }
     var eqicon = L.icon({
-        iconUrl: '/core/img/magnitude.png',
-        iconSize:     [32, 32], // size of the icon
-    iconAnchor:   [18, 14], // point of the icon which will correspond to marker's location
+        iconUrl: showicon,
+        iconSize: [32, 32], // size of the icon
+        iconAnchor: [18, 14], // point of the icon which will correspond to marker's location
     });
-    L.marker(latp, {icon: eqicon}).addTo(map).bindPopup(judul).openPopup();
-    var counter = 0;
-    var i = setInterval(function () {
-        circle.setRadius(counter);
-        counter = counter + 1000;
-        if (counter > 70000) {
-            counter = 0;
-        }
-    }, 30);
-    var circle = L.circle(latp, 70000, {
-        weight: 3,
-        color: '#ff185a',
-        opacity: 0.75,
-        fillColor: '#ff185a',
-        fillOpacity: 0.25
-    }).addTo(map);
+    L.marker(latp, {
+        icon: eqicon
+    }).addTo(map).bindPopup(judul).openPopup();
+    if (iscircle) {
+        var counter = 0;
+        var i = setInterval(function () {
+            circle.setRadius(counter);
+            counter = counter + 1000;
+            if (counter > 70000) {
+                counter = 0;
+            }
+        }, 30);
+        var circle = L.circle(latp, 70000, {
+            weight: 3,
+            color: '#ff185a',
+            opacity: 0.75,
+            fillColor: '#ff185a',
+            fillOpacity: 0.25
+        }).addTo(map);
+    }
 }
 
 //Volcano Status
@@ -219,7 +227,7 @@ function SetGPS(Latitude, Longitude, isfake = false) {
     }
 }
 
-$.getJSON('https://tapp.volcanoyt.com/warning', function (data) {
+$.getJSON(URL_APP + 'warning', function (data) {
     try {
         for (let b in data) {
             OnData({

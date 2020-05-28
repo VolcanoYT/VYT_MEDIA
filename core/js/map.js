@@ -61,7 +61,7 @@ var krb = L.esri.featureLayer({
     url: 'https://services7.arcgis.com/g7FCBALNv7UNIenl/arcgis/rest/services/KRB_GA_ID2/FeatureServer/0'
 });
 
-var map = new L.Map('map', {
+var map = new L.Map('map_2d', {
     attributionControl: true,
 
     layers: [googleSat, GroupBlue, platetectonics, GroupEWS, GroupVolcano, places, CameraList]
