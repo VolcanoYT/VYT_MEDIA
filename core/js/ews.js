@@ -39,14 +39,19 @@ function getAvg(grades) {
     return total / grades.length;
 }
 
+function addZero(x, n) {
+    while (x.toString().length < n) {
+        x = "0" + x;
+    }
+    return x;
+}
+
 //API Sensor
 var isno = true;
 var args = {
     frequency: 100, // ( How often the object sends the values - milliseconds )
     gravityNormalized: true, // ( If the gravity related values to be normalized )
     orientationBase: GyroNorm.WORLD, // ( Can be GyroNorm.GAME or GyroNorm.WORLD. gn.GAME returns orientation values with respect to the head direction of the device. gn.WORLD returns the orientation values with respect to the actual north direction of the world. )
-    decimalCount: 2, // ( How many digits after the decimal point will there be in the return values )
-    logger: null, // ( Function to be called to log messages from gyronorm.js )
     screenAdjusted: true // ( If set to true it will return screen adjusted values. )
 };
 var gn = new GyroNorm();
@@ -56,9 +61,7 @@ var event = [];
 
 gn.init(args).then(function () {
     gn.start(function (data) {
-        var isAvailable = gn.isAvailable();
         try {
-
             /*
             //send to server
             if (isAvailable.accelerationAvailable) {
@@ -69,17 +72,27 @@ gn.init(args).then(function () {
                 };
                 ewsio.emit('user_ews', send);
             }
-*/
-
+            */
             /*
                         https://stackoverflow.com/questions/19627392/understanding-device-motion-data-received-from-event-acceleration-in-js
                         https://ds.iris.edu/ds/nodes/dmc/data/formats/seed-channel-naming/
                         https://www.mathworks.com/help/supportpkg/android/ref/accelerometer.html
+                        https://mobiforge.com/design-development/html5-mobile-web-device-orientation-events
                         Buat belajar http://repository.uinjkt.ac.id/dspace/bitstream/123456789/5825/1/Fauzi-FST_NoRestriction.pdf
             */
+
             //TODO: save time_step & with multi channel
             var time = Math.floor(Date.now() / 1000);
-            sampel.push(data.dm.y);
+
+            var d = new Date();
+            var x = document.getElementById("ztime");
+            var h = addZero(d.getHours(), 2);
+            var m = addZero(d.getMinutes(), 2);
+            var s = addZero(d.getSeconds(), 2);
+            var ms = addZero(d.getMilliseconds(), 3);
+            x.innerHTML = h + ":" + m + ":" + s + ":" + ms;
+
+            sampel.push(data.dm.x);
 
             $('#x').html(data.dm.x); // LNX (Datar) (Merah)
             $('#y').html(data.dm.y); // LNY (Kiri-Kanan) (Hijau)
@@ -88,6 +101,7 @@ gn.init(args).then(function () {
             /*
             Moment Tensor (https://gfzpublic.gfz-potsdam.de/rest/items/item_272892/component/file_541895/content)
             Mekanisme fokus gempa menggambarkan deformasi di wilayah sumber yang menghasilkan gelombang seismik.
+            # https://stackoverflow.com/a/48750814
             */
             var x = data.dm.x; // In degree in the range [-180,180]
             var y = data.dm.y; // In degree in the range [-90,90]
@@ -113,60 +127,73 @@ gn.init(args).then(function () {
             */
 
             //primer (50x100ms=5000 milliseconds aka 5 seconds)
-            var intervalo = 5;
+            var intervalo = 5;            
             if (sampel.length == 50) {
-
-                //Fungsi Math.max() mengembalikan nilai terbesar dari zero atau lebih besar.
-                gal = Math.max(...sampel);
-
-                //https://www.bgs.ac.uk/discoveringGeology/hazards/earthquakes/magnitudeScaleCalculations.html
-                //ML = logA + 2.56logD - 1.67
-                var magnitude = (Math.log10(gal) + 3 * Math.log10(8 * intervalo) - 2.92).toFixed(2);
-                $('#magnitude').html(magnitude);
 
                 /*
                 https://www.bmkg.go.id/gempabumi/skala-mmi.bmkg
                 https://en.wikipedia.org/wiki/Gal_(unit)
                 https://www.quora.com/What-are-units-of-amplitude
+                Fungsi Math.max() mengembalikan nilai terbesar dari zero atau lebih besar.
                 */
-                $('#gal').html(gal);
+                gal = Math.max(...sampel);
 
-                //save event sementara
+                /*
+                https://www.bgs.ac.uk/discoveringGeology/hazards/earthquakes/magnitudeScaleCalculations.html
+                ML = logA + 2.56logD - 1.67
+                Base https://github.com/UFOP-CSI477/2019-02-atividades-tulio-s-jardim/blob/master/AtvPrat01/js/03-richter.js#L22
+                */
+
+                //nilai awal
+                var between_time = 0;
+                var timeeq = intervalo;
+
+                //sampel awal
+                var last_sampel;
+
+                //cek last event
+                if (event.length > 0) {
+
+                    //ambil last sampel
+                    last_sampel = event[event.length - 1];
+
+                    //cek waktu last_sampel dan sekarang
+                    between_time = time - last_sampel.update;
+
+                    //jika gempa masih lanjut hitung di sini waktunya?
+                    if (between_time == intervalo) {
+                        timeeq = time - last_sampel.input;
+                    }
+                    
+                }
+
+                var magnitude = (Math.log10(gal) + 3 * Math.log10(8 * timeeq) - 2.92).toFixed(2);
+
+                //mulai ambil event
                 if (magnitude > 0.89) {
 
-                    var between_time = 0;
-                    var last_sampel;
-
-                    if (event.length > 0) {
-                        //ambil last sampel
-                        last_sampel = event[event.length - 1];
-                        //cek waktu last_sampel dan sekarang
-                        between_time = time - last_sampel.time;
-                    } else {
-                        //belum ada event gempa?
-                    }
-
-                    //console.log("Event: "+time+" | cek "+between_time+" sec",last_sampel);
+                    $('#nogempa').hide();
+                    $('#adagempa').show();
 
                     if (between_time == intervalo) {
-                        //secondary
-                        console.log('Gempa masih lanjut...');
-                        //jika gempa masih berlanjut update event "last_sampel" dan data kasih masuk di secondary dan nilai ini sebagi gempa jauh (bukan lokal?)
+                        console.log('gempa lama...');
+                        //secondary: jika gempa masih berlanjut update event "last_sampel" dan data kasih masuk di secondary dan nilai ini sebagi gempa jauh (bukan lokal?)
                         for (var j in event) {
-                            if (event[j].time == last_sampel.time) {
+                            if (event[j].update == last_sampel.update) {
                                 Array.prototype.push.apply(event[j].secondary, sampel);
                                 event[j].historian.push({
                                     gal: gal,
                                     magnitude: magnitude,
                                     time: time,
                                 });
-                                event[j].time = time;
+                                event[j].update = time;
+                                event[j].eqtime = timeeq;
                                 break;
                             }
                         }
                     } else {
-                        //primer
-                        console.log('Gempa baru setelah lewat ' + between_time + ' detik lalu');
+                        console.log('gempa baru');
+                        //primer jika gempa masih baru
                         event.push({
                             sampel: sampel,
                             secondary: [],
@@ -175,23 +202,38 @@ gn.init(args).then(function () {
                                 gal: gal,
                                 magnitude: magnitude,
                             },
-                            time: time
+                            update: time,
+                            input: time,
+                            eqtime: timeeq
                         });
                     }
 
-                }
+                    //send notif
+                    var skala = "I";
+                    if (gal >= 2.9 && gal <= 10) {
+                        //no noise here
+                    } else if (gal >= 10 && gal <= 88) {
+                        skala = "II";
+                    } else if (gal > 88 && gal <= 167) {
+                        skala = "III";
+                    } else if (gal > 167 && gal <= 564) {
+                        skala = "IV";
+                    } else if (gal > 564) {
+                        skala = "V";
+                    }
 
-                //send notif
-                if (gal >= 2.9 && gal <= 10) {
-                    NotifMe("Terjadi gempa skala intensitas BMKG 1 (Tidak dirasakan) dengan PGA : " + gal + " gal");
-                } else if (gal >= 10 && gal <= 88) {
-                    NotifMe("Terjadi gempa skala intensitas BMKG II (Dirasakan) dengan PGA : " + gal + " gal");
-                } else if (gal > 88 && gal <= 167) {
-                    NotifMe("Terjadi gempa skala intensitas BMKG III (kerusakan ringan) dengan PGA : " + gal + " gal");
-                } else if (gal > 167 && gal <= 564) {
-                    NotifMe("Terjadi gempa skala intensitas BMKG IV (kerusakan sedang) dengan PGA : " + gal + " gal");
-                } else if (gal > 564) {
-                    NotifMe("Terjadi gempa skala intensitas BMKG V (kerusakan berat) dengan PGA : " + gal + " gal");
+                    $('#intensity').html(skala);
+                    $('#timep').html(timeeq);
+                    $('#magnitude').html(magnitude);
+                    $('#gal').html(gal);
+
+                    if (gal >= 2.9) {
+                        NotifMe("Terjadi gempa skala intensitas " + skala + " dengan PGA: " + gal + " gal (" + timeeq + " detik)");
+                    }
+
+                } else {
+                    $('#nogempa').show();
+                    $('#adagempa').hide();
                 }
 
                 //hapus sampel
@@ -202,21 +244,8 @@ gn.init(args).then(function () {
 
             //local view data seimo
             if (document.getElementById("local") !== null) {
-                if (isAvailable.accelerationAvailable) {
-                    addstream('local', [data.dm.x, data.dm.y, data.dm.z]);
-                    isno = true;
-                } else {
-                    //addstream('local',[Math.floor(Math.random() * 30),Math.floor(Math.random() * 50),Math.floor(Math.random() * 200)]);
-                    if (isno) {
-                        var c = document.getElementById("local");
-                        var ctx = c.getContext("2d");
-                        ctx.font = "15px Arial";
-                        ctx.fillText("Sensor on this system is not available", 10, 30);
-                        isno = false;
-                    }
-                }
+                addstream('local', [data.dm.x, data.dm.y, data.dm.z]);
             }
-
         } catch (e) {
             console.log(e);
         }
