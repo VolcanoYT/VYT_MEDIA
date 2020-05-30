@@ -80,7 +80,7 @@ setInterval(random, 1000 * 60);
 random();
 
 if (!isEmpty(camid)) {
-    GetJson(URL_API+"camera/view.json?ceklive=true&id=" + camid)
+    GetJson(URL_API + "camera/view.json?ceklive=true&id=" + camid)
         .then(response => {
             apiplayer = response;
             RunLive();
@@ -108,6 +108,7 @@ function good() {
 }
 
 function bad(tes) {
+    console.log(tes);
     showliveimg = true;
     ceklive = true;
 }
@@ -138,7 +139,7 @@ function RunLive() {
         console.log("API Start", c);
 
         //API Sudah di Set
-        setimg = URL_CDN+"timelapse/" + camid + "/" + tp + ".jpg";
+        setimg = URL_CDN + "timelapse/" + camid + "/" + tp + ".jpg";
         types = c.type;
         sereload = c.refresh;
         displayz[0] = "Cam: " + c.name;
@@ -221,6 +222,13 @@ function RunLive() {
                     "origin": window.location.href, //window.location.origin,
                     "host": `${window.location.protocol}//www.youtube.com`, //'https://www.youtube.com',
                 },
+                html5: {
+                    hls: {
+                        overrideNative: true
+                    },
+                    nativeAudioTracks: false,
+                    nativeVideoTracks: false
+                },
                 sources: [{
                     type: ext,
                     src: pp
@@ -238,20 +246,38 @@ function RunLive() {
                 }
             });
             JSPlayer.on(['play', 'playing', 'durationchange', 'loadedmetadata', 'loadeddata', 'loadstart', 'durationchange', 'canplay', 'canplaythrough', 'waiting', 'ended', 'pause', 'error', 'suspend', 'abort', 'interruptbegin', 'interruptend', 'stalled'], function (e) { //ratechange
+
                 isPlaying = e.type;
+
+                //jika error coba debung
+                var view_error;
+                try {
+                    if (isPlaying == "error") {
+                        view_error = JSPlayer.error();
+                        if (view_error.message.includes("disabled")) {
+                            isPlaying = 'disabled';
+                        } else if (view_error.message.includes("corruption")) {
+                            RunLive();
+                            //var time = JSPlayer.currentTime();
+                            //JSPlayer.pause();
+                            //JSPlayer.load();
+                            //JSPlayer.currentTime(time);
+                            //JSPlayer.play();
+                        } else {
+                            console.log('error idk: ', view_error);
+                        }
+                    }
+                } catch (error) {
+                    console.log(error);
+                    console.log(view_error);
+                }
+
             });
             JSPlayer.on('resize', function (e) {
                 console.log(e);
             });
             JSPlayer.on(['seeked', 'seeking'], function (e) {
                 console.log(e);
-            });
-            JSPlayer.reloadSourceOnError({
-                getSource: function (reload) {
-                    bad('Reloading because of an error');
-                    FastCek();
-                },
-                errorInterval: 6
             });
         } else {
             console.log('skip....');
@@ -354,25 +380,46 @@ async function UpdateMe() {
 setInterval(UpdateMe, 1000);
 
 //cek status player?
+var waitloop = 0;
 setInterval(function () {
     if (ffisplay)
         return null;
 
-    if (types == "1")
+    if (types == 1)
         return null;
 
     if (setplay !== "true")
         return null;
+
+    if (isPlaying == "disabled") {
+        showliveimg = true;
+        if (JSPlayer) {
+            try {
+                JSPlayer.dispose();
+                JSPlayer = null;
+            } catch (error) {
+
+            }
+        }
+        //bad("This camera is not permitted");
+        return null;
+    }
+
 
     if (isPlaying == "pause") {
         playvd();
     } else if (isPlaying == "play" || isPlaying == "playing" || isPlaying == "canplaythrough") { //TODO: some canplaythrough is pause and some can keep play it?
         good();
     } else {
-        bad("Camera error at " + isPlaying + " ,tried " + countl + "x connect");
-        countl++;
+        if (waitloop > 10) {
+            bad("Camera error at " + isPlaying + " ,tried " + countl + "x connect");
+            countl++;
+            waitloop = 0;
+            //console.log(isPlaying);
+        } else {
+            waitloop++;
+        }
     }
-    console.log(isPlaying);
 }, 1000 * 1);
 
 setInterval(function () {
@@ -404,7 +451,7 @@ setInterval(function () {
 }, 1000 * 60);
 
 function FastCek() {
-    GetJson(URL_API+"camera/view.json?id=" + camid + "&ceklive=true")
+    GetJson(URL_API + "camera/view.json?id=" + camid + "&ceklive=true")
         .then(c => {
             apiplayer = c;
             RunLive();
@@ -447,8 +494,8 @@ $('.download').on('click', function (ex) {
     var xhr = new XMLHttpRequest();
     var live = div_live;
     if (!isEmpty(getdiv)) {
-        live = "#"+getdiv;
-    }else if($("#vid2_html5_api").length == 1){
+        live = "#" + getdiv;
+    } else if ($("#vid2_html5_api").length == 1) {
         live = $("#vid2_html5_api");
     }
     xhr.open('GET', $(live)[0].src, true);
@@ -459,8 +506,8 @@ $('.download').on('click', function (ex) {
         $('.download').prop('disabled', false);
         if (this.status == 200) {
             var myBlob = this.response;
-            var filetime = Math.floor(Date.now() / 1000);//'tes';//xhr.getResponseHeader('Last-Modified');
-            saveAs(myBlob, 'volcanoyt-'+filetime+'.jpg');
+            var filetime = Math.floor(Date.now() / 1000); //'tes';//xhr.getResponseHeader('Last-Modified');
+            saveAs(myBlob, 'volcanoyt-' + filetime + '.jpg');
         }
     };
     xhr.send();
@@ -526,7 +573,7 @@ $('#proses').on('click', function (e) {
         $('#loadff').hide();
         $('#cloban').show();
         if (data.code == 200) {
-            $('#msg').append('<div class="form-group"><video width="100%" height="240" controls autoplay mute loop><source src="'+URL_CDN+'collection/' + data.md5 + '.mp4" type="video/mp4"></video><label>Download Link</label><div class="input-group"><input type="text" class="form-control" value="'+URL_CDN+'collection/' + data.md5 + '.mp4"></div></div>');
+            $('#msg').append('<div class="form-group"><video width="100%" height="240" controls autoplay mute loop><source src="' + URL_CDN + 'collection/' + data.md5 + '.mp4" type="video/mp4"></video><label>Download Link</label><div class="input-group"><input type="text" class="form-control" value="' + URL_CDN + 'collection/' + data.md5 + '.mp4"></div></div>');
         }
         $('#msg').append('<div class="alert alert-warning" role="alert">' + data.status + '</div>');
     }).fail(function (a) {
@@ -535,7 +582,7 @@ $('#proses').on('click', function (e) {
         $('#loadff').hide();
         $('#msg').append('<div class="alert alert-warning" role="alert">Error Load</div>');
     });
-}) 
+})
 
 //Tombol Timelaspe
 $('.timelapse_bt').on('click', function (e) {
@@ -551,7 +598,7 @@ $('.timelapse_bt').on('click', function (e) {
             dropdown.append('<option selected="true" disabled>Choose</option>');
             dropdown.prop('selectedIndex', 0);
 
-            $.getJSON(URL_API+"camera/data.json?id=" + camid + "&type=2").done(function (z) {
+            $.getJSON(URL_API + "camera/data.json?id=" + camid + "&type=2").done(function (z) {
 
                 var options = [];
                 $.each(z.file, function (key, entry) {
@@ -569,7 +616,7 @@ $('.timelapse_bt').on('click', function (e) {
                     return ((x < y) ? -1 : ((x > y) ? 1 : 0));
                 });
                 $.each(options, function (i, option) {
-                    dropdown.append($('<option></option>').attr('value', URL_CDN+option.value).text(moment.unix(option.label).format("DD-MM-YYYY HH:mm:ss")));
+                    dropdown.append($('<option></option>').attr('value', URL_CDN + option.value).text(moment.unix(option.label).format("DD-MM-YYYY HH:mm:ss")));
                 });
 
                 //API Pilih
@@ -588,7 +635,7 @@ $('.timelapse_bt').on('click', function (e) {
                         }
 
                         //Api load type find file
-                        $.getJSON(URL_API+"camera/data.json?id=" + camid + "&type=" + isjoin, async function (z) {
+                        $.getJSON(URL_API + "camera/data.json?id=" + camid + "&type=" + isjoin, async function (z) {
 
                             var options2 = [];
                             $.each(z.file, function (key, entry) {
@@ -612,7 +659,7 @@ $('.timelapse_bt').on('click', function (e) {
                                     break;
                                 }
 
-                                var datax = await Addimg(URL_CDN+value.value.replace("..", ''), value.label, true, div_tl_raw);
+                                var datax = await Addimg(URL_CDN + value.value.replace("..", ''), value.label, true, div_tl_raw);
                                 countx++;
                                 proses(percentage(countx, options2.length));
                                 if (datax.code == 200) {

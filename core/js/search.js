@@ -800,10 +800,11 @@ function loginweb() {
 }
 
 var lastupdate;
+/*
 window.onerror = function (err) {
     console.log("Windows Error: ", err);
 };
-
+*/
 window.addEventListener("message", pesanku, false);
 navigator.serviceWorker.addEventListener("message", pesanku, false);
 

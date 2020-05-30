@@ -46,6 +46,8 @@ function addZero(x, n) {
     return x;
 }
 
+var event_tab = $('#event').DataTable();
+
 //API Sensor
 var isno = true;
 var args = {
@@ -82,14 +84,15 @@ gn.init(args).then(function () {
             */
 
             //TODO: save time_step & with multi channel
-            var time = Math.floor(Date.now() / 1000);
+            // timestamp is UTC?
+            var time = Math.floor((new Date()).getTime() / 1000);
 
             var d = new Date();
             var x = document.getElementById("ztime");
-            var h = addZero(d.getHours(), 2);
-            var m = addZero(d.getMinutes(), 2);
-            var s = addZero(d.getSeconds(), 2);
-            var ms = addZero(d.getMilliseconds(), 3);
+            var h = addZero(d.getUTCHours(), 2);
+            var m = addZero(d.getUTCMinutes(), 2);
+            var s = addZero(d.getUTCSeconds(), 2);
+            var ms = addZero(d.getUTCMilliseconds(), 3);
             x.innerHTML = h + ":" + m + ":" + s + ":" + ms;
 
             sampel.push(data.dm.x);
@@ -127,7 +130,7 @@ gn.init(args).then(function () {
             */
 
             //primer (50x100ms=5000 milliseconds aka 5 seconds)
-            var intervalo = 5;            
+            var intervalo = 5;
             if (sampel.length == 50) {
 
                 /*
@@ -137,12 +140,6 @@ gn.init(args).then(function () {
                 Fungsi Math.max() mengembalikan nilai terbesar dari zero atau lebih besar.
                 */
                 gal = Math.max(...sampel);
-
-                /*
-                https://www.bgs.ac.uk/discoveringGeology/hazards/earthquakes/magnitudeScaleCalculations.html
-                ML = logA + 2.56logD - 1.67
-                Base https://github.com/UFOP-CSI477/2019-02-atividades-tulio-s-jardim/blob/master/AtvPrat01/js/03-richter.js#L22
-                */
 
                 //nilai awal
                 var between_time = 0;
@@ -164,16 +161,35 @@ gn.init(args).then(function () {
                     if (between_time == intervalo) {
                         timeeq = time - last_sampel.input;
                     }
-                    
+
                 }
 
+                /*
+                https://www.bgs.ac.uk/discoveringGeology/hazards/earthquakes/magnitudeScaleCalculations.html
+                ML = logA + 2.56logD - 1.67
+                Base https://github.com/UFOP-CSI477/2019-02-atividades-tulio-s-jardim/blob/master/AtvPrat01/js/03-richter.js#L22
+                */
                 var magnitude = (Math.log10(gal) + 3 * Math.log10(8 * timeeq) - 2.92).toFixed(2);
 
                 //mulai ambil event
-                if (magnitude > 0.89) {
+                if (gal > 0.1) {
 
                     $('#nogempa').hide();
                     $('#adagempa').show();
+
+                    //cek skala
+                    var skala = "I";
+                    if (gal >= 2.9 && gal <= 10) {
+                        //no noise here
+                    } else if (gal >= 10 && gal <= 88) {
+                        skala = "II";
+                    } else if (gal > 88 && gal <= 167) {
+                        skala = "III";
+                    } else if (gal > 167 && gal <= 564) {
+                        skala = "IV";
+                    } else if (gal > 564) {
+                        skala = "V";
+                    }
 
                     if (between_time == intervalo) {
                         console.log('gempa lama...');
@@ -188,11 +204,30 @@ gn.init(args).then(function () {
                                 });
                                 event[j].update = time;
                                 event[j].eqtime = timeeq;
+                                try {
+                                    /*
+                                    var id = t.row('[id=' + symbol + ']').index();
+                                    t.cell({
+                                        row: id,
+                                        column: 2
+                                    }).data(response.c).draw(false);
+                                    */
+                                   //TODO: update rata-rata disini
+                                    event_tab.row('#' + event[j].input).data([
+                                        moment.unix(event[j].input).utc().format('YYYY-MM-DD HH:mm:ss'),
+                                        moment.unix(time).utc().format('YYYY-MM-DD HH:mm:ss'),
+                                        event[j].primer.magnitude,
+                                        event[j].primer.gal,
+                                        event[j].primer.skala,
+                                        event[j].eqtime
+                                    ]).draw();
+                                } catch (error) {
+                                    console.log('error add tab', error);
+                                }
                                 break;
                             }
                         }
                     } else {
-                        console.log('gempa baru');
                         //primer jika gempa masih baru
                         event.push({
                             sampel: sampel,
@@ -201,25 +236,27 @@ gn.init(args).then(function () {
                             primer: {
                                 gal: gal,
                                 magnitude: magnitude,
+                                intensity: skala
                             },
                             update: time,
                             input: time,
                             eqtime: timeeq
                         });
-                    }
 
-                    //send notif
-                    var skala = "I";
-                    if (gal >= 2.9 && gal <= 10) {
-                        //no noise here
-                    } else if (gal >= 10 && gal <= 88) {
-                        skala = "II";
-                    } else if (gal > 88 && gal <= 167) {
-                        skala = "III";
-                    } else if (gal > 167 && gal <= 564) {
-                        skala = "IV";
-                    } else if (gal > 564) {
-                        skala = "V";
+                        try {
+                            event_tab.row.add([
+                                moment.unix(time).utc().format('YYYY-MM-DD HH:mm:ss'),
+                                "wait...",
+                                magnitude,
+                                gal,
+                                skala,
+                                timeeq
+                            ]).node().id = time;
+                        } catch (error) {
+                            console.log('error add tab', error);
+                        }
+
+                        event_tab.draw(false);
                     }
 
                     $('#intensity').html(skala);
