@@ -33,11 +33,140 @@ function showError(error) {
     }
 }
 
-//https://stackoverflow.com/a/29544442
-function getAvg(grades) {
-    const total = grades.reduce((acc, c) => acc + c, 0);
-    return total / grades.length;
-}
+var event_tab = $('#event').DataTable();
+
+var debug = new EWS();
+debug.listen("error", function (data, type, context) {
+    if (context.type == "compatible") {
+        //GUI
+        try {
+            $('#gui_sensor').hide();
+            $('#gui_sensor_event').hide();
+            NotifMe("Sorry, Sensor Acceleration is not supported with your browser or smartphone :(");
+        } catch (error) {
+
+        }
+    }
+    console.log(type);
+    console.log(data);
+    console.log(context);
+});
+debug.listen("info", function (type, data, context) {
+    //console.log(type);
+    //console.log(data);
+    console.log(context);
+
+    if (context.type == "earthquake") {
+        //GUI
+        try {
+            $('#intensity').html(context.data.intensity);
+            $('#timep').html(context.data.time);
+            $('#magnitude').html(context.data.magnitude);
+            $('#gal').html(context.data.gal);
+        } catch (error) {
+
+        }
+        if (context.data.type == 0) {
+            console.log('gempa baru');
+            try {
+                event_tab.row.add([
+                    moment.unix(context.data.input).utc().format('YYYY-MM-DD HH:mm:ss'),
+                    "wait...",
+                    context.data.magnitude,
+                    context.data.gal,
+                    context.data.intensity,
+                    context.data.time
+                ]).node().id = context.data.input;
+                event_tab.draw(false);
+            } catch (error) {
+                console.log('error add tab', error);
+            }
+        } else {
+            console.log('gempa berlanjutan');
+            try {
+                /*
+                var id = t.row('[id=' + symbol + ']').index();
+                t.cell({
+                    row: id,
+                    column: 2
+                }).data(response.c).draw(false);
+                */
+                //TODO: update rata-rata disini
+                event_tab.row('#' + context.data.input).data([
+                    moment.unix(context.data.input).utc().format('YYYY-MM-DD HH:mm:ss'),
+                    moment.unix(context.data.update).utc().format('YYYY-MM-DD HH:mm:ss'),
+                    context.data.magnitude,
+                    context.data.gal,
+                    context.data.intensity,
+                    context.data.time
+                ]).draw();
+                //console.log('tess', event_tab.row('#' + event[j].input));
+            } catch (error) {
+
+            }
+        }
+    }
+
+});
+debug.listen("raw", function (watch, type, context) {
+    //GUI Seismograph
+
+    var d = new Date();
+    //jika ada div ztime
+    var xc = document.getElementById("ztime");
+    if (xc !== null) {
+        var h = addZero(d.getUTCHours(), 2);
+        var m = addZero(d.getUTCMinutes(), 2);
+        var s = addZero(d.getUTCSeconds(), 2);
+        var ms = addZero(d.getUTCMilliseconds(), 3);
+        xc.innerHTML = h + ":" + m + ":" + s + ":" + ms;
+    }
+
+    var x = context.dm.x;
+    var y = context.dm.y;
+    $('#x').html(x);
+    $('#y').html(y);
+    $('#z').html(context.dm.z);
+
+    if (document.getElementById("local") !== null) {
+        addstream('local', [x, y, context.dm.z]);
+    }
+
+    if (watch.earthquake) {
+        $('#nogempa').hide();
+        $('#adagempa').show();
+
+        /*
+        Moment Tensor (https://gfzpublic.gfz-potsdam.de/rest/items/item_272892/component/file_541895/content)
+        Mekanisme fokus gempa menggambarkan deformasi di wilayah sumber yang menghasilkan gelombang seismik.
+        https://stackoverflow.com/a/48750814
+        */
+        var ball = document.querySelector('.ball');
+        if (ball !== null) {
+            var garden = document.querySelector('.garden');
+            if (garden !== null) {
+                var maxX = garden.clientWidth - ball.clientWidth;
+                var maxY = garden.clientHeight - ball.clientHeight;
+                if (x > 90) {
+                    x = 90
+                };
+                if (x < -90) {
+                    x = -90
+                };
+                x += 90;
+                y += 90;
+                ball.style.top = (maxY * y / 180 - 10) + "px";
+                ball.style.left = (maxX * x / 180 - 10) + "px";
+            }
+        }
+
+    } else {
+        $('#nogempa').show();
+        $('#adagempa').hide();
+    }
+
+});
+debug.start();
 
 function addZero(x, n) {
     while (x.toString().length < n) {
@@ -45,251 +174,6 @@ function addZero(x, n) {
     }
     return x;
 }
-
-var event_tab = $('#event').DataTable();
-
-//API Sensor
-var isno = true;
-var args = {
-    frequency: 100, // ( How often the object sends the values - milliseconds )
-    gravityNormalized: true, // ( If the gravity related values to be normalized )
-    orientationBase: GyroNorm.WORLD, // ( Can be GyroNorm.GAME or GyroNorm.WORLD. gn.GAME returns orientation values with respect to the head direction of the device. gn.WORLD returns the orientation values with respect to the actual north direction of the world. )
-    screenAdjusted: true // ( If set to true it will return screen adjusted values. )
-};
-var gn = new GyroNorm();
-
-var sampel = [];
-var event = [];
-
-gn.init(args).then(function () {
-    gn.start(function (data) {
-        try {
-            /*
-            //send to server
-            if (isAvailable.accelerationAvailable) {
-                var send = {
-                    gps: gps,
-                    acceleration: data,
-                    isAvailable: isAvailable
-                };
-                ewsio.emit('user_ews', send);
-            }
-            */
-            /*
-                        https://stackoverflow.com/questions/19627392/understanding-device-motion-data-received-from-event-acceleration-in-js
-                        https://ds.iris.edu/ds/nodes/dmc/data/formats/seed-channel-naming/
-                        https://www.mathworks.com/help/supportpkg/android/ref/accelerometer.html
-                        https://mobiforge.com/design-development/html5-mobile-web-device-orientation-events
-                        Buat belajar http://repository.uinjkt.ac.id/dspace/bitstream/123456789/5825/1/Fauzi-FST_NoRestriction.pdf
-            */
-
-            //TODO: save time_step & with multi channel
-            // timestamp is UTC?
-            var time = Math.floor((new Date()).getTime() / 1000);
-
-            var d = new Date();
-            var x = document.getElementById("ztime");
-            var h = addZero(d.getUTCHours(), 2);
-            var m = addZero(d.getUTCMinutes(), 2);
-            var s = addZero(d.getUTCSeconds(), 2);
-            var ms = addZero(d.getUTCMilliseconds(), 3);
-            x.innerHTML = h + ":" + m + ":" + s + ":" + ms;
-
-            sampel.push(data.dm.x);
-
-            $('#x').html(data.dm.x); // LNX (Datar) (Merah)
-            $('#y').html(data.dm.y); // LNY (Kiri-Kanan) (Hijau)
-            $('#z').html(data.dm.z); // LNZ (Atas-Bawah) (Biru)
-
-            /*
-            Moment Tensor (https://gfzpublic.gfz-potsdam.de/rest/items/item_272892/component/file_541895/content)
-            Mekanisme fokus gempa menggambarkan deformasi di wilayah sumber yang menghasilkan gelombang seismik.
-            # https://stackoverflow.com/a/48750814
-            */
-            var x = data.dm.x; // In degree in the range [-180,180]
-            var y = data.dm.y; // In degree in the range [-90,90]
-            var ball = document.querySelector('.ball');
-            var garden = document.querySelector('.garden');
-            var maxX = garden.clientWidth - ball.clientWidth;
-            var maxY = garden.clientHeight - ball.clientHeight;
-            if (x > 90) {
-                x = 90
-            };
-            if (x < -90) {
-                x = -90
-            };
-            x += 90;
-            y += 90;
-            ball.style.top = (maxY * y / 180 - 10) + "px";
-            ball.style.left = (maxX * x / 180 - 10) + "px";
-
-            /*
-            Ada 2 macam gelombang badan, yaitu gelombang primer atau gelombang P (primary wave) dan gelombang sekunder atau gelombang S (secondary wave). Gelombang P atau gelombang mampatan (compression wave),
-
-            coba ambil sampel primer dulu selama 5 detik lalu cek lagi gelombang primer jika sampel tidak terputus selama 2 detik pada saat last primer ubah data primer jadi secondary dan seterusnya.... sampai tidak ada gelombang berlanjutan...
-            */
-
-            //primer (50x100ms=5000 milliseconds aka 5 seconds)
-            var intervalo = 5;
-            if (sampel.length == 50) {
-
-                /*
-                https://www.bmkg.go.id/gempabumi/skala-mmi.bmkg
-                https://en.wikipedia.org/wiki/Gal_(unit)
-                https://www.quora.com/What-are-units-of-amplitude
-                Fungsi Math.max() mengembalikan nilai terbesar dari zero atau lebih besar.
-                */
-                gal = Math.max(...sampel);
-
-                //nilai awal
-                var between_time = 0;
-                var timeeq = intervalo;
-
-                //sampel awal
-                var last_sampel;
-
-                //cek last event
-                if (event.length > 0) {
-
-                    //ambil last sampel
-                    last_sampel = event[event.length - 1];
-
-                    //cek waktu last_sampel dan sekarang
-                    between_time = time - last_sampel.update;
-
-                    //jika gempa masih lanjut hitung di sini waktunya?
-                    if (between_time == intervalo) {
-                        timeeq = time - last_sampel.input;
-                    }
-
-                }
-
-                /*
-                https://www.bgs.ac.uk/discoveringGeology/hazards/earthquakes/magnitudeScaleCalculations.html
-                ML = logA + 2.56logD - 1.67
-                Base https://github.com/UFOP-CSI477/2019-02-atividades-tulio-s-jardim/blob/master/AtvPrat01/js/03-richter.js#L22
-                */
-                var magnitude = (Math.log10(gal) + 3 * Math.log10(8 * timeeq) - 2.92).toFixed(2);
-
-                //mulai ambil event
-                if (gal > 0.1) {
-
-                    $('#nogempa').hide();
-                    $('#adagempa').show();
-
-                    //cek skala
-                    var skala = "I";
-                    if (gal >= 2.9 && gal <= 10) {
-                        //no noise here
-                    } else if (gal >= 10 && gal <= 88) {
-                        skala = "II";
-                    } else if (gal > 88 && gal <= 167) {
-                        skala = "III";
-                    } else if (gal > 167 && gal <= 564) {
-                        skala = "IV";
-                    } else if (gal > 564) {
-                        skala = "V";
-                    }
-
-                    if (between_time == intervalo) {
-                        console.log('gempa lama...');
-                        //secondary: jika gempa masih berlanjut update event "last_sampel" dan data kasih masuk di secondary dan nilai ini sebagi gempa jauh (bukan lokal?)
-                        for (var j in event) {
-                            if (event[j].update == last_sampel.update) {
-                                Array.prototype.push.apply(event[j].secondary, sampel);
-                                event[j].historian.push({
-                                    gal: gal,
-                                    magnitude: magnitude,
-                                    time: time,
-                                });
-                                event[j].update = time;
-                                event[j].eqtime = timeeq;
-                                try {
-                                    /*
-                                    var id = t.row('[id=' + symbol + ']').index();
-                                    t.cell({
-                                        row: id,
-                                        column: 2
-                                    }).data(response.c).draw(false);
-                                    */
-                                   //TODO: update rata-rata disini
-                                    event_tab.row('#' + event[j].input).data([
-                                        moment.unix(event[j].input).utc().format('YYYY-MM-DD HH:mm:ss'),
-                                        moment.unix(time).utc().format('YYYY-MM-DD HH:mm:ss'),
-                                        event[j].primer.magnitude,
-                                        event[j].primer.gal,
-                                        event[j].primer.skala,
-                                        event[j].eqtime
-                                    ]).draw();
-                                } catch (error) {
-                                    console.log('error add tab', error);
-                                }
-                                break;
-                            }
-                        }
-                    } else {
-                        //primer jika gempa masih baru
-                        event.push({
-                            sampel: sampel,
-                            secondary: [],
-                            historian: [],
-                            primer: {
-                                gal: gal,
-                                magnitude: magnitude,
-                                intensity: skala
-                            },
-                            update: time,
-                            input: time,
-                            eqtime: timeeq
-                        });
-
-                        try {
-                            event_tab.row.add([
-                                moment.unix(time).utc().format('YYYY-MM-DD HH:mm:ss'),
-                                "wait...",
-                                magnitude,
-                                gal,
-                                skala,
-                                timeeq
-                            ]).node().id = time;
-                        } catch (error) {
-                            console.log('error add tab', error);
-                        }
-
-                        event_tab.draw(false);
-                    }
-
-                    $('#intensity').html(skala);
-                    $('#timep').html(timeeq);
-                    $('#magnitude').html(magnitude);
-                    $('#gal').html(gal);
-
-                    if (gal >= 2.9) {
-                        NotifMe("Terjadi gempa skala intensitas " + skala + " dengan PGA: " + gal + " gal (" + timeeq + " detik)");
-                    }
-
-                } else {
-                    $('#nogempa').show();
-                    $('#adagempa').hide();
-                }
-
-                //hapus sampel
-                while (sampel.length > 0) {
-                    sampel.pop();
-                }
-            }
-
-            //local view data seimo
-            if (document.getElementById("local") !== null) {
-                addstream('local', [data.dm.x, data.dm.y, data.dm.z]);
-            }
-        } catch (e) {
-            console.log(e);
-        }
-    });
-}).catch(function (e) {
-    console.log(e);
-});
 
 //API Socket
 ewsio = io(URL_APP + 'ews', {
