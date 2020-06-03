@@ -1374,3 +1374,25 @@ a {
     bottom: 20px;
     border-radius: 25px;
 }
+
+.modal-fullscreen-xl {
+    padding: 0 !important;
+}
+
+.modal-fullscreen-xl .modal-dialog {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    margin: 0;
+    max-height: calc(100% - 0rem);
+}
+
+.modal-fullscreen-xl .modal-content {
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+}
+
+.modal-fullscreen-xl .modal-body {
+    overflow-y: auto;
+}

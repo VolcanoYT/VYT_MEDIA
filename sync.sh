@@ -137,15 +137,14 @@ npmjs(){
 
 #TODO: why no just use http://browserify.org/? and keep last update
 # dom-to-image html2canvas FileSaver
+npmjs jquery 3.5.1 dist
+npmjs jquery-ui-dist 1.12.1
+
 npmjs js-cookie 3.0.0-rc.0 dist
 npmjs socket.io-client 2.3.0 dist
-npmjs esri-leaflet 2.4.1 dist
-npmjs leaflet.heat 0.2.0 dist
-npmjs jquery 3.5.1 dist
 npmjs sweetalert2 9.13.1 dist
 npmjs moment 2.26.0 min
 npmjs moment-timezone 0.5.31 builds
-npmjs jquery-ui-dist 1.12.1
 npmjs toastify-js 1.7.0 src
 npmjs tinysort 3.2.7 dist
 npmjs lazysizes 5.2.2
@@ -156,6 +155,11 @@ npmjs videojs-abloop 1.1.2 dist
 npmjs videojs-flash 2.2.1 dist
 npmjs videojs-youtube 2.6.1 dist
 npmjs http-streaming 2.0.0-rc.2 dist @videojs
+
+npmjs esri-leaflet 2.4.1 dist
+npmjs leaflet.heat 0.2.0 dist
+npmjs leaflet-easybutton 2.4.0 src
+npmjs leaflet.markercluster 1.4.1 dist
 
 cd $tmp || exit
 

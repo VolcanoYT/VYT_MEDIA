@@ -67,17 +67,25 @@ var EWS;
                     try {
                         _b.fireEvent("raw", data);
 
-                        var x = data.dm.x; // In degree in the range [-180,180] LNX (Datar) (Merah)
-                        var y = data.dm.y; // In degree in the range [-90,90] LNY (Kiri-Kanan) (Hijau)           
-                        var z = data.dm.z; // LNZ (Atas-Bawah) (Biru)
+                        // base phone use m/s2
+                        var x = data.dm.x; // In degree in the range [-180,180] LNX (west to east) (Merah)
+                        var y = data.dm.y; // In degree in the range [-90,90] LNY (south to north) (Hijau)           
+                        var z = data.dm.z; // LNZ (down to up) (Biru)
 
                         // timestamp is UTC
                         var d = new Date();
                         var time = Math.floor(d.getTime() / 1000);
 
                         //ambil sampel
-                        //TODO: save time_step & with multi channel
-                        sampel.push(x);
+                        //TODO: save time_step & with multi channel (x)                        
+                        sampel.push({
+                            data: {
+                                LNX: x,
+                                LNY: y,
+                                LNZ: z,
+                            },
+                            timestamp: d.getTime()
+                        });
 
                         /*
                         Ada 2 macam gelombang badan, yaitu gelombang primer atau gelombang P (primary wave) dan gelombang sekunder atau gelombang S (secondary wave). Gelombang P atau gelombang mampatan (compression wave),
@@ -86,15 +94,24 @@ var EWS;
 
                         primer (50x100ms=5000 milliseconds aka 5 seconds)
                         */
-                        if (sampel.length == sampel_length) {
+                        if (sampel.length >= sampel_length) {
 
-                            /*
-                            https://www.bmkg.go.id/gempabumi/skala-mmi.bmkg
-                            https://en.wikipedia.org/wiki/Gal_(unit)
-                            https://www.quora.com/What-are-units-of-amplitude
-                            Fungsi Math.max() mengembalikan nilai terbesar dari zero atau lebih besar.
-                            */
-                            gal = Math.max(...sampel);
+                            var collection_LNX = [],
+                                collection_LNY = [],
+                                collection_LNZ = []
+
+                            sampel.forEach((wtc, index) => {
+                                collection_LNX.push(wtc.data.LNX);
+                                collection_LNY.push(wtc.data.LNY);
+                                collection_LNZ.push(wtc.data.LNZ);
+                            });
+                            var gal_LNX = Math.max(...collection_LNX);
+                            var gal_LNY = Math.max(...collection_LNY);
+                            var gal_LNZ = Math.max(...collection_LNZ);
+
+                            var gal = Math.max(gal_LNX,gal_LNY,gal_LNZ); // all directions?
+
+                            //console.log('GAL: X ' + gal_LNX + ' Y ' + gal_LNY + ' Z ' + gal_LNZ + ' (Final '+all_directions+')');
 
                             //mulai ambil event
                             if (gal > 0.1) {

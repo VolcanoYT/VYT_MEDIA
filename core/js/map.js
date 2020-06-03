@@ -1,7 +1,7 @@
 var eqwatch = [];
 var auto_mode = getAllUrlParams().auto;
-var auto_twait=0;
-var auto_gwait=60;
+var auto_twait = 0;
+var auto_gwait = 60;
 
 var GroupBlue = L.layerGroup();
 var TsunamiStation = L.layerGroup();
@@ -57,9 +57,12 @@ var platetectonics = new L.TileLayer("https://earthquake.usgs.gov/basemap/tiles/
 var places = new L.TileLayer("https://services.arcgisonline.com/arcgis/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}");
 var highrisk = new L.TileLayer("https://{s}.tiles.mapbox.com/v4/temblor.d2byhogx/{z}/{x}/{y}.jpg?access_token=" + keymapbox);
 highrisk.setOpacity(0.4);
+
+/*
 var krb = L.esri.featureLayer({
     url: 'https://services7.arcgis.com/g7FCBALNv7UNIenl/arcgis/rest/services/KRB_GA_ID2/FeatureServer/0'
 });
+*/
 
 var map = new L.Map('map_2d', {
     attributionControl: true,
@@ -85,7 +88,7 @@ var baseLayers = {
     "Google Streets": googleStreets
 };
 var overlays = {
-    "Kawasan Rawan Bencana": krb,
+   // "Kawasan Rawan Bencana": krb,
     "Antipodes": heatz,
     "Earthquake": GroupBlue,
     "Volcano": GroupVolcano,
@@ -100,6 +103,11 @@ var overlays = {
 L.control.scale().addTo(map);
 L.control.layers(baseLayers, overlays).addTo(map);
 
+/*
+L.easyButton('<span class="star">&starf;</span>', function () {
+    $('#ews_tab').modal('toggle');
+}).addTo(map);
+*/
 function getcolordeep(depthtwo) {
     var normalicon = "blue";
     if (depthtwo > 70) {

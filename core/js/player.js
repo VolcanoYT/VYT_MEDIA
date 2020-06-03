@@ -40,20 +40,20 @@ var namacam = getAllUrlParams().nama; //nama kamera
 var setvol = getAllUrlParams().audio;
 var volume = parseFloat(setvol / 100);
 var setplay = getAllUrlParams().autoplay;
+var setforce = getAllUrlParams().force;
 var usebackup = getAllUrlParams().usebackup;
 var tp = getAllUrlParams().tp || 'last'; //last or raw
 var sereload = parseInt(getAllUrlParams().r) || 60; //reload img
-
 var hidehd = getAllUrlParams().hidehd;
-var showlog = getAllUrlParams().showlog;
+
 var dev = getAllUrlParams().dev;
 $('.log').hide();
 if (dev == "true") {
     $('.log').show();
-}
-if (showlog !== "true") {
+}else{
     $('#debug_console').css("display", "contents"); //not yet fix
 }
+
 $('.log').on('click', function (e) {
     if ($('#debug_console').css('display') == 'contents') {
         $("#debug_console").css('display', 'flow-root');
@@ -101,14 +101,19 @@ function SendLog(txt = "") {
     }
 }
 
-function good() {
+function good(msg) {
+    if (!isEmpty(msg)) {
+        console.log(msg);
+    }
     showliveimg = false;
     ceklive = false;
     countl = 0;
 }
 
-function bad(tes) {
-    console.log(tes);
+function bad(msg) {
+    if (!isEmpty(msg)) {
+        console.log(msg);
+    }
     showliveimg = true;
     ceklive = true;
 }
@@ -245,15 +250,15 @@ function RunLive() {
                     playvd();
                 }
             });
-            JSPlayer.on(['play', 'playing', 'durationchange', 'loadedmetadata', 'loadeddata', 'loadstart', 'durationchange', 'canplay', 'canplaythrough', 'waiting', 'ended', 'pause', 'error', 'suspend', 'abort', 'interruptbegin', 'interruptend', 'stalled'], function (e) { //ratechange
+            JSPlayer.on(['play', 'playing', 'durationchange', 'loadedmetadata', 'loadeddata', 'loadstart', 'durationchange', 'canplay', 'canplaythrough', 'waiting', 'ended', 'pause', 'error', 'suspend', 'abort', 'interruptbegin', 'interruptend', 'stalled', 'resize', 'seeked', 'seeking'], function (e) { //ratechange
 
                 isPlaying = e.type;
 
                 //jika error coba debung
-                var view_error;
                 try {
-                    if (isPlaying == "error") {
-                        view_error = JSPlayer.error();
+                    var view_error = JSPlayer.error();                    
+                    if (view_error) {
+                        console.log("BUG: ", view_error);
                         if (view_error.message.includes("disabled")) {
                             isPlaying = 'disabled';
                         } else if (view_error.message.includes("corruption")) {
@@ -269,22 +274,18 @@ function RunLive() {
                     }
                 } catch (error) {
                     console.log(error);
-                    console.log(view_error);
                 }
 
+                if (dev)
+                    console.log(e);
+
             });
-            JSPlayer.on('resize', function (e) {
-                console.log(e);
-            });
-            JSPlayer.on(['seeked', 'seeking'], function (e) {
-                console.log(e);
-            });
+
         } else {
-            console.log('skip....');
+            isPlaying = 'disabled';
         }
     } catch (error) {
-        console.log(error);
-        return SendLog('Error Load Player');
+        return SendLog('Error Load Player: ', error);
     }
 }
 
@@ -337,7 +338,7 @@ async function UpdateMe() {
 
         //Live Mode
         if (jpgr) {
-            realimg = "https://tapp.volcanoyt.com/img?url=" + camid + '&timeout=' + sereload + 2;
+            realimg = URL_API + "img?url=" + camid + '&timeout=' + sereload + 2;
         }
 
         //API Player
@@ -379,9 +380,9 @@ async function UpdateMe() {
 }
 setInterval(UpdateMe, 1000);
 
-//cek status player?
-var waitloop = 0;
+//cek status player
 setInterval(function () {
+
     if (ffisplay)
         return null;
 
@@ -405,21 +406,27 @@ setInterval(function () {
         return null;
     }
 
-
     if (isPlaying == "pause") {
         playvd();
-    } else if (isPlaying == "play" || isPlaying == "playing" || isPlaying == "canplaythrough") { //TODO: some canplaythrough is pause and some can keep play it?
+    } else if (isPlaying == "durationchange" || isPlaying == "resize") {
+        //for api noting?
+        good();
+    } else if (isPlaying == "canplaythrough" || isPlaying == "canplay" ||  isPlaying == "waiting" || isPlaying == "loadstart") {
+
+        //reload player setiap 5 menit biar tidak stuck?
+        if (countl >= 300) {
+            countl = 0;
+            return RunLive();
+        }
+        good();
+
+    } else if (isPlaying == "play" || isPlaying == "playing") {
         good();
     } else {
-        if (waitloop > 10) {
-            bad("Camera error at " + isPlaying + " ,tried " + countl + "x connect");
-            countl++;
-            waitloop = 0;
-            //console.log(isPlaying);
-        } else {
-            waitloop++;
-        }
+        bad(isPlaying + " :" + countl);
+        countl++;
     }
+
 }, 1000 * 1);
 
 setInterval(function () {
@@ -567,7 +574,7 @@ $('#proses').on('click', function (e) {
             tweet: tweet,
             cam: camid
         },
-        url: 'https://tapp.volcanoyt.com/timelapse',
+        url: URL_APP + 'timelapse',
     }).done(function (data) {
         $('#getinfo').show();
         $('#loadff').hide();
