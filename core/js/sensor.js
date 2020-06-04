@@ -1,9 +1,18 @@
-//API Sensor
-//https://stackoverflow.com/a/9672223
+/*
+https://stackoverflow.com/a/9672223
+http://crotwell.github.io/seisplotjs/tutorial/index.html
+https://github.com/lskk/motionrecorder2
+https://docs.obspy.org/tutorial/code_snippets/anything_to_miniseed.html
+*/
 var EWS;
 (EWS = function () {}).prototype = {
     _iseq: false,
     _event: [],
+
+    targetSamplingRate: 25,
+    locationSamplingRate: 4,
+    clipDurationSecs: 2,
+
     get earthquake() {
         return this._iseq;
     },
@@ -44,10 +53,19 @@ var EWS;
         }
         return true;
     },
+    upsample: function (source = [], newLength = 0) {
+        if (source.length == 0) {
+            console.log('Trying to upsample to '+newLength+' samples but input length is 0');
+        } else if (newLength == source.length) {
+            return source;
+        }else{
+
+        }
+    },
     start: function () {
         var _b = this;
         var args = {
-            frequency: 100, // ( How often the object sends the values - milliseconds )
+            frequency: 25, // ( How often the object sends the values - milliseconds )
             gravityNormalized: true, // ( If the gravity related values to be normalized )
             orientationBase: GyroNorm.WORLD, // ( Can be GyroNorm.GAME or GyroNorm.WORLD. gn.GAME returns orientation values with respect to the head direction of the device. gn.WORLD returns the orientation values with respect to the actual north direction of the world. )
             screenAdjusted: true // ( If set to true it will return screen adjusted values. )
@@ -55,7 +73,7 @@ var EWS;
         var gn = new GyroNorm();
 
         var waitprimer = 5;
-        var sampel_length = 50;
+        var sampel_length = 200;
 
         //TODO: hapus event file tiap 30 menit atau kalau sudah full
         var sampel = [];
@@ -74,7 +92,7 @@ var EWS;
 
                         // timestamp is UTC
                         var d = new Date();
-                        var time = Math.floor(d.getTime() / 1000);
+                        var time = d.getTime(); //Math.floor(d.getTime() / 1000);
 
                         //ambil sampel
                         //TODO: save time_step & with multi channel (x)                        
@@ -84,7 +102,7 @@ var EWS;
                                 LNY: y,
                                 LNZ: z,
                             },
-                            timestamp: d.getTime()
+                            timestamp: time
                         });
 
                         /*
@@ -92,9 +110,9 @@ var EWS;
     
                         coba ambil sampel primer dulu selama 5 detik lalu cek lagi gelombang primer jika sampel tidak terputus selama 2 detik pada saat last primer ubah data primer jadi secondary dan seterusnya.... sampai tidak ada gelombang berlanjutan...
 
-                        primer (50x100ms=5000 milliseconds aka 5 seconds)
+                        primer (200x25ms=5000 milliseconds aka 5 seconds)
                         */
-                        if (sampel.length >= sampel_length) {
+                        if (sampel.length == sampel_length) {
 
                             var collection_LNX = [],
                                 collection_LNY = [],
@@ -109,7 +127,7 @@ var EWS;
                             var gal_LNY = Math.max(...collection_LNY);
                             var gal_LNZ = Math.max(...collection_LNZ);
 
-                            var gal = Math.max(gal_LNX,gal_LNY,gal_LNZ); // all directions?
+                            var gal = Math.max(gal_LNX, gal_LNY, gal_LNZ); // all directions?
 
                             //console.log('GAL: X ' + gal_LNX + ' Y ' + gal_LNY + ' Z ' + gal_LNZ + ' (Final '+all_directions+')');
 
@@ -119,7 +137,7 @@ var EWS;
                                 _b._iseq = true;
 
                                 //nilai awal
-                                var timeeq = waitprimer;                                
+                                var timeeq = waitprimer;
                                 var neweq = true;
 
                                 //sampel awal
@@ -131,18 +149,19 @@ var EWS;
                                     last_sampel = _b._event[_b._event.length - 1];
 
                                     //Cek Waktu
-                                    var between_times = time - last_sampel.update;
+                                    var between_times = Math.floor(time / 1000) - Math.floor(last_sampel.update / 1000);
                                     //jika waktu update masih sama jangan bikin gempa baru
-                                    if (between_times == waitprimer) {
+                                    console.log(between_times);
+                                    if (between_times >= waitprimer) {
                                         neweq = false;
                                     }
 
                                     //Cek Waktu sekarang dengan last input
-                                    timeeq = time - last_sampel.input;
-                                    if(timeeq>=waitprimer){
-                                        timeeq = timeeq+waitprimer;
+                                    timeeq = Math.floor(time / 1000) - Math.floor(last_sampel.input / 1000);
+                                    if (timeeq >= waitprimer) {
+                                        timeeq = timeeq + waitprimer;
                                     }
-                                }                            
+                                }
 
                                 /*
                                 https://www.bgs.ac.uk/discoveringGeology/hazards/earthquakes/magnitudeScaleCalculations.html

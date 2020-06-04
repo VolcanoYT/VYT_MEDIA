@@ -50,7 +50,7 @@ var dev = getAllUrlParams().dev;
 $('.log').hide();
 if (dev == "true") {
     $('.log').show();
-}else{
+} else {
     $('#debug_console').css("display", "contents"); //not yet fix
 }
 
@@ -101,13 +101,14 @@ function SendLog(txt = "") {
     }
 }
 
-function good(msg) {
+function good(msg, count = true) {
     if (!isEmpty(msg)) {
         console.log(msg);
     }
     showliveimg = false;
     ceklive = false;
-    countl = 0;
+    if (count)
+        countl = 0;
 }
 
 function bad(msg) {
@@ -256,20 +257,18 @@ function RunLive() {
 
                 //jika error coba debung
                 try {
-                    var view_error = JSPlayer.error();                    
+                    var view_error = JSPlayer.error();
                     if (view_error) {
                         console.log("BUG: ", view_error);
                         if (view_error.message.includes("disabled")) {
                             isPlaying = 'disabled';
+                        } else if (view_error.message.includes("not supported")) {
+                            //yakin?
+                            isPlaying = 'disabled';
                         } else if (view_error.message.includes("corruption")) {
                             RunLive();
-                            //var time = JSPlayer.currentTime();
-                            //JSPlayer.pause();
-                            //JSPlayer.load();
-                            //JSPlayer.currentTime(time);
-                            //JSPlayer.play();
                         } else {
-                            console.log('error idk: ', view_error);
+                            bad(view_error.message);
                         }
                     }
                 } catch (error) {
@@ -394,6 +393,7 @@ setInterval(function () {
 
     if (isPlaying == "disabled") {
         showliveimg = true;
+        ispause = false;
         if (JSPlayer) {
             try {
                 JSPlayer.dispose();
@@ -411,14 +411,16 @@ setInterval(function () {
     } else if (isPlaying == "durationchange" || isPlaying == "resize") {
         //for api noting?
         good();
-    } else if (isPlaying == "canplaythrough" || isPlaying == "canplay" ||  isPlaying == "waiting" || isPlaying == "loadstart") {
+    } else if (isPlaying == "canplaythrough" || isPlaying == "canplay" || isPlaying == "waiting" || isPlaying == "loadstart") {
 
-        //reload player setiap 5 menit biar tidak stuck?
-        if (countl >= 300) {
-            countl = 0;
+        //reload player setiap 10 menit biar tidak stuck?
+        if (countl >= 600) {
+            good("reload");
             return RunLive();
-        }
-        good();
+        }else{
+            countl++;
+            good("",false);
+        }     
 
     } else if (isPlaying == "play" || isPlaying == "playing") {
         good();

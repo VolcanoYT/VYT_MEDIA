@@ -1,6 +1,3 @@
-URL_API="https://beta.volcanoyt.com/";
-URL_CDN="https://cdn.volcanoyt.com/";
-URL_APP="https://tapp.volcanoyt.com/";
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 var context;
@@ -572,3 +569,36 @@ function number_format (number, decimals, decPoint, thousandsSep) {
   
     return s.join(dec)
   }
+
+//Volcano Status
+function OnStatus(level) {
+    if (level == 1) {
+        return "Normal";
+    } else if (level == 2) {
+        return "Unrest";
+    } else if (level == 3) {
+        return "Minor";
+    } else if (level == 4) {
+        return "Eruption";
+    } else if (level == 5) {
+        return "Danger";
+    } else {
+        return "Unknown";
+    }
+}
+
+function OnGempa(level) {
+    if (level == 0) {
+        return "Preliminary";
+    } else if (level == 1) {
+        return "Manual";
+    } else if (level == 2) {
+        return "Revision";
+    } else if (level == 3) {
+        return "Final";
+    } else if (level == 4) {
+        return "Wrong";
+    } else {
+        return "Unknown";
+    }
+}

@@ -738,9 +738,9 @@ $('body').on('click', '#load', function (e) {
                         eh += '</div></div>';
                         $(".blogvolcano").append(eh);
                     } else if (type == "camera") {
-                        var nobeta = '<img class="vidt lazyload" id="' + data.id + '" data-src="' + URL_CDN + 'timelapse/' + data.id + '/tumb.jpg?time=' + timep + '">';
+                        var nobeta = '<img class="vidt lazyload" id="' + data.id + '" data-src="' + URL_CDN + 'timelapse/' + data.id + '/tumb.jpg">';
                         if (isbeta == 'true') {
-                            nobeta = '<video loading="lazy" class="vidt" poster="' + URL_CDN + 'timelapse/' + data.id + '/tumb.jpg?time=' + timep + '" autoplay loop muted playsinline><source src="' + URL_CDN + 'timelapse/' + data.id + '/gif.mp4?time=' + timep + '" type="video/mp4"></video>';
+                            nobeta = '<video loading="lazy" class="vidt" poster="' + URL_CDN + 'timelapse/' + data.id + '/tumb.jpg" autoplay loop muted playsinline><source src="' + URL_CDN + 'timelapse/' + data.id + '/gif.mp4" type="video/mp4"></video>';
                         }
                         $("#post-data").append('<a class="col-xl-3 col-sm-6 mb-3 post-id" data-id="' + data.id + '" href="/camera/' + data.id + '/' + data.seo_url + '"><div class="card shadow-none">' + nobeta + '<h2 class="card-img-overlay">' + data.name + '</h2></div></a> ');
                     } else {
