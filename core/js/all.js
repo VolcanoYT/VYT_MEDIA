@@ -15,7 +15,7 @@ try {
 }
 
 var localDate;
-setInterval(function () {    
+setInterval(function () {
     try {
         localDate = Math.floor(new Date().getTime() / 1000);
         $('#mytime').text("" + moment().utc().format('DD/MM/YYYY HH:mm:ss') + " GMT | " + moment().format('DD/MM/YYYY HH:mm:ss') + " LocalTime");
@@ -169,7 +169,7 @@ function NotifMe(x, m, info = "info", audio = false, lg = "id", volume = 0.5) {
             }
             $.each(arr, function () {
                 listaudio.push({
-                    url: URL_API+"google/voice.mp3?say=" + encodeURI(this.trim()) + "&lg=" + lg,
+                    url: URL_API + "google/voice.mp3?say=" + encodeURI(this.trim()) + "&lg=" + lg,
                     volume: volume
                 });
             });
@@ -343,7 +343,15 @@ function updateTime() {
     try {
         $("time").each(function (i) {
             var datatime = $(this).attr("data-now");
-            var timenow = moment.utc(datatime).fromNow();
+            var typez = $(this).attr("data-type");
+
+            var timenow;
+            if (typez == "sec") {
+                timenow = Math.floor(new Date().getTime() / 1000) - Math.floor(datatime / 1000);
+            } else {
+                timenow = moment.utc(datatime).fromNow();
+            }
+
             var checktime = $(this).html();
             if (checktime !== timenow) {
                 $(this).html(timenow);
@@ -536,39 +544,39 @@ function getAllUrlParams(url) {
     return obj;
 }
 
-function number_format (number, decimals, decPoint, thousandsSep) {  
+function number_format(number, decimals, decPoint, thousandsSep) {
     number = (number + '').replace(/[^0-9+\-Ee.]/g, '')
     var n = !isFinite(+number) ? 0 : +number
     var prec = !isFinite(+decimals) ? 0 : Math.abs(decimals)
     var sep = (typeof thousandsSep === 'undefined') ? ',' : thousandsSep
     var dec = (typeof decPoint === 'undefined') ? '.' : decPoint
     var s = ''
-  
+
     var toFixedFix = function (n, prec) {
-      if (('' + n).indexOf('e') === -1) {
-        return +(Math.round(n + 'e+' + prec) + 'e-' + prec)
-      } else {
-        var arr = ('' + n).split('e')
-        var sig = ''
-        if (+arr[1] + prec > 0) {
-          sig = '+'
+        if (('' + n).indexOf('e') === -1) {
+            return +(Math.round(n + 'e+' + prec) + 'e-' + prec)
+        } else {
+            var arr = ('' + n).split('e')
+            var sig = ''
+            if (+arr[1] + prec > 0) {
+                sig = '+'
+            }
+            return (+(Math.round(+arr[0] + 'e' + sig + (+arr[1] + prec)) + 'e-' + prec)).toFixed(prec)
         }
-        return (+(Math.round(+arr[0] + 'e' + sig + (+arr[1] + prec)) + 'e-' + prec)).toFixed(prec)
-      }
     }
-  
+
     // @todo: for IE parseFloat(0.55).toFixed(0) = 0;
     s = (prec ? toFixedFix(n, prec).toString() : '' + Math.round(n)).split('.')
     if (s[0].length > 3) {
-      s[0] = s[0].replace(/\B(?=(?:\d{3})+(?!\d))/g, sep)
+        s[0] = s[0].replace(/\B(?=(?:\d{3})+(?!\d))/g, sep)
     }
     if ((s[1] || '').length < prec) {
-      s[1] = s[1] || ''
-      s[1] += new Array(prec - s[1].length + 1).join('0')
+        s[1] = s[1] || ''
+        s[1] += new Array(prec - s[1].length + 1).join('0')
     }
-  
+
     return s.join(dec)
-  }
+}
 
 //Volcano Status
 function OnStatus(level) {
@@ -601,4 +609,14 @@ function OnGempa(level) {
     } else {
         return "Unknown";
     }
+}
+
+function isValidUrl(string) {
+    try {
+        new URL(string);
+    } catch (_) {
+        return false;
+    }
+
+    return true;
 }

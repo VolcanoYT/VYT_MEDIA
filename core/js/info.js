@@ -24,7 +24,7 @@ function OnData(x) {
     console.log(x);
 
     if (autohide == "true") {
-        console.log('open it');
+        //console.log('open it');
         document.getElementById("auto").style.visibility = "";
         document.getElementById("log").style.visibility = "";
         clearTimeout(close_info);
@@ -126,13 +126,13 @@ function OnData(x) {
     close_info = setTimeout(
         function () {
             if (autohide == "true") {
-                console.log('close it');
+                //console.log('close it');
                 document.getElementById("auto").style.visibility = "hidden";
                 document.getElementById("log").style.visibility = "hidden";
             }
         }, 1000 * wait_close);
 
-    console.log('close in... ' + wait_close);
+    //console.log('close in... ' + wait_close);
 
     if (circle) {
         var counter = 0;

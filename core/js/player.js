@@ -191,6 +191,13 @@ function RunLive() {
             $(div_player).html(c.embed);
         }
 
+        //Cek Vaild URL
+        if(!isValidUrl(c.url)){
+            isPlaying = 'disabled';
+            console.log('URL Vaild? ',c.url);
+            return null;
+        }
+
         //API rtmp
         if (types == 2) {
             ext = "application/x-mpegURL";
@@ -283,6 +290,7 @@ function RunLive() {
         } else {
             isPlaying = 'disabled';
         }
+
     } catch (error) {
         return SendLog('Error Load Player: ', error);
     }
