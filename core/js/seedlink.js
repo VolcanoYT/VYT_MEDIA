@@ -1,5 +1,12 @@
+// https://www.seiscomp3.org/doc/seattle/2012.279/apps/seedlink.html
 var event = [];
 var station = [];
+var sampelrate = 1000;
+var sync_data = 5;
+
+var mergeAll = function () {
+    return Array.prototype.slice.call(arguments).reduce(mergeSorted);
+};
 
 var seedlink = new WebSocket("wss://seedlink.volcanoyt.com");
 seedlink.onopen = function (event) {
@@ -23,18 +30,18 @@ seedlink.onmessage = function (eventt) {
 }
 
 //Get Index Time
-function getDates(startDate, stopDate, sampel=0) {
+function getDates(startDate, stopDate, sampel = 0) {
     var dateArray = new Array();
     var currentDate = startDate;
 
-    if(sampel !== 0){
+    if (sampel !== 0) {
         currentDate = Math.floor(currentDate / sampel);
         stopDate = Math.floor(stopDate / sampel);
     }
 
     while (currentDate <= stopDate) {
         dateArray.push(currentDate);
-        currentDate++;        
+        currentDate++;
     }
     return dateArray;
 }
@@ -56,7 +63,7 @@ function Station(data, put = "auto") {
 
     //Data RAW
     var data_sampel = [];
-    var index_time = getDates(start, end,1000);
+    var index_time = getDates(start, end, sampelrate);
     sampel.forEach((val, index) => {
         data_sampel.push({
             x: index_time[index],
@@ -112,6 +119,15 @@ function Station(data, put = "auto") {
                     id: 'realtime',
                     height: 350,
                     type: 'line',
+                    animations: {
+                        enabled: false,
+                    },
+                    toolbar: {
+                        show: false
+                    },
+                    zoom: {
+                        enabled: false
+                    }
                 },
                 dataLabels: {
                     enabled: false
@@ -123,14 +139,11 @@ function Station(data, put = "auto") {
                     text: 'RAW DATA',
                     align: 'left'
                 },
-                tooltip: {
-                    enabled: false
-                },
                 markers: {
                     size: 0
                 },
                 xaxis: {
-                    type: 'numeric'
+                    type: 'numeric',
                 },
                 legend: {
                     show: false
@@ -142,7 +155,9 @@ function Station(data, put = "auto") {
                 id: id,
                 chart: chart,
                 collection: [collection],
-                sampel: data_sampel
+                sampel: data_sampel,
+                start: start,
+                end: end
             })
 
         } else {
@@ -157,17 +172,15 @@ function Station(data, put = "auto") {
         for (var j in station) {
             if (station[j].id == id) {
 
-                /*
-                station[j].chart.updateSeries([{
-                    data: data_sampel
-                }]);
-                */
-                station[j].sampel = data_sampel;
+                station[j].sampel = station[j].sampel.concat(...data_sampel);
+                //mergeAll(station[j].sampel,data_sampel).map(function(x){return x.x;});
+                console.log("sample collected: ", station[j].sampel.length);
+
+                station[j].end = end;
                 if (collection.length !== 0) {
                     station[j].collection.push(collection); //jika ada info push it
                 }
                 document.getElementById(id).querySelector('#subbody').innerHTML = infobody;
-
                 break;
             }
         }
@@ -179,13 +192,17 @@ function Station(data, put = "auto") {
 
 //sync both stations so that they can pick up in real time later and maybe we can analyze data directly here
 function sync() {
-    console.log('sync time....');
+    //console.log('sync time....');
 
     var sampel_tmp = [];
 
     var tnow = new Date().getTime();
-    var index_time = getDates(tnow - 2 * 60 * 1000, tnow + 2 * 60 * 1000,1000);
-    console.log("Index Time: ",index_time.length);
+    var go_start = tnow - 4 * 60 * 1000;
+    var go_center = Math.floor(go_start / sampelrate);
+    var go_end = tnow + 1 * 10 * 1000;
+
+    var index_time = getDates(go_start, go_end, sampelrate);
+    //console.log("Index Time: ",index_time.length);
 
     //getRndInteger(-1000, 1000)
     index_time.forEach((val, index) => {
@@ -196,18 +213,24 @@ function sync() {
     });
     index_time = null;
 
-    station.forEach((data) => {
+    for (var sta in station) {
 
-        var sampel = data.sampel;
+        var data = station[sta];
+
+        //sebelum mulai cek dulu data lama
+        var newupdate = data.sampel.filter(function (item) {
+            //console.log(item.x - go_center);
+            return go_center <= item.x
+        })
+        station[sta].sampel = newupdate;
+
         //ini sampel dari raw
+        var sampel = data.sampel;
         for (var sr in sampel) {
             //ini sampel tmp buat cari blok dari sampel real
             for (var jt in sampel_tmp) {
-
-                //console.log(sampel[sr].x+" | "+sampel_tmp[jt].x);
-
+                //jika cocok ubah
                 if (sampel[sr].x == sampel_tmp[jt].x) {
-                    console.log('ada');                
                     sampel_tmp[jt].y = sampel[sr].y;
                     break;
                 }
@@ -220,12 +243,11 @@ function sync() {
         tb.updateSeries([{
             data: sampel_tmp
         }]);
-    });
+    };
 
     sampel_tmp = null;
-
 }
-setInterval(sync, 1000 * 5);
+setInterval(sync, 1000 * sync_data);
 
 function getRndInteger(min, max) {
     return Math.floor(Math.random() * (max - min)) + min;
