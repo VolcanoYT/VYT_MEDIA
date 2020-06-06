@@ -1,4 +1,6 @@
 // https://www.seiscomp3.org/doc/seattle/2012.279/apps/seedlink.html
+// https://blog.freifunk.net/2017/06/26/choosing-spectrogram-visualization-library-javascript/
+// https://ds.iris.edu/ds/products/seissound/
 var event = [];
 var station = [];
 
@@ -6,14 +8,17 @@ var station = [];
 var TMP_Sampel_Rate = 1000;
 
 // every 3 seconds synchronizes all stations.
-var delayed_sync_data = 3;
+var delayed_sync_data = 5;
 
 // false when you are ready, gui is very useful when you are still debugging process but it is quite slow for analysis data.
 var gui = true;
 var gui_div = "auto";
 
-var seedlink = new WebSocket("wss://seedlink.volcanoyt.com");
+var seedlink = new ReconnectingWebSocket("wss://seedlink.volcanoyt.com");
 seedlink.onopen = function (event) {
+    seedlink.send(JSON.stringify({
+        "subscribe": "II.KAPI",
+    }));
     seedlink.send(JSON.stringify({
         "subscribe": "GE.JAGI",
     }));
@@ -23,7 +28,7 @@ seedlink.onopen = function (event) {
 
     if (gui)
         $('#isonline').html("Online");
-}
+};
 seedlink.onmessage = function (eventt) {
     var json = JSON.parse(eventt.data);
     if (json.error) {
@@ -33,7 +38,10 @@ seedlink.onmessage = function (eventt) {
     } else {
         Station(json);
     }
-}
+};
+seedlink.onclose = function (eventt) {
+    console.log("close", eventt);
+};
 
 //Get Index Time
 function getDates(startDate, stopDate, sampel = 0) {
@@ -99,8 +107,6 @@ function Station(data) {
 
 //sync both stations so that they can pick up in real time later and maybe we can analyze data directly here
 function sync() {
-    var sampel_tmp = [];
-
     var tnow = new Date().getTime();
     //var t_w_s = Math.floor(tnow / TMP_Sampel_Rate);
 
@@ -108,22 +114,6 @@ function sync() {
     var go_start = tnow - 4 * 60 * 1000;
     var go_center = Math.floor(go_start / TMP_Sampel_Rate);
     var go_end = tnow + 1 * 10 * 1000;
-
-    //pick up
-    var go_select_start = Math.floor(go_start / TMP_Sampel_Rate) + 240;
-    var go_select_end = Math.floor(go_end / TMP_Sampel_Rate) - 20;
-
-    //console.log("pick up: " + (go_select_start - go_select_end));
-
-    // index tmp
-    var index_time = getDates(go_start, go_end, TMP_Sampel_Rate);
-    index_time.forEach((val, index) => {
-        sampel_tmp.push({
-            x: val,
-            y: 0 //getRndInteger(-1000, 1000) TODO: coba nilai rata-rata
-        })
-    });
-    index_time = null;
 
     for (var sta in station) {
 
@@ -135,20 +125,6 @@ function sync() {
         })
         station[sta].sampel = newupdate;
 
-        //ini sampel dari raw
-        var sampel = data.sampel;
-        for (var sr in sampel) {
-            //ini sampel tmp buat cari blok dari sampel real
-            for (var jt in sampel_tmp) {
-                //jika cocok ubah
-                if (sampel[sr].x == sampel_tmp[jt].x) {
-                    sampel_tmp[jt].y = sampel[sr].y;
-                    break;
-                }
-            };
-            //debugger;
-        };
-
         /*
          - Analyze dulu -
         // Peak ground acceleration (PGA) sama dengan percepatan tanah maksimum yang terjadi selama gempa bumi di suatu lokasi. PGA sama dengan amplitudo percepatan absolut terbesar yang tercatat pada accelerogram di suatu lokasi saat terjadi gempa bumi tertentu.
@@ -156,11 +132,17 @@ function sync() {
         Akselerasi puncak tanah dapat dinyatakan dalam g (percepatan karena gravitasi Bumi, setara dengan g-force) baik sebagai desimal atau persentase; dalam m/s2 (1 g = 9,81 m/s2) di mana 1 Gal sama dengan 0,01 m/s² (1 g = 981 Gal).
         */
 
+        var last_index = newupdate[newupdate.length - 1];
+        var go_select_start = last_index.x;
+        var go_select_end = last_index.x - 10;
+
+        //console.log("Pick Up (RR): " + (go_select_start));
+
         var dt = new Date();
         var timenow = dt.getTime();
 
-        var delayed = Math.floor(timenow / 1000) - Math.floor(data.end / 1000);
-        var time = '' + moment(data.start).format('DD/MM/YYYY HH:mm:ss') + ' - ' + moment(data.end).format('DD/MM/YYYY HH:mm:ss') + ' (' + moment(timenow).format('DD/MM/YYYY HH:mm:ss') + ')';
+        var delayed = Math.floor(timenow / 1000) - go_select_start;
+        var time = moment(data.start).format('DD/MM/YYYY HH:mm:ss') + ' - ' + moment(data.end).format('DD/MM/YYYY HH:mm:ss');
 
         //Data Select
         var data_select = [];
@@ -176,7 +158,7 @@ function sync() {
         var info_pga = 'NO DATA';
         if (GAL >= 0) {
             var gal_rate = (GAL / data.sampleRate).toFixed(3);
-            info_pga = GAL + ' (' + gal_rate + ')';            
+            info_pga = GAL + ' (' + gal_rate + ')';
             /*
             if(data.id == "GE.JAGI..BHZ"){
                 var nilai = 700+(GAL * 10);
@@ -188,20 +170,45 @@ function sync() {
 
             if (gal_rate >= 0.200) {
                 console.log('ada gempa');
-                beepme(50,nilai,TMP_Sampel_Rate);
+                beepme(50, nilai, TMP_Sampel_Rate);
             } else {
                 //console.log('tidak ada gempa');
-            }            
+            }
         }
 
         //jika tmp sampel sudah di update, update it ke gui
         if (gui) {
+
+            //buat sampel tmp
+            var sampel_tmp = [];
+            var index_time = getDates(go_start, go_end, TMP_Sampel_Rate);
+            index_time.forEach((val, index) => {
+                sampel_tmp.push({
+                    x: val,
+                    y: 0 //getRndInteger(-1000, 1000) TODO: coba nilai rata-rata
+                })
+            });
+            index_time = null;
+
+            //set real sampel val to sampel tmp
+            var sampel = data.sampel;
+            for (var sr in sampel) {
+                for (var jt in sampel_tmp) {
+                    if (sampel[sr].x == sampel_tmp[jt].x) {
+                        sampel_tmp[jt].y = sampel[sr].y;
+                        break;
+                    }
+                };
+                //debugger;
+            };
+
             var out = document.getElementById(gui_div);
+
             // update body
             var infobody =
                 ('\
                  Time: ' + time + ' LocalTime <br>\
-                 PGA: ' + info_pga + ' <br>\
+                 PGA: ' + info_pga + ' (' + moment(go_select_start * TMP_Sampel_Rate).format('DD/MM/YYYY HH:mm:ss') + ' Last Update) <br>\
                  Delayed: ' + delayed + ' sec <br> \
                 ');
 
@@ -282,7 +289,7 @@ function sync() {
                     x2: go_select_end,
                     fillColor: '#B3F7CA',
                     label: {
-                        text: 'Analyze'
+                        text: 'Primer (P-wave)'
                     }
                 });
             }
