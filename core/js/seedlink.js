@@ -3,27 +3,35 @@
 // https://ds.iris.edu/ds/products/seissound/
 // https://ds.iris.edu/ds/support/faq/6/what-is-a-count-in-timeseries-data/
 // http://www.lolisetriani.web.id/2015/06/macam-macam-gelombang-gempa-dan.html
+// https://www.imv.co.jp/e/pr/seismic_monitoring/knowledge/
+// http://eqseis.geosc.psu.edu/cammon/HTML/Classes/IntroQuakes/Notes/earthquake_size.html
 var event = [];
 var station = [];
 
-// higher less accurate because less data sampel but faster processing and does not take much memory
-var TMP_Sampel_Rate = 1000;
+// higher less accurate because less data sampel but faster processing and does not take much memory (sampleRate=20)
+var TMP_Sampel = 1000;
 
 var Gain = 1000000;
 
+var NTime = 1000;
+
+var amp_max = 3000;
+var amp_min = -3000;
+
 // every 1 seconds synchronizes all stations.
 // make sure data received from proxy-seedlink also belongs to same value as this (HEARTBEAT_INTERVAL_MS).
-var delayed_sync_data = 1;
+var delayed_sync_data = 2000;
 
 // if gai activity has increased, try analysis it
 // https://en.wikipedia.org/wiki/Peak_ground_acceleration
-var earthquake_come_soon = 0.039;
+var earthquake_come_soon = 0.0025;
 
 // false when you are ready, gui is very useful when you are still debugging process but it is quite slow for analysis data.
 var gui = true;
 var gui_div = "auto";
-var delayed_sync_render_gui = 5;
+var delayed_sync_render_gui = 3;
 var gui_wait_tmp = 0;
+var longbeep = 3;
 
 var seedlink = new ReconnectingWebSocket("wss://seedlink.volcanoyt.com");
 seedlink.onopen = function (event) {
@@ -81,12 +89,12 @@ function Station(data) {
 
     //Data RAW
     var data_sampel = [];
-    var index_time = getDates(start, end, TMP_Sampel_Rate);
+    var index_time = getDates(start, end, TMP_Sampel);
     sampel.forEach((val, index) => {
 
         //we need here config gain,locate,offset,filiter,sampel for each station, so that the info is more accurate?
-        if(id == "II.KAPI.00.BHZ"){
-            val = val+879;
+        if (id == "II.KAPI.00.BHZ") {
+            // val = val+879;
         }
 
         data_sampel.push({
@@ -117,7 +125,8 @@ function Station(data) {
             sampel: data_sampel,
             start: start,
             end: end,
-            sampleRate: STA_SampleRate
+            sampleRate: STA_SampleRate,
+            samplelong: sampel.length,
         });
     }
 }
@@ -125,12 +134,13 @@ function Station(data) {
 //sync both stations so that they can pick up in real time later and maybe we can analyze data directly here
 function sync() {
     var tnow = new Date().getTime();
-    //var t_w_s = Math.floor(tnow / TMP_Sampel_Rate);
 
     //line
-    var go_start = tnow - 4 * 60 * 1000;
-    var go_center = Math.floor(go_start / TMP_Sampel_Rate);
-    var go_end = tnow + 1 * 10 * 1000;
+    var go_start = tnow - 4 * 60 * NTime;
+    var go_end = tnow + 1 * 10 * NTime;
+    var go_center = Math.floor(go_start / TMP_Sampel);
+
+    //console.log(go_start+" | "+go_center);
 
     var unlock_gui = false;
     if (gui) {
@@ -153,6 +163,10 @@ function sync() {
         })
         station[sta].sampel = newupdate;
 
+        var sampel_sta = station[sta].samplelong;
+
+        //TMP_Sampel = sampel_sta;
+
         /*
          - Analyze dulu -
         // Peak ground acceleration (PGA) sama dengan percepatan tanah maksimum yang terjadi selama gempa bumi di suatu lokasi. PGA sama dengan amplitudo percepatan absolut terbesar yang tercatat pada accelerogram di suatu lokasi saat terjadi gempa bumi tertentu.
@@ -164,8 +178,6 @@ function sync() {
         var go_select_start = last_index.x;
         var go_select_end = last_index.x - 10;
 
-        //console.log("Pick Up (RR): " + (go_select_start));
-
         //Data Select
         var data_select = [];
         newupdate.forEach((val) => {
@@ -174,9 +186,11 @@ function sync() {
                 data_select.push(val.y);
             }
         });
+        var total_sampel = newupdate.length;
         var GAL_raw = Math.max(...data_select);
         var GAL = (GAL_raw / Gain).toFixed(4);
         data_select = null;
+        newupdate = null;
 
         if (GAL >= 0) {
             //var GAL_SampleRate = (GAL / data.sampleRate).toFixed(3);
@@ -185,7 +199,7 @@ function sync() {
 
                 //tetap buka gui tanpa wait jika ada gempa
                 if (gui) {
-                    beepme(50, 700, TMP_Sampel_Rate);
+                    beepme(50, 700, NTime * longbeep);
                     unlock_gui = true;
                 }
 
@@ -195,16 +209,16 @@ function sync() {
         //Update GUI
         if (unlock_gui) {
 
-            var time_sec = Math.floor(tnow / 1000);
-            var gui_y = earthquake_come_soon * 1000;
+            var time_sec = Math.floor(tnow / NTime);
+            var gui_y = earthquake_come_soon * Gain;
 
             //buat sampel tmp
             var sampel_tmp = [];
-            var index_tmp_time = getDates(go_start, go_end, TMP_Sampel_Rate);
+            var index_tmp_time = getDates(go_start, go_end, TMP_Sampel);
             index_tmp_time.forEach((val, index) => {
                 sampel_tmp.push({
                     x: val,
-                    y: 0 //getRndInteger(-1000, 1000) TODO: coba nilai rata-rata
+                    y: null //getRndInteger(-10000, 10000) TODO: coba nilai rata-rata
                 })
             });
             index_tmp_time = null;
@@ -223,7 +237,7 @@ function sync() {
 
             var info_pga = 'NO DATA';
             if (GAL >= 0) {
-                info_pga = GAL + 'g ('+GAL_raw+')';
+                info_pga = GAL + 'g (' + GAL_raw + ')';
             }
 
             var out = document.getElementById(gui_div);
@@ -231,8 +245,9 @@ function sync() {
             var infobody =
                 ('\
                  Time Start: ' + moment(data.start).format('DD/MM/YYYY HH:mm:ss') + ' Time End: ' + moment(data.end).format('DD/MM/YYYY HH:mm:ss') + ' LC <br>\
-                 PGA: ' + info_pga + ' (' + moment(go_select_start * TMP_Sampel_Rate).format('DD/MM/YYYY HH:mm:ss') + ' Last Update) <br>\
+                 PGA: ' + info_pga + ' (' + moment(go_select_start * NTime).format('DD/MM/YYYY HH:mm:ss') + ' Last Update) <br>\
                  Delayed: ' + (time_sec - go_select_start) + ' sec <br>\
+                 Sampel: ' + total_sampel + ' - ' + sampel_sta + ' \
                 ');
 
             var tb = data.chart;
@@ -278,6 +293,22 @@ function sync() {
                     },
                     xaxis: {
                         type: 'numeric',
+                        labels: {
+                            /**
+                            * Allows users to apply a custom formatter function to xaxis labels.
+                            *
+                            * @param { String } value - The default value generated
+                            * @param { Number } timestamp - In a datetime series, this is the raw timestamp 
+                            * @param { index } index of the tick / currently executing iteration in xaxis labels array
+                            */
+                            formatter: function(value, timestamp, index) {
+                              return (time_sec - timestamp)
+                            }
+                          }
+                    },
+                    yaxis: {
+                        max: amp_max,
+                        min: amp_min
                     }
                 });
                 chart.render();
@@ -318,14 +349,26 @@ function sync() {
                         text: 'Primer (P-wave) (' + GAL_raw + 'g)'
                     }
                 });
+                tb.addYaxisAnnotation({
+                    y: gui_y,
+                    borderColor: '#e3004d',
+                    label: {
+                        borderColor: '#e3004d',
+                        style: {
+                            color: '#fff',
+                            background: '#e3004d'
+                        },
+                        text: 'Trigger'
+                    }
+                })
             }
 
             // update body
             document.getElementById(data.id).querySelector('#subbody').innerHTML = infobody;
         }
     };
-}
-setInterval(sync, TMP_Sampel_Rate * delayed_sync_data);
+};
+setInterval(sync, delayed_sync_data);
 
 function getRndInteger(min, max) {
     return Math.floor(Math.random() * (max - min)) + min;
