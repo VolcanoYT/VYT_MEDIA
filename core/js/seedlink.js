@@ -1,18 +1,29 @@
 // https://www.seiscomp3.org/doc/seattle/2012.279/apps/seedlink.html
 // https://blog.freifunk.net/2017/06/26/choosing-spectrogram-visualization-library-javascript/
 // https://ds.iris.edu/ds/products/seissound/
+// https://ds.iris.edu/ds/support/faq/6/what-is-a-count-in-timeseries-data/
+// http://www.lolisetriani.web.id/2015/06/macam-macam-gelombang-gempa-dan.html
 var event = [];
 var station = [];
 
 // higher less accurate because less data sampel but faster processing and does not take much memory
 var TMP_Sampel_Rate = 1000;
 
-// every 3 seconds synchronizes all stations.
-var delayed_sync_data = 5;
+var Gain = 1000000;
+
+// every 1 seconds synchronizes all stations.
+// make sure data received from proxy-seedlink also belongs to same value as this (HEARTBEAT_INTERVAL_MS).
+var delayed_sync_data = 1;
+
+// if gai activity has increased, try analysis it
+// https://en.wikipedia.org/wiki/Peak_ground_acceleration
+var earthquake_come_soon = 0.039;
 
 // false when you are ready, gui is very useful when you are still debugging process but it is quite slow for analysis data.
 var gui = true;
 var gui_div = "auto";
+var delayed_sync_render_gui = 5;
+var gui_wait_tmp = 0;
 
 var seedlink = new ReconnectingWebSocket("wss://seedlink.volcanoyt.com");
 seedlink.onopen = function (event) {
@@ -72,6 +83,12 @@ function Station(data) {
     var data_sampel = [];
     var index_time = getDates(start, end, TMP_Sampel_Rate);
     sampel.forEach((val, index) => {
+
+        //we need here config gain,locate,offset,filiter,sampel for each station, so that the info is more accurate?
+        if(id == "II.KAPI.00.BHZ"){
+            val = val+879;
+        }
+
         data_sampel.push({
             x: index_time[index],
             y: val
@@ -115,6 +132,17 @@ function sync() {
     var go_center = Math.floor(go_start / TMP_Sampel_Rate);
     var go_end = tnow + 1 * 10 * 1000;
 
+    var unlock_gui = false;
+    if (gui) {
+        if (gui_wait_tmp > delayed_sync_render_gui) {
+            gui_wait_tmp = 0;
+            unlock_gui = true;
+        } else {
+            gui_wait_tmp++;
+            //console.log('wait gui: ',gui_wait_tmp);
+        }
+    }
+
     for (var sta in station) {
 
         var data = station[sta];
@@ -138,12 +166,6 @@ function sync() {
 
         //console.log("Pick Up (RR): " + (go_select_start));
 
-        var dt = new Date();
-        var timenow = dt.getTime();
-
-        var delayed = Math.floor(timenow / 1000) - go_select_start;
-        var time = moment(data.start).format('DD/MM/YYYY HH:mm:ss') + ' - ' + moment(data.end).format('DD/MM/YYYY HH:mm:ss');
-
         //Data Select
         var data_select = [];
         newupdate.forEach((val) => {
@@ -152,43 +174,40 @@ function sync() {
                 data_select.push(val.y);
             }
         });
-        var GAL = Math.max(...data_select) / 1000;
+        var GAL_raw = Math.max(...data_select);
+        var GAL = (GAL_raw / Gain).toFixed(4);
         data_select = null;
 
-        var info_pga = 'NO DATA';
         if (GAL >= 0) {
-            var gal_rate = (GAL / data.sampleRate).toFixed(3);
-            info_pga = GAL + ' (' + gal_rate + ')';
-            /*
-            if(data.id == "GE.JAGI..BHZ"){
-                var nilai = 700+(GAL * 10);
-                beepme(50,nilai,TMP_Sampel_Rate);
-                console.log("beep: ",nilai);
-            } 
-            console.log('ada data');
-            */
-
-            if (gal_rate >= 0.200) {
+            //var GAL_SampleRate = (GAL / data.sampleRate).toFixed(3);
+            if (GAL >= earthquake_come_soon) {
                 console.log('ada gempa');
-                beepme(50, nilai, TMP_Sampel_Rate);
-            } else {
-                //console.log('tidak ada gempa');
+
+                //tetap buka gui tanpa wait jika ada gempa
+                if (gui) {
+                    beepme(50, 700, TMP_Sampel_Rate);
+                    unlock_gui = true;
+                }
+
             }
         }
 
-        //jika tmp sampel sudah di update, update it ke gui
-        if (gui) {
+        //Update GUI
+        if (unlock_gui) {
+
+            var time_sec = Math.floor(tnow / 1000);
+            var gui_y = earthquake_come_soon * 1000;
 
             //buat sampel tmp
             var sampel_tmp = [];
-            var index_time = getDates(go_start, go_end, TMP_Sampel_Rate);
-            index_time.forEach((val, index) => {
+            var index_tmp_time = getDates(go_start, go_end, TMP_Sampel_Rate);
+            index_tmp_time.forEach((val, index) => {
                 sampel_tmp.push({
                     x: val,
                     y: 0 //getRndInteger(-1000, 1000) TODO: coba nilai rata-rata
                 })
             });
-            index_time = null;
+            index_tmp_time = null;
 
             //set real sampel val to sampel tmp
             var sampel = data.sampel;
@@ -202,14 +221,18 @@ function sync() {
                 //debugger;
             };
 
-            var out = document.getElementById(gui_div);
+            var info_pga = 'NO DATA';
+            if (GAL >= 0) {
+                info_pga = GAL + 'g ('+GAL_raw+')';
+            }
 
+            var out = document.getElementById(gui_div);
             // update body
             var infobody =
                 ('\
-                 Time: ' + time + ' LocalTime <br>\
+                 Time Start: ' + moment(data.start).format('DD/MM/YYYY HH:mm:ss') + ' Time End: ' + moment(data.end).format('DD/MM/YYYY HH:mm:ss') + ' LC <br>\
                  PGA: ' + info_pga + ' (' + moment(go_select_start * TMP_Sampel_Rate).format('DD/MM/YYYY HH:mm:ss') + ' Last Update) <br>\
-                 Delayed: ' + delayed + ' sec <br> \
+                 Delayed: ' + (time_sec - go_select_start) + ' sec <br>\
                 ');
 
             var tb = data.chart;
@@ -229,6 +252,7 @@ function sync() {
                 //lalu input data chart
                 var chart = new ApexCharts(document.getElementById(data.id).querySelector('#chart'), {
                     series: [{
+                        name: 'Ground Acceleration',
                         data: sampel_tmp
                     }],
                     chart: {
@@ -268,11 +292,13 @@ function sync() {
                 }]);
             }
 
+            sampel_tmp = null;
+
             //input chart here
             if (tb !== null) {
                 tb.clearAnnotations();
                 tb.addXaxisAnnotation({
-                    x: Math.floor(timenow / TMP_Sampel_Rate),
+                    x: time_sec,
                     strokeDashArray: 0,
                     borderColor: "#775DD0",
                     label: {
@@ -289,7 +315,7 @@ function sync() {
                     x2: go_select_end,
                     fillColor: '#B3F7CA',
                     label: {
-                        text: 'Primer (P-wave)'
+                        text: 'Primer (P-wave) (' + GAL_raw + 'g)'
                     }
                 });
             }
@@ -297,10 +323,7 @@ function sync() {
             // update body
             document.getElementById(data.id).querySelector('#subbody').innerHTML = infobody;
         }
-
     };
-
-    sampel_tmp = null;
 }
 setInterval(sync, TMP_Sampel_Rate * delayed_sync_data);
 
