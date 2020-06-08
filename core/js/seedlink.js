@@ -41,14 +41,12 @@ seedlink.onopen = function (event) {
     seedlink.send(JSON.stringify({
         "subscribe": "GE.PLAI",
     }));
-    /*
     seedlink.send(JSON.stringify({
         "subscribe": "II.KAPI",
     }));
     seedlink.send(JSON.stringify({
         "subscribe": "GE.JAGI",
     }));
-    */
 
     if (gui)
         $('#isonline').html("Online");
@@ -72,12 +70,12 @@ function getDates(startDate, stopDate, sampel = 0) {
     var dateArray = new Array();
     var currentDate = startDate;
 
-    if (sampel !== 0) {
-        currentDate = Math.floor(currentDate / sampel);
-        stopDate = Math.floor(stopDate / sampel);
-    }
-
     while (currentDate <= stopDate) {
+        if (sampel !== 0) {
+            dateArray.push(Math.floor(currentDate) / sampel);
+        }else{
+            dateArray.push(currentDate);
+        }
         dateArray.push(currentDate);
         currentDate++;
     }
@@ -208,24 +206,20 @@ function sync() {
         var get_secondary_end = sta.secondary.end;
         var get_secondary_sampel = sta.secondary.sampel;
 
-        //update dan fiter
-        var newupdate = removeDuplicates(tmp_sampel.concat(...raw_sampel).filter(function (item) {
+        //update cek
+        tmp_sampel = removeDuplicates(tmp_sampel.concat(...raw_sampel).filter(function (item) {
             return go_start <= item.x
         }));
-        station[now].sampel.tmp = newupdate;
-        raw_sampel = null;
-        tmp_sampel = null;
-
-        //update cek
         if (last_sampel_update !== last_sampel_cek) {
             station[now].tmp.cek = last_sampel_update;
-            newdata = true;
+            newdata = true;            
+            station[now].sampel.tmp = tmp_sampel;
         }
 
         //ini index end terbaru         
-        var first_index = newupdate[0];
+        var first_index = tmp_sampel[0];
         var first_always_primer_start = first_index.x;
-        var last_index = newupdate[newupdate.length - 1];
+        var last_index = tmp_sampel[tmp_sampel.length - 1];
         var always_primer_start = last_index.x;
         var always_primer_end = last_index.x - 10;
         var noalways_primer_start = first_index.x;
@@ -233,31 +227,32 @@ function sync() {
 
         var delayed = tnow - last_sampel_cek;
 
-        //Data Select
-        var always_primer_select = [];
-        newupdate.forEach((val) => {
-            //Only pick up if have eq     
-            if (always_primer_start >= val.x && always_primer_end <= val.x) {
-                always_primer_select.push(val.y);
-            }
-        });
-
-        var select_first_index = always_primer_select[0];
+        var select_first_index = raw_sampel[0];
         var select_first_always_primer_start = select_first_index.x;
-        var select_last_index = always_primer_select[always_primer_select.length - 1];
+        var select_last_index = raw_sampel[raw_sampel.length - 1];
         var select_last_start = select_last_index.x;
         var select_last_end = select_last_index.x + 10;
 
-        var GAL_raw = Math.max(...always_primer_select);
-        always_primer_select = null;
+        //Data Select
+        var data_select = [];
+        tmp_sampel.forEach((val) => {
+            //Only for pick up         
+            if (always_primer_start >= val.x && always_primer_end <= val.x) {
+                data_select.push(val.y);
+            }
+        });
+
+        var GAL_raw = Math.max(...data_select);
         var GAL = (GAL_raw / Gain).toFixed(4);
 
-        var total_sampel = newupdate.length;
+        var total_sampel = raw_sampel.length;
 
         //jika ada gempa base gain, TODO: use AI Mode
         var tgr_update = sta.tgr.update;
         //var tgr_cek = sta.tgr.cek;
         //var tgr_start = sta.tgr.start;
+
+        //console.log(always_primer_end+" | "+always_primer_start+" | "+tgr_update + " | " + last_sampel_cek + " | " + delayed + " | " + count_secondary + " | " + count_primer);
 
         if (GAL >= earthquake_come_soon) {
             //update tgr
@@ -285,8 +280,6 @@ function sync() {
             count_secondary = get_secondary_end - get_secondary_start;
             count_primer = get_primer_end - get_primer_start;
 
-            console.log(tgr_update + " | " + last_sampel_cek + " | " + delayed + " | " + count_secondary + " | " + count_primer);
-
             if (get_primer_start >= go_start && get_primer_end <= go_end) {
                 alwaysscan = false;
             }
@@ -298,15 +291,14 @@ function sync() {
         } else {
 
             //jika gempa sudah tidak berlanjut tapi...
+            /*
             if (tgr_update == last_sampel_cek) {
                 console.log('ending');
                 station[now].tgr.end = always_primer_end;
             }
             console.log("monitor!");
+            */
         }
-
-        //hapus
-        newupdate = null;
 
         //Update GUI
         if (unlock_gui) {
@@ -402,7 +394,6 @@ function sync() {
                                 CopyEvent(event);
 
                                 select_map = null;
-                                newupdate = null;
                                 event = null;
 
                                 //console.log(yaxis);
