@@ -149,6 +149,7 @@ npmjs toastify-js 1.7.0 src
 npmjs tinysort 3.2.7 dist
 npmjs lazysizes 5.2.2
 npmjs tempusdominus-bootstrap-4 5.1.2 build
+npmjs uplot 1.0.10 dist
 
 npmjs videojs-abloop 1.1.2 dist
 # npmjs videojs-contrib-hls 5.15.0 dist

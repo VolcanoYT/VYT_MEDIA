@@ -5,26 +5,23 @@
 // http://www.lolisetriani.web.id/2015/06/macam-macam-gelombang-gempa-dan.html
 // https://www.imv.co.jp/e/pr/seismic_monitoring/knowledge/
 // http://eqseis.geosc.psu.edu/cammon/HTML/Classes/IntroQuakes/Notes/earthquake_size.html
-// http://geofon.gfz-potsdam.de/fdsnws/station/1/query?network=GE&station=JAGI&level=resp&format=sc3ml
-// https://github.com/crotwell/seisplotjs
 var event = [];
 var station = [];
 var nama_db = "db_event";
 
 // higher less accurate because less data sampel but faster processing and does not take much memory (sampleRate=20)
-var MsSampel = 1000;
-var MsMin = 10 * 1000;
+var TMP_Sampel = 1000;
 
 var Gain = 1000000;
+
+var NTime = 1000;
+
 var amp_max = 3000;
 var amp_min = -3000;
 
-var line_start = 4 * 60 * 1000;
-var line_end = 1 * 10 * 1000;
-
 // every 1 seconds synchronizes all stations.
 // make sure data received from proxy-seedlink also belongs to same value as this (HEARTBEAT_INTERVAL_MS).
-var delayed_sync_data = 3000;
+var delayed_sync_data = 1000;
 
 // if gai activity has increased, try analysis it
 // https://en.wikipedia.org/wiki/Peak_ground_acceleration
@@ -36,25 +33,21 @@ var gui_div = "auto";
 var delayed_sync_render_gui = 3;
 var gui_wait_tmp = 0;
 var longbeep = 3;
+var long_line = 4;
 var beep_volume = 0;
-var uplot = true;
-var debug = 1;
-var logit = 10;
-var reindex = false;
 
 var seedlink = new ReconnectingWebSocket("wss://seedlink.volcanoyt.com");
 seedlink.onopen = function (event) {
     seedlink.send(JSON.stringify({
         "subscribe": "GE.PLAI",
     }));
-    /*
     seedlink.send(JSON.stringify({
         "subscribe": "II.KAPI",
     }));
     seedlink.send(JSON.stringify({
         "subscribe": "GE.JAGI",
     }));
-*/
+
     if (gui)
         $('#isonline').html("Online");
 };
@@ -73,35 +66,43 @@ seedlink.onclose = function (eventt) {
 };
 
 //Get Index Time
-function getDates(startDate, stopDate, ms = 0) {
+function getDates(startDate, stopDate, sampel = 0) {
     var dateArray = new Array();
     var currentDate = startDate;
 
     while (currentDate <= stopDate) {
-        if (ms !== 0) {
-            dateArray.push(Math.floor(currentDate) / ms);
-        } else {
+        if (sampel !== 0) {
+            dateArray.push(Math.floor(currentDate) / sampel);
+        }else{
             dateArray.push(currentDate);
         }
+       // dateArray.push(currentDate);
         currentDate++;
     }
     return dateArray;
 }
 
 function Station(addsta) {
+
     var id = addsta.id;
 
-    var start = addsta.start;
-    var end = addsta.end;
+    var start = Math.floor(addsta.start / TMP_Sampel);
+    var end = Math.floor(addsta.end / TMP_Sampel);
 
     var sampel = addsta.data;
     var STA_SampleRate = addsta.sampleRate;
 
     //Data RAW
-    var data_raw = [];
+    var data_sampel = [];
     var index_time = getDates(start, end);
     sampel.forEach((val, index) => {
-        data_raw.push({
+
+        //we need here config gain,locate,offset,filiter,sampel for each station, so that the info is more accurate?
+        if (id == "II.KAPI.00.BHZ") {
+            // val = val+879;
+        }
+
+        data_sampel.push({
             x: index_time[index],
             y: val
         });
@@ -113,7 +114,7 @@ function Station(addsta) {
         if (station[j].id == id) {
             new_station = false;
 
-            station[j].sampel.raw = data_raw;
+            station[j].sampel.raw = data_sampel;
             station[j].sampel.end = end;
             station[j].sampel.start = start;
 
@@ -121,19 +122,17 @@ function Station(addsta) {
         }
     }
 
-    //baru
     if (new_station) {
-
         station.push({
             id: id,
 
             input: start,
 
             sampel: {
-                raw: data_raw,
+                raw: data_sampel,
                 start: start,
                 end: end,
-                tmp: data_raw
+                tmp: data_sampel
             },
 
             config: {
@@ -160,7 +159,7 @@ function Station(addsta) {
             },
 
             tmp: {
-                cek: start,
+                cek: end,
                 chart: null
             }
         });
@@ -169,17 +168,11 @@ function Station(addsta) {
 
 //sync both stations so that they can pick up in real time later and maybe we can analyze data directly here
 function sync() {
+    var tnow = Math.floor(new Date().getTime() / NTime);
 
-    var tnow = new Date().getTime();
-    var go_start = tnow - line_start;
-    var go_end = tnow + line_end;
-    var total_line = go_end - go_start;
-
-    if (logit >= 2)
-        console.log(total_line);
-
-    if (debug >= 20)
-        debugger;
+    //line
+    var go_start = tnow - long_line * 60;
+    var go_end = tnow + 1 * 10;
 
     var unlock_gui = false;
     if (gui) {
@@ -187,18 +180,15 @@ function sync() {
             gui_wait_tmp = 0;
             unlock_gui = true;
         } else {
-            (gui_wait_tmp++) + (delayed_sync_data / 1000);
+            (gui_wait_tmp++) + (delayed_sync_data / NTime);
         }
     }
 
     for (var now in station) {
         var alwaysscan = true;
         var newdata = false;
-
         var count_secondary = 0;
         var count_primer = 0;
-        var total_sampel_up = 0;
-        var total_index_up = 0;
 
         var sta = station[now];
 
@@ -216,141 +206,75 @@ function sync() {
         var get_secondary_end = sta.secondary.end;
         var get_secondary_sampel = sta.secondary.sampel;
 
-        //No RAW
-        var noraw_data = [];
-
-        console.log(last_sampel_update + " | " + last_sampel_cek);
+        //update cek
+        tmp_sampel = removeDuplicates(tmp_sampel.concat(...raw_sampel).filter(function (item) {
+            return go_start <= item.x
+        }));
         if (last_sampel_update !== last_sampel_cek) {
-            newdata = true;
-
-            //join tabel tmp dengan data baru (raw) lalu hapus data lama
-            tmp_sampel = tmp_sampel.concat(raw_sampel);
-
-            if (reindex) {
-                /*
-                            .filter(function (item) {
-                                return go_start <= item.x
-                            });
-                            */
-
-                //buat index baru for gui and etc
-                //(1591683768169 - 1591683743969) / 100
-                var index_noraw_time = getDates(go_start, go_end).sort(function (a, b) {
-                    return b - a
-                });
-
-                //total
-                total_sampel_up = tmp_sampel.length;
-                total_index_up = index_noraw_time.length;
-
-                // copy nilai ke index time baru
-                for (var j in index_noraw_time) {
-                    if (total_sampel_up > j) {
-
-                        // console.log(index_noraw_time[j]+" < index | raw > "+tmp_sampel[j].x+' | pass > '+(Math.floor(index_noraw_time[j] / 1000) - Math.floor(tmp_sampel[j].x / 1000)) / 1000);
-                        //   debugger;
-
-                        noraw_data.push({
-                            x: index_noraw_time[j],
-                            y: tmp_sampel[j].y
-                        });
-                    } else {
-                        break;
-                    }
-                };
-            } else {
-                noraw_data = tmp_sampel;
-            }
-
-            //update station
-            station[now].sampel.tmp = noraw_data;
             station[now].tmp.cek = last_sampel_update;
-        } else {
-            //jika data masih lama jangan proses pakai yang sudah ada
-            noraw_data = tmp_sampel;
+            newdata = true;            
+            station[now].sampel.tmp = tmp_sampel;
         }
 
-        //console.log("tmp_sampel", tmp_sampel);
-        //console.log("noraw_data", noraw_data);
-
-        tmp_sampel = null;
-
-        // debugger;
-
-        //last index (noraw_data)        
-        var last_index = noraw_data[noraw_data.length - 1];
-        var always_primer_start = last_index.x;
-        var always_primer_end = last_index.x - MsMin;
-        var first_index = noraw_data[0];
+        //ini index end terbaru         
+        var first_index = tmp_sampel[0];
         var first_always_primer_start = first_index.x;
+        var last_index = tmp_sampel[tmp_sampel.length - 1];
+        var always_primer_start = last_index.x;
+        var always_primer_end = last_index.x - 10;
         var noalways_primer_start = first_index.x;
-        var noalways_primer_end = first_index.x - MsMin;
+        var noalways_primer_end = first_index.x - 10;
 
-        var delayed_in_ms = tnow - last_sampel_cek;
-        var delayed_in_sec = Math.floor(delayed_in_ms / 1000);
+        var delayed = tnow - last_sampel_cek;
 
-        //raw data
-        //var get_raw_index_first         = raw_sampel[0];
-        //var get_raw_start_first         = get_raw_index_first.x;
-        //var get_raw_index_last          = raw_sampel[raw_sampel.length - 1];
-        //var select_last_start           = get_raw_index_last.x;
-        //var get_raw_index_last_end      = get_raw_index_last.x + MsMin;
+        var select_first_index = raw_sampel[0];
+        var select_first_always_primer_start = select_first_index.x;
+        var select_last_index = raw_sampel[raw_sampel.length - 1];
+        var select_last_start = select_last_index.x;
+        var select_last_end = select_last_index.x + 10;
 
-        //Hitung hanya data terbaru
+        //Data Select
         var data_select = [];
-        raw_sampel.forEach((val) => {
-            data_select.push(val.y);
-            /*
-            //Only Check       
-            if (get_raw_start_first >= val.x && get_raw_index_last_end <= val.x) {                
+        tmp_sampel.forEach((val) => {
+            //Only for pick up         
+            if (always_primer_start >= val.x && always_primer_end <= val.x) {
+                data_select.push(val.y);
             }
-            */
         });
-
-        //if (logit >= 4)
-        //   console.log("data_select: ", data_select);
-
-        //debugger;
 
         var GAL_raw = Math.max(...data_select);
         var GAL = (GAL_raw / Gain).toFixed(4);
 
-        var total_sampel_raw = raw_sampel.length;
-        var total_sampel_tmp = noraw_data.length;
-        var total_data_select = data_select.length;
+        var total_sampel = raw_sampel.length;
 
         //jika ada gempa base gain, TODO: use AI Mode
         var tgr_update = sta.tgr.update;
         //var tgr_cek = sta.tgr.cek;
         //var tgr_start = sta.tgr.start;
 
-        if (logit >= 1)
-            console.log(tnow + " | " + delayed_in_sec + " | " + always_primer_end + " | " + always_primer_start + " | " + tgr_update + " | " + last_sampel_cek + " | " + GAL);
+        //console.log(always_primer_end+" | "+always_primer_start+" | "+tgr_update + " | " + last_sampel_cek + " | " + delayed + " | " + count_secondary + " | " + count_primer);
 
-        if (debug >= 12)
-            debugger;
-
-        //jika ada gempa
         if (GAL >= earthquake_come_soon) {
-
             //update tgr
             station[now].tgr.update = always_primer_start;
             station[now].tgr.cek = last_sampel_cek;
 
             if (tgr_update == last_sampel_cek) {
-                //jika gempa awal
-                console.log('ada');
-                //get_secondary_start = get_primer_end;
-                //station[now].secondary.start = get_primer_end;
-                //get_secondary_end = always_primer_start;
-                //station[now].secondary.end = always_primer_start;
+                //console.log("gempa lama");
+                get_secondary_start = get_primer_end;
+                station[now].secondary.start = get_primer_end;
+                get_secondary_end = always_primer_start;
+                station[now].secondary.end = always_primer_start;
             } else {
-                console.log('lanjut');
-                //jika gempa seterusnya
-                //get_primer_start = select_last_start;
-                //station[now].primer.start = select_first_always_primer_start;
-                //get_primer_end = select_last_start;
-                //station[now].primer.end = select_last_start;
+                //station[now].tgr.start = always_primer_start;
+                //console.log('gempa baru');
+                //update perimer
+                //always_primer_start = first_index.y;
+                //always_primer_end = first_index.y - 10;
+                get_primer_start = select_first_always_primer_start;
+                station[now].primer.start = select_first_always_primer_start;
+                get_primer_end = select_last_start;
+                station[now].primer.end = select_last_start;
             }
 
             count_secondary = get_secondary_end - get_secondary_start;
@@ -365,55 +289,45 @@ function sync() {
             }
 
         } else {
-            //NO Gempa
-        }
 
-        console.log(count_secondary + " | " + count_primer);
-        //debugger;
+            //jika gempa sudah tidak berlanjut tapi...
+            /*
+            if (tgr_update == last_sampel_cek) {
+                console.log('ending');
+                station[now].tgr.end = always_primer_end;
+            }
+            console.log("monitor!");
+            */
+        }
 
         //Update GUI
         if (unlock_gui) {
 
             var gui_y = earthquake_come_soon * Gain;
 
-            /*
-            if (!reindex) {
+            //buat sampel tmp
+            var sampel_tmp = [];
+            var index_tmp_time = getDates(go_start, go_end);
+            index_tmp_time.forEach((val, index) => {
+                sampel_tmp.push({
+                    x: val,
+                    y: null //getRndInteger(-10000, 10000) TODO: coba nilai rata-rata
+                })
+            });
+            index_tmp_time = null;
 
-                //buat sampel tmp
-                var sampel_tmp = [];
-
-                var go_start_in_sec = Math.floor(go_start / 1000);
-                var go_end_in_sec = Math.floor(go_end / 1000);
-
-                var index_tmp_time = getDates(go_start_in_sec, go_end_in_sec);
-
-                index_tmp_time.forEach((val, index) => {
-                    sampel_tmp.push({
-                        x: val,
-                        y: null //getRndInteger(-10000, 10000) TODO: coba nilai rata-rata
-                    })
-                });
-                index_tmp_time = null;
-
-                //set real sampel val to sampel tmp
-                for (var sr in noraw_data) {
-                    for (var jt in sampel_tmp) {
-                        if (Math.floor(noraw_data[sr].x / 1000) == sampel_tmp[jt].x) {
-                            sampel_tmp[jt].y = noraw_data[sr].y;
-                            //console.log('ada');
-                            //debugger;
-                            break;
-                        }
-                    };
-                    //debugger;
+            //set real sampel val to sampel tmp
+            var sampel = sta.sampel.tmp;
+            for (var sr in sampel) {
+                for (var jt in sampel_tmp) {
+                    if (sampel[sr].x == sampel_tmp[jt].x) {
+                        sampel_tmp[jt].y = sampel[sr].y;
+                        break;
+                    }
                 };
-
-                //console.log("tes", noraw_data);
                 //debugger;
+            };
 
-                noraw_data = sampel_tmp;
-            }
-*/
             var info_pga = 'NO DATA';
             if (GAL >= 0) {
                 info_pga = GAL + 'g (' + GAL_raw + ')';
@@ -424,9 +338,9 @@ function sync() {
             var infobody =
                 ('\
                  Time Start: ' + moment(start_sampel).format('DD/MM/YYYY HH:mm:ss') + ' Time End: ' + moment(last_sampel_update).format('DD/MM/YYYY HH:mm:ss') + ' LC <br>\
-                 PGA: ' + info_pga + ' (' + moment(always_primer_start).format('DD/MM/YYYY HH:mm:ss') + ' Last Update) <br>\
-                 Delayed: ' + delayed_in_sec + ' sec <br>\
-                 Total Sampel: ' + total_sampel_tmp + ' - ' + total_sampel_raw + ' \
+                 PGA: ' + info_pga + ' (' + moment(always_primer_start * NTime).format('DD/MM/YYYY HH:mm:ss') + ' Last Update) <br>\
+                 Delayed: ' + delayed + ' sec <br>\
+                 Total Sampel: ' + total_sampel + ' \
                 ');
 
             var tb = sta.tmp.chart;
@@ -447,7 +361,7 @@ function sync() {
                 var chart = new ApexCharts(document.getElementById(sta.id).querySelector('#chart'), {
                     series: [{
                         name: 'Ground Acceleration',
-                        data: noraw_data
+                        data: sampel_tmp
                     }],
                     chart: {
                         id: 'realtime',
@@ -484,7 +398,30 @@ function sync() {
 
                                 //console.log(yaxis);
                                 //console.log(chartContext);
-                            }
+                            },
+                            /*
+                            scrolled: function (chartContext, {
+                                xaxis
+                            }) {
+                                console.log("scrolled",xaxis);
+                            },
+                            dataPointMouseLeave: function (event, chartContext, config) {
+                                console.log('dataPointMouseLeave');
+                            },
+                            dataPointMouseEnter: function (event, chartContext, config) {
+                                console.log('dataPointMouseEnter');
+                            },
+                            dataPointSelection: function (event, chartContext, config) {
+                                console.log('dataPointSelection');
+                            },
+                            selection: function (chartContext, {
+                                xaxis,
+                                yaxis
+                            }) {
+                                console.log("selection: "+xaxis + " | " + yaxis);
+                            }    
+
+                            */
                         }
                     },
                     dataLabels: {
@@ -500,21 +437,21 @@ function sync() {
                         text: sta.id,
                         align: 'left'
                     },
-                    yaxis: {
-                        max: amp_max,
-                        min: amp_min
-                    },
                     xaxis: {
                         type: 'numeric',
                         labels: {
                             formatter: function (value, timestamp, index) {
-                                return (Math.floor(new Date().getTime() / 1000) - Math.floor(timestamp / 1000))
+                                return (Math.floor(new Date().getTime() / NTime) - timestamp)
                             }
                         },
                         tooltip: {
                             enabled: false
                         }
                     },
+                    yaxis: {
+                        max: amp_max,
+                        min: amp_min
+                    }
                 });
                 chart.render();
 
@@ -524,23 +461,17 @@ function sync() {
 
             } else {
                 tb.updateSeries([{
-                    data: noraw_data
+                    data: sampel_tmp
                 }]);
             }
+
+            sampel_tmp = null;
 
             // update body
             document.getElementById(sta.id).querySelector('#subbody').innerHTML = infobody;
 
             //input chart here
             if (tb !== null) {
-                /*
-                tb.updateOptions({
-                    xaxis: {
-                        min: go_start,
-                        max: go_end,
-                    }
-                });
-                */
                 tb.clearAnnotations();
                 tb.addXaxisAnnotation({
                     x: tnow,
