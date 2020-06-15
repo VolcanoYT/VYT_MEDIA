@@ -20,7 +20,7 @@ var amp_max = 3000;
 var amp_min = -3000;
 
 var line_start = 4 * 60 * 1000;
-var line_end = 1 * 10 * 1000;
+var line_end = 1 * 2 * 1000;
 
 // every 1 seconds synchronizes all stations.
 // make sure data received from proxy-seedlink also belongs to same value as this (HEARTBEAT_INTERVAL_MS).
@@ -38,8 +38,8 @@ var gui_wait_tmp = 0;
 var longbeep = 3;
 var beep_volume = 0;
 var uplot = true;
-var debug = 1;
-var logit = 10;
+var debug = 0;
+var logit = 0;
 var reindex = false;
 
 var seedlink = new ReconnectingWebSocket("wss://seedlink.volcanoyt.com");
@@ -133,7 +133,6 @@ function Station(addsta) {
                 raw: data_raw,
                 start: start,
                 end: end,
-                tmp: data_raw
             },
 
             config: {
@@ -161,7 +160,9 @@ function Station(addsta) {
 
             tmp: {
                 cek: start,
-                chart: null
+                chart: null,
+                sampel: data_raw,
+                pga:[]
             }
         });
     }
@@ -171,15 +172,13 @@ function Station(addsta) {
 function sync() {
 
     var tnow = new Date().getTime();
+
     var go_start = tnow - line_start;
-    var go_end = tnow + line_end;
+    var go_end = tnow;
+
     var total_line = go_end - go_start;
 
-    if (logit >= 2)
-        console.log(total_line);
-
-    if (debug >= 20)
-        debugger;
+    var gui_y = earthquake_come_soon * Gain;
 
     var unlock_gui = false;
     if (gui) {
@@ -202,9 +201,10 @@ function sync() {
 
         var sta = station[now];
 
-        var tmp_sampel = sta.sampel.tmp;
+        var tmp_sampel = sta.tmp.sampel;
         var raw_sampel = sta.sampel.raw;
         var start_sampel = sta.sampel.start;
+        var end_sampel = sta.sampel.end;
         var last_sampel_update = sta.sampel.end;
         var last_sampel_cek = sta.tmp.cek;
 
@@ -216,204 +216,121 @@ function sync() {
         var get_secondary_end = sta.secondary.end;
         var get_secondary_sampel = sta.secondary.sampel;
 
-        //No RAW
-        var noraw_data = [];
+        var sampleRate = sta.config.sampleRate;
 
-        console.log(last_sampel_update + " | " + last_sampel_cek);
-        if (last_sampel_update !== last_sampel_cek) {
-            newdata = true;
-
-            //join tabel tmp dengan data baru (raw) lalu hapus data lama
-            tmp_sampel = tmp_sampel.concat(raw_sampel);
-
-            if (reindex) {
-                /*
-                            .filter(function (item) {
-                                return go_start <= item.x
-                            });
-                            */
-
-                //buat index baru for gui and etc
-                //(1591683768169 - 1591683743969) / 100
-                var index_noraw_time = getDates(go_start, go_end).sort(function (a, b) {
-                    return b - a
-                });
-
-                //total
-                total_sampel_up = tmp_sampel.length;
-                total_index_up = index_noraw_time.length;
-
-                // copy nilai ke index time baru
-                for (var j in index_noraw_time) {
-                    if (total_sampel_up > j) {
-
-                        // console.log(index_noraw_time[j]+" < index | raw > "+tmp_sampel[j].x+' | pass > '+(Math.floor(index_noraw_time[j] / 1000) - Math.floor(tmp_sampel[j].x / 1000)) / 1000);
-                        //   debugger;
-
-                        noraw_data.push({
-                            x: index_noraw_time[j],
-                            y: tmp_sampel[j].y
-                        });
-                    } else {
-                        break;
-                    }
-                };
-            } else {
-                noraw_data = tmp_sampel;
-            }
-
-            //update station
-            station[now].sampel.tmp = noraw_data;
-            station[now].tmp.cek = last_sampel_update;
-        } else {
-            //jika data masih lama jangan proses pakai yang sudah ada
-            noraw_data = tmp_sampel;
-        }
-
-        //console.log("tmp_sampel", tmp_sampel);
-        //console.log("noraw_data", noraw_data);
-
-        tmp_sampel = null;
-
-        // debugger;
-
-        //last index (noraw_data)        
-        var last_index = noraw_data[noraw_data.length - 1];
-        var always_primer_start = last_index.x;
-        var always_primer_end = last_index.x - MsMin;
-        var first_index = noraw_data[0];
-        var first_always_primer_start = first_index.x;
-        var noalways_primer_start = first_index.x;
-        var noalways_primer_end = first_index.x - MsMin;
+        var total_sampel_with_rate = raw_sampel.length / sampleRate;
+        var total_sampel_in_sec = (end_sampel - start_sampel) / MsSampel;
+        var total_sampel_raw = raw_sampel.length;
+        var total_sampel_tmp = tmp_sampel.length;
 
         var delayed_in_ms = tnow - last_sampel_cek;
         var delayed_in_sec = Math.floor(delayed_in_ms / 1000);
 
-        //raw data
-        //var get_raw_index_first         = raw_sampel[0];
-        //var get_raw_start_first         = get_raw_index_first.x;
-        //var get_raw_index_last          = raw_sampel[raw_sampel.length - 1];
-        //var select_last_start           = get_raw_index_last.x;
-        //var get_raw_index_last_end      = get_raw_index_last.x + MsMin;
+        // RAW DATA
+        var get_raw_index_last = raw_sampel[raw_sampel.length - 1];
+        var get_raw_first = raw_sampel[0];
+        var get_raw_index_start = get_raw_first.x;
+        var get_raw_index_end = get_raw_index_last.x;
+        var get_point_end = get_raw_index_end;
+        var get_point_start = get_point_end - line_end;
 
-        //Hitung hanya data terbaru
+        //Select Mode via Reindex
         var data_select = [];
         raw_sampel.forEach((val) => {
-            data_select.push(val.y);
-            /*
-            //Only Check       
-            if (get_raw_start_first >= val.x && get_raw_index_last_end <= val.x) {                
+            if (get_point_start >= val.r && get_point_end <= val.r) {
+                data_select.push(val.y);
             }
-            */
+        });
+        var GAL_raw = Math.max(...data_select); // total_gal data yang di dapat 24 detik, TODO: pastikan hanya dapat max 5 detik?
+        var GAL = (GAL_raw / Gain).toFixed(4);
+        var total_data_select = data_select.length;
+        data_select = null;
+
+        //Update datebase
+        var noraw_data = [];
+        if (last_sampel_update !== last_sampel_cek) {
+            newdata = true;
+
+            //join tabel tmp dengan data baru (raw) lalu hapus data lama
+            noraw_data = tmp_sampel.concat(raw_sampel).filter(function (item) {
+                return go_start <= item.x
+            });
+
+            //update station
+            station[now].tmp.sampel = noraw_data;
+            station[now].tmp.cek    = last_sampel_update;
+            station[now].tmp.pga.push({
+
+            });
+        } else {
+            //jika data masih lama jangan proses pakai yang sudah ada
+            noraw_data = tmp_sampel;
+        }
+        tmp_sampel = null;
+        var total_sampel_noraw = noraw_data.length;
+
+        // LAST INDEX (JOIN DATEBASE)     
+        var last_index = noraw_data[noraw_data.length - 1];
+        var first_index = noraw_data[0];
+        var last_index_end = last_index.x;
+        var last_index_start = first_index.x;
+
+        console.log({
+            GAL: GAL,
+            tnow: tnow,
+            total_data_select: total_data_select,
+            total_sampel_noraw: total_sampel_noraw,
+            total_sampel_with_rate: total_sampel_with_rate,
+            total_sampel_in_sec: total_sampel_in_sec,
+            total_sampel_raw: total_sampel_raw,
+            total_sampel_tmp: total_sampel_tmp,
+            delayed_in_sec: delayed_in_sec,
+            total_line: total_line,
+            gui_y: gui_y
         });
 
-        //if (logit >= 4)
-        //   console.log("data_select: ", data_select);
-
-        //debugger;
-
-        var GAL_raw = Math.max(...data_select);
-        var GAL = (GAL_raw / Gain).toFixed(4);
-
-        var total_sampel_raw = raw_sampel.length;
-        var total_sampel_tmp = noraw_data.length;
-        var total_data_select = data_select.length;
-
-        //jika ada gempa base gain, TODO: use AI Mode
-        var tgr_update = sta.tgr.update;
-        //var tgr_cek = sta.tgr.cek;
-        //var tgr_start = sta.tgr.start;
-
-        if (logit >= 1)
-            console.log(tnow + " | " + delayed_in_sec + " | " + always_primer_end + " | " + always_primer_start + " | " + tgr_update + " | " + last_sampel_cek + " | " + GAL);
-
-        if (debug >= 12)
-            debugger;
-
-        //jika ada gempa
-        if (GAL >= earthquake_come_soon) {
-
-            //update tgr
-            station[now].tgr.update = always_primer_start;
-            station[now].tgr.cek = last_sampel_cek;
-
-            if (tgr_update == last_sampel_cek) {
-                //jika gempa awal
-                console.log('ada');
-                //get_secondary_start = get_primer_end;
-                //station[now].secondary.start = get_primer_end;
-                //get_secondary_end = always_primer_start;
-                //station[now].secondary.end = always_primer_start;
-            } else {
-                console.log('lanjut');
-                //jika gempa seterusnya
-                //get_primer_start = select_last_start;
-                //station[now].primer.start = select_first_always_primer_start;
-                //get_primer_end = select_last_start;
-                //station[now].primer.end = select_last_start;
-            }
-
-            count_secondary = get_secondary_end - get_secondary_start;
-            count_primer = get_primer_end - get_primer_start;
-
-            if (get_primer_start >= go_start && get_primer_end <= go_end) {
-                alwaysscan = false;
-            }
-
-            if (get_secondary_start >= go_start && get_secondary_end <= go_end) {
-                alwaysscan = false;
-            }
-
-        } else {
-            //NO Gempa
-        }
-
-        console.log(count_secondary + " | " + count_primer);
+        //console.log('gui_index: ' + last_gui_index_end + ' | ' + last_gui_point);
+        //console.log('last_index: ' + last_index_start + ' | ' + last_index_end + ' - go_start: ' + go_start + ' | ' + go_end);
         //debugger;
 
         //Update GUI
         if (unlock_gui) {
 
-            var gui_y = earthquake_come_soon * Gain;
-
             /*
-            if (!reindex) {
 
-                //buat sampel tmp
-                var sampel_tmp = [];
+            //Reindex for GUI
+            var gui_tmp = [];
+            var index_tmp_time = getDates(last_index_start, get_now_index_end).sort((a, b) => b - a);
+            for (var nt in index_tmp_time) {
+                try {
+                    if (noraw_data.length > nt) {
+                        //index_tmp_time[nt]
+                        gui_tmp.push({
+                            x: nt,
+                            y: noraw_data[nt].y,
+                            r: noraw_data[nt].x
+                        });
+                    } else {
+                        break;
+                    }
+                } catch (error) {
+                    console.log(error);
+                    break;
+                }
+            };
+            noraw_data = null;
+            index_tmp_time = null;
+            var last_gui_index = gui_tmp[gui_tmp.length - 1];
+            var first_gui_index = gui_tmp[0];
+            //console.log('last_gui_index',last_gui_index);
+            //console.log('first_gui_index',first_gui_index);
+            //debugger;
+            var last_gui_index_end = last_gui_index.r;
+            var last_gui_index_start = first_gui_index.r;
+            var last_gui_point = last_gui_index_end - line_end;
 
-                var go_start_in_sec = Math.floor(go_start / 1000);
-                var go_end_in_sec = Math.floor(go_end / 1000);
+            */
 
-                var index_tmp_time = getDates(go_start_in_sec, go_end_in_sec);
-
-                index_tmp_time.forEach((val, index) => {
-                    sampel_tmp.push({
-                        x: val,
-                        y: null //getRndInteger(-10000, 10000) TODO: coba nilai rata-rata
-                    })
-                });
-                index_tmp_time = null;
-
-                //set real sampel val to sampel tmp
-                for (var sr in noraw_data) {
-                    for (var jt in sampel_tmp) {
-                        if (Math.floor(noraw_data[sr].x / 1000) == sampel_tmp[jt].x) {
-                            sampel_tmp[jt].y = noraw_data[sr].y;
-                            //console.log('ada');
-                            //debugger;
-                            break;
-                        }
-                    };
-                    //debugger;
-                };
-
-                //console.log("tes", noraw_data);
-                //debugger;
-
-                noraw_data = sampel_tmp;
-            }
-*/
             var info_pga = 'NO DATA';
             if (GAL >= 0) {
                 info_pga = GAL + 'g (' + GAL_raw + ')';
@@ -424,7 +341,7 @@ function sync() {
             var infobody =
                 ('\
                  Time Start: ' + moment(start_sampel).format('DD/MM/YYYY HH:mm:ss') + ' Time End: ' + moment(last_sampel_update).format('DD/MM/YYYY HH:mm:ss') + ' LC <br>\
-                 PGA: ' + info_pga + ' (' + moment(always_primer_start).format('DD/MM/YYYY HH:mm:ss') + ' Last Update) <br>\
+                 PGA: ' + info_pga + ' (' + moment(get_point_end).format('DD/MM/YYYY HH:mm:ss') + ' Last Update) <br>\
                  Delayed: ' + delayed_in_sec + ' sec <br>\
                  Total Sampel: ' + total_sampel_tmp + ' - ' + total_sampel_raw + ' \
                 ');
@@ -446,7 +363,7 @@ function sync() {
                 //lalu input data chart
                 var chart = new ApexCharts(document.getElementById(sta.id).querySelector('#chart'), {
                     series: [{
-                        name: 'Ground Acceleration',
+                        name: 'PGA',
                         data: noraw_data
                     }],
                     chart: {
@@ -456,6 +373,7 @@ function sync() {
                         animations: {
                             enabled: false,
                         },
+                        /*
                         events: {
                             zoomed: function (chartContext, {
                                 xaxis,
@@ -481,11 +399,9 @@ function sync() {
 
                                 select_map = null;
                                 event = null;
-
-                                //console.log(yaxis);
-                                //console.log(chartContext);
                             }
                         }
+                        */
                     },
                     dataLabels: {
                         enabled: false
@@ -507,9 +423,7 @@ function sync() {
                     xaxis: {
                         type: 'numeric',
                         labels: {
-                            formatter: function (value, timestamp, index) {
-                                return (Math.floor(new Date().getTime() / 1000) - Math.floor(timestamp / 1000))
-                            }
+                            show: false
                         },
                         tooltip: {
                             enabled: false
@@ -536,12 +450,19 @@ function sync() {
                 /*
                 tb.updateOptions({
                     xaxis: {
-                        min: go_start,
-                        max: go_end,
+                        min: last_gui_index_end,
+                        max: last_gui_index_start,
+                        labels: {
+                            formatter: function (value, timestamp, index) {
+                                return (Math.floor(timestamp / 1000) - Math.floor(go_end / 1000))
+                            }
+                        }
                     }
                 });
                 */
-                tb.clearAnnotations();
+                // tb.clearAnnotations();
+
+                /*
                 tb.addXaxisAnnotation({
                     x: tnow,
                     strokeDashArray: 0,
@@ -567,11 +488,10 @@ function sync() {
                         text: 'Trigger'
                     }
                 });
-
                 if (alwaysscan) {
                     tb.addXaxisAnnotation({
-                        x: always_primer_start,
-                        x2: always_primer_end,
+                        x: last_gui_point,
+                        x2: last_gui_index_end,
                         fillColor: '#B3F7CA',
                         label: {
                             text: 'Always Primer'
@@ -598,6 +518,7 @@ function sync() {
                         }
                     });
                 }
+                */
 
             }
 

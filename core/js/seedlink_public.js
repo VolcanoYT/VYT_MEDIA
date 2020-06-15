@@ -34,7 +34,7 @@ var delayed_sync_render_gui = 3;
 var gui_wait_tmp = 0;
 var longbeep = 3;
 var long_line = 4;
-var beep_volume = 0;
+var beep_volume = 50;
 
 var seedlink = new ReconnectingWebSocket("wss://seedlink.volcanoyt.com");
 seedlink.onopen = function (event) {
@@ -76,7 +76,6 @@ function getDates(startDate, stopDate, sampel = 0) {
         }else{
             dateArray.push(currentDate);
         }
-       // dateArray.push(currentDate);
         currentDate++;
     }
     return dateArray;
@@ -95,17 +94,15 @@ function Station(addsta) {
     //Data RAW
     var data_sampel = [];
     var index_time = getDates(start, end);
+    //console.log(index_time.length+" | "+sampel.length);
+
     sampel.forEach((val, index) => {
-
-        //we need here config gain,locate,offset,filiter,sampel for each station, so that the info is more accurate?
-        if (id == "II.KAPI.00.BHZ") {
-            // val = val+879;
-        }
-
-        data_sampel.push({
-            x: index_time[index],
-            y: val
-        });
+        if(sampel.length > index){
+            data_sampel.push({
+                x: index_time[index],
+                y: val
+            });
+        }        
     });
 
     //cari station dulu
@@ -259,23 +256,29 @@ function sync() {
             station[now].tgr.update = always_primer_start;
             station[now].tgr.cek = last_sampel_cek;
 
+            var neweq = 2;
             if (tgr_update == last_sampel_cek) {
-                //console.log("gempa lama");
                 get_secondary_start = get_primer_end;
                 station[now].secondary.start = get_primer_end;
                 get_secondary_end = always_primer_start;
                 station[now].secondary.end = always_primer_start;
+                neweq = 3;
             } else {
-                //station[now].tgr.start = always_primer_start;
-                //console.log('gempa baru');
-                //update perimer
-                //always_primer_start = first_index.y;
-                //always_primer_end = first_index.y - 10;
                 get_primer_start = select_first_always_primer_start;
                 station[now].primer.start = select_first_always_primer_start;
                 get_primer_end = select_last_start;
                 station[now].primer.end = select_last_start;
+                beepme(beep_volume, 700, 3000);
             }
+
+            var event = {
+                nama: sta.id,
+                sampel: data_select,
+                start: always_primer_start,
+                end: always_primer_end,
+                type: neweq
+            };
+            CopyEvent(event);
 
             count_secondary = get_secondary_end - get_secondary_start;
             count_primer = get_primer_end - get_primer_start;

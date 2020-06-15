@@ -28,7 +28,6 @@ var ceklive = false;
 
 var types;
 var setimg;
-var apiplayer;
 var ext;
 var pp;
 
@@ -45,6 +44,8 @@ var usebackup = getAllUrlParams().usebackup;
 var tp = getAllUrlParams().tp || 'last'; //last or raw
 var sereload = parseInt(getAllUrlParams().r) || 60; //reload img
 var hidehd = getAllUrlParams().hidehd;
+
+var skiplive = getAllUrlParams().skiplive;
 
 var dev = getAllUrlParams().dev;
 $('.log').hide();
@@ -82,8 +83,7 @@ random();
 if (!isEmpty(camid)) {
     GetJson(URL_API + "camera/view.json?ceklive=true&id=" + camid)
         .then(response => {
-            apiplayer = response;
-            RunLive();
+            return RunLive(response);
         })
         .catch(error => {
             SendLog('Error Get Info');
@@ -136,13 +136,15 @@ var StartLive;
 var StartLive2;
 var isPlaying = "loading";
 
-function RunLive() {
+function RunLive(df) {
     try {
-        if (apiplayer.code != 200) {
-            return SendLog('error: ' + apiplayer.code);
-        }
-        var c = apiplayer.data;
-        console.log("API Start", c);
+
+        console.log("API Start", df);
+
+        if (isPlaying == "disabled")
+            return console.log('disabled player');
+
+        var c = df.data;
 
         //API Sudah di Set
         setimg = URL_CDN + "timelapse/" + camid + "/" + tp + ".jpg";
@@ -180,11 +182,6 @@ function RunLive() {
             types = 1;
         }
 
-        //Api Img
-        if (types == 1) {
-            showliveimg = true;
-        }
-
         //Cek Jika hanya URL Embed
         if (!isEmpty(c.embed)) {
             types = 6;
@@ -192,10 +189,11 @@ function RunLive() {
         }
 
         //Cek Vaild URL
-        if(!isValidUrl(c.url)){
-            isPlaying = 'disabled';
-            console.log('URL Vaild? ',c.url);
-            return null;
+        if (types !== 3) { //jangan cek yt?
+            if (!isValidUrl(c.url)) {
+                isPlaying = 'disabled';
+                console.log('URL Vaild? ', c.url);
+            }
         }
 
         //API rtmp
@@ -207,6 +205,17 @@ function RunLive() {
                 ext = "rtmp/mp4";
             }
             pp = c.url;
+        }
+
+        if(skiplive == "true"){
+            //console.log('aaaa');
+            types = 1;
+            ext = null;
+        }
+
+        //Api Img
+        if (types == 1) {
+            showliveimg = true;
         }
 
         if (!isEmpty(ext)) {
@@ -266,7 +275,7 @@ function RunLive() {
                 try {
                     var view_error = JSPlayer.error();
                     if (view_error) {
-                        console.log("BUG: ", view_error);
+                        console.log("INFO: ", view_error);
                         if (view_error.message.includes("disabled")) {
                             isPlaying = 'disabled';
                         } else if (view_error.message.includes("not supported")) {
@@ -337,8 +346,12 @@ function playvd() {
 var aw;
 async function UpdateMe() {
     if (!showliveimg) return false;
+    //console.log('jgjhj');
     if (ispause) return false;
+    //console.log('abfghgccc');
     if (ffisplay) return false;
+
+    //console.log('abccc');
 
     try {
         var realimg = setimg;
@@ -425,10 +438,10 @@ setInterval(function () {
         if (countl >= 600) {
             good("reload");
             return RunLive();
-        }else{
+        } else {
             countl++;
-            good("",false);
-        }     
+            good("", false);
+        }
 
     } else if (isPlaying == "play" || isPlaying == "playing") {
         good();
