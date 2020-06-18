@@ -20,7 +20,7 @@ cp -r fontawesome-pro-$versi_font-web/* ${patch}fontawesome/
 cd $tmp || exit
 
 echo "Download VideoJS"
-versi_videojs=7.8.2
+versi_videojs=7.8.3
 mkdir -p $tmp/videojs && cd $tmp/videojs || exit
 wget https://github.com/videojs/video.js/releases/download/v$versi_videojs/video-js-$versi_videojs.zip
 unzip -o video-js-$versi_videojs.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
@@ -32,7 +32,7 @@ rm -rf ${patch}videojs/examples
 cd $tmp || exit
 
 echo "Download Cesium for 3D Map"
-versi_cesium=1.69
+versi_cesium=1.70.1
 mkdir -p $tmp/cesium && cd $tmp/cesium || exit
 wget https://github.com/CesiumGS/cesium/releases/download/$versi_cesium/Cesium-$versi_cesium.zip
 unzip -o Cesium-$versi_cesium.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
