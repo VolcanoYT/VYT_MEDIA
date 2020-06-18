@@ -8,6 +8,15 @@ rm -rf $patch
 
 mkdir -p $tmp && cd $tmp || exit
 
+echo "Download Bootstrap (DEV)"
+mkdir -p $tmp/bootstrap && cd $tmp/bootstrap || exit
+wget https://github.com/twbs/bootstrap/archive/main.zip
+unzip -o main.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
+rm -rf ${patch}bootstrap/ && mkdir -p ${patch}bootstrap/
+cp -r bootstrap-main/dist/* ${patch}bootstrap/
+
+cd $tmp || exit
+
 echo "Download Fontawesome"
 versi_font=5.13.0
 mkdir -p $tmp/fontawesome && cd $tmp/fontawesome || exit
@@ -38,16 +47,6 @@ wget https://github.com/CesiumGS/cesium/releases/download/$versi_cesium/Cesium-$
 unzip -o Cesium-$versi_cesium.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
 rm -rf ${patch}Cesium/ && mkdir -p ${patch}Cesium/
 cp -r Build/Cesium/* ${patch}Cesium/
-
-cd $tmp || exit
-
-echo "Download Bootstrap"
-versi_bootstrap=v5.0.0-alpha1
-mkdir -p $tmp/bootstrap && cd $tmp/bootstrap || exit
-wget https://github.com/twbs/bootstrap/releases/download/v$versi_bootstrap/bootstrap-$versi_bootstrap-dist.zip
-unzip -o bootstrap-$versi_bootstrap-dist.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
-rm -rf ${patch}bootstrap/ && mkdir -p ${patch}bootstrap/
-cp -r bootstrap-$versi_bootstrap-dist/* ${patch}bootstrap/
 
 cd $tmp || exit
 
