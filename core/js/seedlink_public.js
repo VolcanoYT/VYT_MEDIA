@@ -340,7 +340,7 @@ function sync() {
             // update body
             var infobody =
                 ('\
-                 Time Start: ' + moment(start_sampel).format('DD/MM/YYYY HH:mm:ss') + ' Time End: ' + moment(last_sampel_update).format('DD/MM/YYYY HH:mm:ss') + ' LC <br>\
+                 Time Start: ' + moment(start_sampel * NTime).format('DD/MM/YYYY HH:mm:ss') + ' Time End: ' + moment(last_sampel_update * NTime).format('DD/MM/YYYY HH:mm:ss') + ' LC <br>\
                  PGA: ' + info_pga + ' (' + moment(always_primer_start * NTime).format('DD/MM/YYYY HH:mm:ss') + ' Last Update) <br>\
                  Delayed: ' + delayed + ' sec <br>\
                  Total Sampel: ' + total_sampel + ' \
@@ -352,7 +352,7 @@ function sync() {
 
                 //buat dulu
                 out.insertAdjacentHTML('beforeend',
-                    '<div class="modal-content mb-3" id="' + sta.id + '">\
+                    '<div class="modal-content mb-3 bg-dark" id="' + sta.id + '">\
                      <div class="modal-header">\
                      <h5 class="modal-title" id="judul">' + sta.id + '</h5>\
                      </div>\
@@ -367,6 +367,7 @@ function sync() {
                         data: sampel_tmp
                     }],
                     chart: {
+                        background: '#343a40',
                         id: 'realtime',
                         height: 350,
                         type: 'line',
@@ -426,6 +427,10 @@ function sync() {
 
                             */
                         }
+                    },
+                    theme: {
+                        mode: 'dark',
+                        palette: 'palette1',
                     },
                     dataLabels: {
                         enabled: false

@@ -75,22 +75,24 @@ $('.search').on('click', async function (e) {
     }).then((result) => {
         console.log(idv + ' | ' + tp + ' | ' + result.value);
         if (result.value) {
-            if (tp == 'camera' || tp == 'volcano' || tp == 'report') {
+            if (tp == 'camera' || tp == 'volcano') {
+                return window.location.replace("/" + tp + "?search=" + result.value);
+                /*
 
-                //TODO: cari laporan dari volcano?
                 if (tp == "report") {
                     //tp='volcano'
                     return Swal.fire('currently not available');
                 }
-
                 if (!isNaN(idv) || home) {
                     return window.location.replace("/" + tp + "?search=" + result.value);
                 }
-
                 $('#load').attr("data-search", result.value);
                 $('#load').attr("data-pages", 1);
                 $('#post-data').empty(); //blogvolcano
                 $('#load').click();
+                */
+            }else{
+                return Swal.fire('currently not available');
             }
         } else if (result.dismiss === Swal.DismissReason.cancel) {
             if (home) {
@@ -688,6 +690,7 @@ $('body').on('click', '#share', function (e) {
 console.log(e);
 })
 
+/*
 $('body').on('click', '#load', function (e) {
     var a = $(this);
     var getsort = a.attr("data-sort");
@@ -761,6 +764,7 @@ $('body').on('click', '#load', function (e) {
             })
         });
 })
+*/
 
 //https://stackoverflow.com/a/8142000
 //https://gist.github.com/mbajur/8325540

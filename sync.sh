@@ -42,7 +42,7 @@ cp -r Build/Cesium/* ${patch}Cesium/
 cd $tmp || exit
 
 echo "Download Bootstrap"
-versi_bootstrap=4.5.0
+versi_bootstrap=v5.0.0-alpha1
 mkdir -p $tmp/bootstrap && cd $tmp/bootstrap || exit
 wget https://github.com/twbs/bootstrap/releases/download/v$versi_bootstrap/bootstrap-$versi_bootstrap-dist.zip
 unzip -o bootstrap-$versi_bootstrap-dist.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
