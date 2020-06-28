@@ -1,4 +1,5 @@
 var autohide = getAllUrlParams().autohide;
+aavar audiois = getAllUrlParams().audio;
 var close_info;
 
 //API Socket
@@ -59,12 +60,22 @@ function OnData(x) {
         var deept = (datap.depth).toFixed(0);
         var loctxt = '' + (datap.eq_lat).toFixed(4) + ',' + (datap.eq_lon).toFixed(4) + '';
 
+        var timelocal = moment.utc(toutc, 'YYYY-MM-DD HH:mm:ss').local();
+        var lefttime = timelocal.local().fromNow();
+
         if (mag >= 3.2 && mag <= 4.8) {
             icon = "warning";
             wait_close = 15;
         } else if (mag >= 4.8 && mag <= 8) {
             icon = "danger";
             wait_close = 60;
+        }
+
+        if (audiois == "true") {
+            console.log('audio');
+            if (mag >= 2.3) {
+                NotifMe("", "" + magty + "" + mag + " quake causing shaking near " + whereeq + " with depth " + deept + " km occurs in "+lefttime+"", "", true, 'en', 0.8);
+            }
         }
 
         info_center = whereeq + '<br>' + lastinfo + ' (' + loctxt + ')';

@@ -135,9 +135,14 @@ function StopP(id = 'vid1') {
 var StartLive;
 var StartLive2;
 var isPlaying = "loading";
-
+var last_loading = null;
 function RunLive(df) {
     try {
+
+        if (isEmpty(df))
+            return console.log('no config');
+
+        last_loading = df;
 
         console.log("API Start", df);
 
@@ -282,7 +287,7 @@ function RunLive(df) {
                             //yakin?
                             isPlaying = 'disabled';
                         } else if (view_error.message.includes("corruption")) {
-                            RunLive();
+                            RunLive(df);
                         } else {
                             bad(view_error.message);
                         }
@@ -437,7 +442,7 @@ setInterval(function () {
         //reload player setiap 10 menit biar tidak stuck?
         if (countl >= 600) {
             good("reload");
-            return RunLive();
+            return RunLive(last_loading);
         } else {
             countl++;
             good("", false);
@@ -483,8 +488,7 @@ setInterval(function () {
 function FastCek() {
     GetJson(URL_API + "camera/view.json?id=" + camid + "&ceklive=true")
         .then(c => {
-            apiplayer = c;
-            RunLive();
+            RunLive(c);
         })
         .catch(error => {
             SendLog("Stream still not available or error load");
