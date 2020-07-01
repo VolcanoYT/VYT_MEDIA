@@ -73,15 +73,14 @@ $('body').on('click', '.mirova_loader', function (e) {
                 var chart = new ApexCharts(document.querySelector("#mirova"), options);
                 chart.render();
             } else {
-                //skip if not found
+                $('.mirova_loader').html(bb.status);
+                $('.mirova_loader').attr("disabled", true);
             }
         } else {
-            //skip if not found
+            $('.mirova_loader').html('Data not available');
+            $('.mirova_loader').attr("disabled", true);
         }
     }).fail(function (a) {
-        Swal.fire({
-            type: 'error',
-            title: 'Error load data mirova'
-        })
+        $('.mirova_loader').html('Load failed, try again');
     });
 });
