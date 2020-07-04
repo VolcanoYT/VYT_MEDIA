@@ -70,14 +70,9 @@ function random() {
         displayz[1] = "Time: " + moment().tz(timezone).format('DD/MM/YYYY HH:mm');
         var rand = Math.floor(Math.random() * displayz.length);
         $('#judul').text(displayz[rand]);
-    }
-    try {
-        if (types == 3) {
-            JSPlayer.currentTime(9999999999999999999999999999999999999);
-        }
-    } catch (error) {}
+    }    
 }
-setInterval(random, 1000 * 60);
+setInterval(random, 1000 * 10);
 random();
 
 if (!isEmpty(camid)) {
@@ -363,7 +358,7 @@ async function UpdateMe() {
 
         //Live Mode
         if (jpgr) {
-            realimg = URL_API + "img?url=" + camid + '&timeout=' + sereload + 2;
+            realimg = URL_APP + "img?url=" + camid + '&timeout=' + sereload + 2;
         }
 
         //API Player
@@ -408,6 +403,26 @@ setInterval(UpdateMe, 1000);
 //cek status player
 setInterval(function () {
 
+    try {
+        //jika tag hide sesuai
+        if (showliveimg) {
+            $(div_live).css("position", "");
+            $(div_live).css("display", "");
+        } else {
+            $(div_live).css("display", "none");
+            $(div_live).css("position", "fixed");
+        }
+        if (ispause) {
+            $("#iconplay").attr('class', 'fas fa-play');
+        } else {
+            $("#iconplay").attr('class', 'fas fa-pause');
+        }
+    } catch (error) {
+        //update
+    }
+
+    //console.log("Status: ",isPlaying);
+
     if (ffisplay)
         return null;
 
@@ -437,9 +452,15 @@ setInterval(function () {
     } else if (isPlaying == "durationchange" || isPlaying == "resize") {
         //for api noting?
         good();
-    } else if (isPlaying == "canplaythrough" || isPlaying == "canplay" || isPlaying == "waiting" || isPlaying == "loadstart") {
+    } else if (isPlaying == "canplaythrough" || isPlaying == "canplay" || isPlaying == "waiting" || isPlaying == "loadstart") {    
 
-        //reload player setiap 10 menit biar tidak stuck?
+    var keep_reload=true;
+
+    if (types == 3) { 
+        keep_reload=false;
+    }
+
+    if(keep_reload){
         if (countl >= 600) {
             good("reload");
             return RunLive(last_loading);
@@ -447,6 +468,9 @@ setInterval(function () {
             countl++;
             good("", false);
         }
+    }else{
+        showliveimg = true;
+    }
 
     } else if (isPlaying == "play" || isPlaying == "playing") {
         good();
@@ -457,33 +481,18 @@ setInterval(function () {
 
 }, 1000 * 1);
 
-setInterval(function () {
-    try {
-        //jika tag hide sesuai
-        if (showliveimg) {
-            $(div_live).css("position", "");
-            $(div_live).css("display", "");
-        } else {
-            $(div_live).css("display", "none");
-            $(div_live).css("position", "fixed");
-        }
-        if (ispause) {
-            $("#iconplay").attr('class', 'fas fa-play');
-        } else {
-            $("#iconplay").attr('class', 'fas fa-pause');
-        }
-    } catch (error) {
-        //update
-    }
-}, 1000);
-
 //Automatic Check
 setInterval(function () {
     if (ceklive) {
         ceklive = false;
         FastCek();
     }
-}, 1000 * 60);
+    try {
+        if (types == 3) {
+            JSPlayer.currentTime(9999999999999999999999999999999999999);
+        }
+    } catch (error) {}
+}, 1000 * 60 * 2);
 
 function FastCek() {
     GetJson(URL_API + "camera/view.json?id=" + camid + "&ceklive=true")
