@@ -1,5 +1,5 @@
 var autohide = getAllUrlParams().autohide;
-aavar audiois = getAllUrlParams().audio;
+var audiois = getAllUrlParams().audio;
 var close_info;
 
 //API Socket
