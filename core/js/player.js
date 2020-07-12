@@ -207,8 +207,12 @@ function RunLive(df) {
             pp = c.url;
         }
 
+        if((''+pp+'').includes('skylinewebcams')){
+            skiplive = 'true';
+        }
+
+        // skip live mode start up
         if(skiplive == "true"){
-            //console.log('aaaa');
             types = 1;
             ext = null;
         }
