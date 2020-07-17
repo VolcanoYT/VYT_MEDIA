@@ -44,8 +44,9 @@ var usebackup = getAllUrlParams().usebackup;
 var tp = getAllUrlParams().tp || 'last'; //last or raw
 var sereload = parseInt(getAllUrlParams().r) || 60; //reload img
 var hidehd = getAllUrlParams().hidehd;
-
 var skiplive = getAllUrlParams().skiplive;
+
+var token_user = getAllUrlParams().token_user;
 
 var dev = getAllUrlParams().dev;
 $('.log').hide();
@@ -70,13 +71,13 @@ function random() {
         displayz[1] = "Time: " + moment().tz(timezone).format('DD/MM/YYYY HH:mm');
         var rand = Math.floor(Math.random() * displayz.length);
         $('#judul').text(displayz[rand]);
-    }    
+    }
 }
 setInterval(random, 1000 * 10);
 random();
 
 if (!isEmpty(camid)) {
-    GetJson(URL_API + "camera/view.json?ceklive=true&id=" + camid)
+    GetJson(URL_API + "camera/view.json?ceklive=true&id=" + camid + "&token_user=" + token_user)
         .then(response => {
             return RunLive(response);
         })
@@ -131,6 +132,7 @@ var StartLive;
 var StartLive2;
 var isPlaying = "loading";
 var last_loading = null;
+
 function RunLive(df) {
     try {
 
@@ -155,64 +157,74 @@ function RunLive(df) {
         timezone = c.time.timezone;
 
         //Live Mode Img
+        /*
         if (uproxy == "true") {
             if (c.refresh_live > 0) {
                 sereload = c.refresh_live - 1;
-                setimg = c.url; //set id if mode proxy live
+                setimg = c.id; //set id if mode proxy live
                 jpgr = true;
             }
         }
+        */
+
         pw = sereload;
+        //TODO: player proxy
 
-        //Jika Ada Api Youtube Fokus ke youtube live dari pada live gambar
-        if (!isEmpty(c.ytid)) {
-            //force use yt
-            ext = "video/youtube";
-            pp = 'https://www.youtube.com/watch?v=' + c.ytmp;
-            types = 3;
-            if (rtyt == 'true') {
-                //Youtube Stream Tanpa API IF
-                types = 2;
-                idrt = c.ytdl;
+        if (!isEmpty(token_user)) {
+            if (!isEmpty(c.url)) {
+
             }
-        }
-
-        //Api FTP
-        if (types == 5) {
-            types = 1;
-        }
-
-        //Cek Jika hanya URL Embed
-        if (!isEmpty(c.embed)) {
-            types = 6;
-            $(div_player).html(c.embed);
-        }
-
-        //Cek Vaild URL
-        if (types !== 3) { //jangan cek yt?
-            if (!isValidUrl(c.url)) {
-                isPlaying = 'disabled';
-                console.log('URL Vaild? ', c.url);
+            //Jika Ada Api Youtube Fokus ke youtube live dari pada live gambar
+            if (!isEmpty(c.ytid)) {
+                //force use yt
+                ext = "video/youtube";
+                pp = 'https://www.youtube.com/watch?v=' + c.ytmp;
+                types = 3;
+                if (rtyt == 'true') {
+                    //Youtube Stream Tanpa API IF
+                    types = 2;
+                    idrt = c.ytdl;
+                }
             }
-        }
 
-        //API rtmp
-        if (types == 2) {
-            ext = "application/x-mpegURL";
-            if ((c.url).includes("rtmp")) {
-                ext = "rtmp/mp4";
-            } else if ((c.url).includes("rtsp")) {
-                ext = "rtmp/mp4";
+            //Api FTP
+            if (types == 5) {
+                types = 1;
             }
-            pp = c.url;
-        }
 
-        if((''+pp+'').includes('skylinewebcams')){
-            skiplive = 'true';
+            //Cek Jika hanya URL Embed
+            if (!isEmpty(c.embed)) {
+                types = 6;
+                $(div_player).html(c.embed);
+            }
+
+            //Cek Vaild URL
+            if (types !== 3) {
+                //jangan cek yt?
+                if (!isValidUrl(c.url)) {
+                    isPlaying = 'disabled';
+                    console.log('URL Vaild? ', c.url);
+                }
+            }
+            //API rtmp
+            if (types == 2) {
+                ext = "application/x-mpegURL";
+                if ((c.url).includes("rtmp")) {
+                    ext = "rtmp/mp4";
+                } else if ((c.url).includes("rtsp")) {
+                    ext = "rtmp/mp4";
+                }
+                pp = c.url;
+            }
+            if (('' + pp + '').includes('skylinewebcams')) {
+                skiplive = 'true';
+            }
+        } else {
+            skiplive = "true";
         }
 
         // skip live mode start up
-        if(skiplive == "true"){
+        if (skiplive == "true") {
             types = 1;
             ext = null;
         }
@@ -456,25 +468,25 @@ setInterval(function () {
     } else if (isPlaying == "durationchange" || isPlaying == "resize") {
         //for api noting?
         good();
-    } else if (isPlaying == "canplaythrough" || isPlaying == "canplay" || isPlaying == "waiting" || isPlaying == "loadstart") {    
+    } else if (isPlaying == "canplaythrough" || isPlaying == "canplay" || isPlaying == "waiting" || isPlaying == "loadstart") {
 
-    var keep_reload=true;
+        var keep_reload = true;
 
-    if (types == 3) { 
-        keep_reload=false;
-    }
-
-    if(keep_reload){
-        if (countl >= 600) {
-            good("reload");
-            return RunLive(last_loading);
-        } else {
-            countl++;
-            good("", false);
+        if (types == 3) {
+            keep_reload = false;
         }
-    }else{
-        showliveimg = true;
-    }
+
+        if (keep_reload) {
+            if (countl >= 600) {
+                good("reload");
+                return RunLive(last_loading);
+            } else {
+                countl++;
+                good("", false);
+            }
+        } else {
+            showliveimg = true;
+        }
 
     } else if (isPlaying == "play" || isPlaying == "playing") {
         good();
@@ -499,7 +511,7 @@ setInterval(function () {
 }, 1000 * 60 * 2);
 
 function FastCek() {
-    GetJson(URL_API + "camera/view.json?id=" + camid + "&ceklive=true")
+    GetJson(URL_API + "camera/view.json?id=" + camid + "&ceklive=true&token_user=" + token_user)
         .then(c => {
             RunLive(c);
         })
