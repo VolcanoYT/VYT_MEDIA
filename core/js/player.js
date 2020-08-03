@@ -1,3 +1,5 @@
+Object.assign({ flash: {hls: { withCredentials: false }, swf: '/static/video-js.swf'}}, this.options)
+
 var JSPlayer;
 var FSPlayer;
 
@@ -40,12 +42,12 @@ var setvol = getAllUrlParams().audio;
 var volume = parseFloat(setvol / 100);
 var setplay = getAllUrlParams().autoplay;
 var setforce = getAllUrlParams().force;
-var usebackup = getAllUrlParams().usebackup;
 var tp = getAllUrlParams().tp || 'last'; //last or raw
 var sereload = parseInt(getAllUrlParams().r) || 60; //reload img
 var hidehd = getAllUrlParams().hidehd;
 var skiplive = getAllUrlParams().skiplive;
 
+var usebackup = getAllUrlParams().backup;
 var token_user = getAllUrlParams().token_user;
 
 var dev = getAllUrlParams().dev;
@@ -170,11 +172,16 @@ function RunLive(df) {
         pw = sereload;
         //TODO: player proxy
 
-        if (!isEmpty(token_user)) {
-            if (!isEmpty(c.url)) {
-
-            }
+        if (!isEmpty(token_user)) { 
             //Jika Ada Api Youtube Fokus ke youtube live dari pada live gambar
+
+            if(usebackup == "true"){
+                if (!isEmpty(c.url_backup)) {
+                    types = 2;
+                    c.url = c.url_backup;
+                }
+            }
+
             if (!isEmpty(c.ytid)) {
                 //force use yt
                 ext = "video/youtube";
@@ -211,6 +218,8 @@ function RunLive(df) {
                 ext = "application/x-mpegURL";
                 if ((c.url).includes("rtmp")) {
                     ext = "rtmp/mp4";
+                } else if ((c.url).includes("h5player")) {
+                    ext = "video/x-flv";
                 } else if ((c.url).includes("rtsp")) {
                     ext = "rtmp/mp4";
                 }
@@ -477,10 +486,11 @@ setInterval(function () {
         }
 
         if (keep_reload) {
-            if (countl >= 600) {
+            if (countl >= 120) {
                 good("reload");
                 return RunLive(last_loading);
             } else {
+                console.log("wair reload"+countl);
                 countl++;
                 good("", false);
             }
@@ -508,7 +518,7 @@ setInterval(function () {
             JSPlayer.currentTime(9999999999999999999999999999999999999);
         }
     } catch (error) {}
-}, 1000 * 60 * 2);
+}, 1000 * 30);
 
 function FastCek() {
     GetJson(URL_API + "camera/view.json?id=" + camid + "&ceklive=true&token_user=" + token_user)

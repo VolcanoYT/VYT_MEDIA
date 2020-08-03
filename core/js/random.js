@@ -22,25 +22,30 @@ async function updatecek() {
 
 function get(addme) {
     return new Promise(resolve => {
-        jQuery.ajax({
-            url: URL_CDN+"timelapse/" + addme.id + "/raw.jpg",
-            cache: false,
-            xhr: function() {
-                var xhr = new XMLHttpRequest();
-                xhr.responseType = 'blob'
-                return xhr;
-            },
-            success: async function(data) {
-                var img = document.getElementById("AGCCTV0");
-                var url = window.URL || window.webkitURL;
-                img.src = url.createObjectURL(data);
-                $('#namax').text(addme.name + " | ID Cam: " + addme.id);
-                resolve(200);
-            },
-            error: function() {
-                resolve(404);
-            }
-        });
+        if(![192,191].includes(addme.id)) {
+            jQuery.ajax({
+                url: URL_CDN+"timelapse/" + addme.id + "/raw.jpg",
+                cache: false,
+                xhr: function() {
+                    var xhr = new XMLHttpRequest();
+                    xhr.responseType = 'blob'
+                    return xhr;
+                },
+                success: async function(data) {
+                    var img = document.getElementById("AGCCTV0");
+                    var url = window.URL || window.webkitURL;
+                    img.src = url.createObjectURL(data);
+                    $('#namax').text(addme.name + " (" + addme.id+")");
+                    resolve(200);
+                },
+                error: function() {
+                    resolve(404);
+                }
+            });
+        }else{
+            resolve(401);
+        }
+        
     });
 }
 

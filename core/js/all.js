@@ -15,10 +15,16 @@ try {
 }
 
 var localDate;
+var utc_time_mm; 
+var loc_time_mm;
 setInterval(function () {
     try {
+        utc_time_mm = moment().utc().format('DD/MM/YYYY HH:mm:ss');
+        loc_time_mm = moment().format('DD/MM/YYYY HH:mm:ss');
         localDate = Math.floor(new Date().getTime() / 1000);
-        $('#mytime').text("" + moment().utc().format('DD/MM/YYYY HH:mm:ss') + " GMT | " + moment().format('DD/MM/YYYY HH:mm:ss') + " LocalTime");
+        if (document.getElementById("mytime")) {
+            document.getElementById("mytime").innerHTML=utc_time_mm + " GMT | " + loc_time_mm + " LocalTime";
+        }        
     } catch (error) {
         //tidak harus di pakai 
     }

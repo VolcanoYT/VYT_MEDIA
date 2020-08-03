@@ -1,5 +1,4 @@
-#map_2d
-{
+#map_2d {
   z-index: -1;
   height: auto;
   position: absolute;
@@ -9,48 +8,51 @@
   right: 0;
   margin-top: 70px;
 }
+
 #statseq {
   left: 0;
   position: fixed;
   text-align: center;
   bottom: 0;
   width: 100%;
-} 
-.linez {
-width: 200px;
-white-space: nowrap;
-overflow: hidden;
-text-overflow: ellipsis;
+}
 
-padding: 20px;
-font-size: 1.3rem;
-margin: 0;
-background: white;
-resize: horizontal;
+.linez {
+  width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  padding: 20px;
+  font-size: 1.3rem;
+  margin: 0;
+  background: white;
+  resize: horizontal;
 }
+
 .modal-full {
-min-width: 100%;
-margin: 0;
+  min-width: 100%;
+  margin: 0;
 }
+
 .modal-full .modal-content {
-min-height: 100vh;
+  min-height: 100vh;
 }
+
 .leaflet-div-icon {
-background: transparent;
-border: 0;
+  background: transparent;
+  border: 0;
 }
-.ewsb {
-color: #000000;
-border-radius: 10px;
-display: block;
-text-align: center;
-padding: 0 8px 0 4px;
-width: 150px;
+
+.geoku {
+  height: 100%;
+  width: 100%;
 }
-.geoku{height:100%;width:100%;}
+
 body {
-  font-family: "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", Helvetica, Arial, sans-serif; 
+  font-family: "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
+
 .resp-sharing-button__link,
 .resp-sharing-button__icon {
   display: inline-block
@@ -66,7 +68,7 @@ body {
   border-radius: 5px;
   transition: 25ms ease-out;
   padding: 0.5em 0.75em;
-  font-family: Helvetica Neue,Helvetica,Arial,sans-serif
+  font-family: Helvetica Neue, Helvetica, Arial, sans-serif
 }
 
 .resp-sharing-button__icon svg {
@@ -175,9 +177,13 @@ body {
 }
 
 .resp-sharing-button--hackernews {
-background-color: #FF6600
+  background-color: #FF6600
 }
-.resp-sharing-button--hackernews:hover, .resp-sharing-button--hackernews:focus {   background-color: #FB6200 }
+
+.resp-sharing-button--hackernews:hover,
+.resp-sharing-button--hackernews:focus {
+  background-color: #FB6200
+}
 
 .resp-sharing-button--vk {
   background-color: #507299
@@ -236,9 +242,90 @@ background-color: #FF6600
 }
 
 .resp-sharing-button--telegram:hover {
-  background-color: #4B97D1;}
+  background-color: #4B97D1;
+}
 
-.info { padding: 6px 8px; font: 14px/16px Arial, Helvetica, sans-serif; background: white; background: rgba(255,255,255,0.8); box-shadow: 0 0 15px rgba(0,0,0,0.2); border-radius: 5px; } 
-.info h4 { margin: 0 0 5px; color: #777; }
-.legend { text-align: left; line-height: 18px; color: #555; } 
-.legend i { width: 18px; height: 18px; float: left; margin-right: 8px; opacity: 0.7; }
+.info {
+  padding: 6px 8px;
+  font: 14px/16px Arial, Helvetica, sans-serif;
+  background: white;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+}
+
+.info h4 {
+  margin: 0 0 5px;
+  color: #777;
+}
+
+.legend {
+  text-align: left;
+  line-height: 18px;
+  color: #555;
+}
+
+.legend i {
+  width: 18px;
+  height: 18px;
+  float: left;
+  margin-right: 8px;
+  opacity: 0.7;
+}
+
+.colorseimo {
+  color: #000000;
+  background-color: green;
+  border-radius: 10px;
+  display: block;
+  text-align: center;
+  padding: 0 8px 0 4px;
+  width: 150px;
+}
+
+/*Wraperclass for the divicon*/
+.map-label {
+  position: absolute;
+  bottom: 0;
+  left: -50%;
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+}
+
+/*Wrap the content of the divicon (text) in this class*/
+.map-label-content {
+  order: 1;
+  position: relative;
+  left: -50%;
+  background-color: #fff;
+  border-radius: 5px;
+  border-width: 2px;
+  border-style: solid;
+  border-color: #444;
+  padding: 3px;
+  white-space: nowrap;
+  color: #000;
+}
+
+/*Add this arrow*/
+.map-label-arrow {
+  order: 2;
+  width: 0px;
+  height: 0px;
+  left: 50%;
+  border-style: solid;
+  border-color: #444 transparent transparent transparent;
+  border-width: 10px 6px 0 6px;
+  /*[first number is height, second/fourth are rigth/left width]*/
+  margin-left: -6px;
+}
+
+.map-label.eq>.map-label-content {
+  border-radius: 15px;
+}
+
+.map-camera {
+  width: 100%;
+  height: 250px;
+}
