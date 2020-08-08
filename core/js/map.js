@@ -1,5 +1,8 @@
 var map_loading = false;
 
+var ews_loading = false;
+var ews_link = null;
+
 var TemporaryEarthquake = [];
 var auto_mode = getAllUrlParams().auto;
 var auto_twait = 0;
@@ -70,7 +73,7 @@ var krb = L.esri.featureLayer({
 
 var map = new L.Map('map_2d', {
     attributionControl: true,
-    layers: [googleSat, G_Earthquake, G_Earthquake_C, platetectonics, places]
+    layers: [googleSat, G_Earthquake, G_Earthquake_C,G_Seismometer, platetectonics, places]
 }).fitWorld();
 map.setView([-1.62, 120.13], 5.4);
 map.locate({
@@ -101,7 +104,7 @@ var overlays = {
     // "Kawasan Rawan Bencana": krb,
 
     "Seismometer Station": G_Seismometer,
-   // "Tsunami Station": G_Tsunami,
+    // "Tsunami Station": G_Tsunami,
     "Camera Station": G_Camera,
     "Antipodes (90km)": G_Antipodes,
 };
@@ -122,35 +125,38 @@ function clean_map() {
     if (JSON.stringify(last_map) !== JSON.stringify(isloc)) {
         last_map = isloc;
 
-        //hapus layer dulu
-        G_Earthquake.eachLayer(function (ini) {
-            G_Earthquake.removeLayer(ini);
-        });
-        G_Earthquake_C.eachLayer(function (ini) {
-            G_Earthquake_C.removeLayer(ini);
-        });
-        G_Seismometer.eachLayer(function (ini) {
-            G_Seismometer.removeLayer(ini);
-        });
-        G_Camera.eachLayer(function (ini) {
-            G_Camera.removeLayer(ini);
-        });
-
         //add layer jika tersedia
         TemporaryEarthquake.forEach(async (item) => {
             if (isloc.contains(item.loc)) {
                 G_Earthquake.addLayer(item.marker);
                 G_Earthquake_C.addLayer(item.circle);
+            } else {
+                G_Earthquake.removeLayer(item.marker);
+                G_Earthquake_C.removeLayer(item.circle);
             }
         });
         SeismometerTemp.forEach(async (item) => {
             if (isloc.contains(item.loc)) {
                 G_Seismometer.addLayer(item.marker);
+                if(ews_loading){
+                    ews_link.send(JSON.stringify({
+                        "subscribe": ""+item.item.network+"."+item.item.station+"",
+                    }));
+                }
+            } else {
+                G_Seismometer.removeLayer(item.marker);
+                if(ews_loading){
+                    ews_link.send(JSON.stringify({
+                        "unsubscribe": ""+item.item.network+"."+item.item.station+"",
+                    }));
+                }
             }
         });
         CameraTemp.forEach(async (item) => {
             if (isloc.contains(item.loc)) {
                 G_Camera.addLayer(item.marker);
+            } else {
+                G_Camera.removeLayer(item.marker);
             }
         });
         //console.log('map berubah?');
@@ -276,7 +282,6 @@ function add(spawn) {
             color: 'green',
             radius: getIntensityCircleRadius(magnitudetwo, depthtwo) * 1000
         });
-        console.log('tes'); 
         if (depthtwo >= 90) {
             G_Antipodes.addLatLng(antipode(cp));
         }
@@ -322,13 +327,13 @@ async function GetCamera() {
                             var newico = new L.marker(cp, {
                                 icon: L.divIcon({
                                     iconSize: null,
-                                    html: '<div class="map-label eq"><div class="map-label-content"><a href="/camera/' + ecid + '/' + seo_url + '" target="_blank">'+nameset+'</a></div></div>'
+                                    html: '<div class="map-label eq"><div class="map-label-content"><a href="/camera/' + ecid + '/' + seo_url + '" target="_blank">' + nameset + '</a></div></div>'
                                 })
                             });
                             //<img class="map-camera" src="' + URL_CDN + 'timelapse/' + ecid + '/last.jpg"></div><div class="map-label-arrow">
                             //.bindPopup('<a href="/camera/' + ecid + '/' + seo_url + '" target="_blank"><img class="map-camera" src="' + URL_CDN + 'timelapse/' + ecid + '/last.jpg"></a>', {minWidth: 480,});
                             CameraTemp.push({
-                                loc:cp,
+                                loc: cp,
                                 marker: newico,
                                 id: ecid
                             });
@@ -356,16 +361,19 @@ async function GetSeismometer() {
             dataType: "json",
             cache: true,
             url: URL_API + "seismometer/data.json",
+            data: {
+                search: "GE"
+            }
         }).done(function (data) {
             var tmp_data = data['results'];
             if (tmp_data) {
                 tmp_data.forEach(async (item) => {
 
                     var noproblem = true;
-                    var ecid = item['id'];
+                    var id_station = item['id'];
 
                     SeismometerTemp.forEach(async (item) => {
-                        if (item.id == ecid) {
+                        if (item.id == id_station) {
                             noproblem = false;
                             return;
                         }
@@ -374,17 +382,22 @@ async function GetSeismometer() {
                     if (noproblem) {
                         var set_lat = item['latitude'];
                         var set_lot = item['longitude'];
+
+                        var network = item['network'];
+                        var station = item['station'];
+
                         var cp = new L.LatLng(set_lat, set_lot, 0);
                         var newico = new L.marker(cp, {
                             icon: L.divIcon({
                                 iconSize: null,
-                                html: '<div data-id="' + ecid + '" class="seimot map-label"><div class="map-label-content">' + item.code1 + '.' + item.code2 + '</div><div class="map-label-arrow"></div></div>'
+                                html: '<div data-id="' + network + '.' + station + '" class="seimot map-label"><div class="map-label-content">' + item.network + '.' + item.station + '</div><div class="map-label-arrow"></div></div>'
                             })
                         });
                         SeismometerTemp.push({
                             loc: cp,
                             marker: newico,
-                            id: ecid
+                            id: id_station,
+                            item:item
                         });
                     }
                 });
@@ -408,7 +421,8 @@ setInterval(async () => {
 
         console.log('Start check earthquake...');
         var sync = await GetEarthquake();
-        console.log(sync);
+        last_map = [];
+
     } else {
         tmp_wait++
     }
@@ -419,10 +433,11 @@ setInterval(async () => {
         //jika ada layar seimo
         if (map.hasLayer(G_Seismometer)) {
             if (!SeismometerTemp_Check) {
+
                 console.log('Start check seismometer...');
                 var sync = await GetSeismometer();
-                console.log(sync);
                 last_map = [];
+
             }
         } else {
             if (SeismometerTemp_Check) {
@@ -437,10 +452,11 @@ setInterval(async () => {
         //jika ada layar camera
         if (map.hasLayer(G_Camera)) {
             if (!CameraTemp_Check) {
+
                 console.log('Start check camera...');
                 var sync = await GetCamera();
-                console.log(sync);
                 last_map = [];
+
             }
         } else {
             if (CameraTemp_Check) {
@@ -609,3 +625,45 @@ function getRandomColor() {
     }
     return color;
 }
+
+ews_link = new ReconnectingWebSocket("wss://seedlink.volcanoyt.com");
+ews_link.onopen = function (e) {
+    console.log("EWS Online", e);
+    ews_loading = true;
+};
+ews_link.onmessage = function (e) {
+    var json = JSON.parse(e.data);
+    if (json.error) {
+        console.log("Error: ",json.error);
+    } else if (json.success) {
+        console.log("Success: ",json.success);
+    } else {
+        EWS_Proses(json);
+    }
+};
+ews_link.onclose = function (e) {
+    console.log("EWS Offline", e);
+    ews_loading = false
+};
+
+function EWS_Proses(data){
+    var network = data.network;
+    var station = data.station;
+    var full_nama = ""+network+"."+station+"";
+    //var channel = data.channel;
+    //var location = "";
+
+    console.log(data);
+
+    var sub = $("div[data-id='"+full_nama+"']").children( ".map-label-content" );
+    sub.attr('style','background-color: '+getColor(data.pga)+'');
+    sub.html(''+full_nama+' | PGA '+data.pga+'');
+}
+
+// https://stackoverflow.com/a/17268489
+// https://en.wikipedia.org/wiki/Peak_ground_acceleration
+function getColor(value) {
+    //value from 0 to 1
+    var hue = ((1 - value) * 120).toString(10);
+    return ["hsl(", hue, ",100%,50%)"].join("");
+  }
