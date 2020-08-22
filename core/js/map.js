@@ -73,7 +73,8 @@ var krb = L.esri.featureLayer({
 
 var map = new L.Map('map_2d', {
     attributionControl: true,
-    layers: [googleSat, G_Earthquake, G_Earthquake_C,G_Seismometer, platetectonics, places]
+    //G_Seismometer
+    layers: [googleSat, G_Earthquake, G_Earthquake_C, platetectonics, places]
 }).fitWorld();
 map.setView([-1.62, 120.13], 5.4);
 map.locate({
@@ -362,7 +363,7 @@ async function GetSeismometer() {
             cache: true,
             url: URL_API + "seismometer/data.json",
             data: {
-                search: "GE"
+               // search: "GE"
             }
         }).done(function (data) {
             var tmp_data = data['results'];
@@ -626,6 +627,7 @@ function getRandomColor() {
     return color;
 }
 
+/*
 ews_link = new ReconnectingWebSocket("wss://seedlink.volcanoyt.com");
 ews_link.onopen = function (e) {
     console.log("EWS Online", e);
@@ -645,6 +647,7 @@ ews_link.onclose = function (e) {
     console.log("EWS Offline", e);
     ews_loading = false
 };
+*/
 
 function EWS_Proses(data){
     var network = data.network;

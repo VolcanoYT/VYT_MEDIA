@@ -634,9 +634,11 @@ $('#proses').on('click', function (e) {
             end: set_end,
             title: title,
             tweet: tweet,
-            cam: camid
+            id: camid,
+            fps:10,
+            hd:2
         },
-        url: URL_APP + 'timelapse',
+        url: URL_API + 'camera/timelapse/create.json',
     }).done(function (data) {
         $('#getinfo').show();
         $('#loadff').hide();
