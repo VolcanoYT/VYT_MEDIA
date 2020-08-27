@@ -2,6 +2,13 @@ var autohide = getAllUrlParams().autohide;
 var audiois = getAllUrlParams().audio;
 var close_info;
 
+var useurl = getAllUrlParams().URL;
+
+if(!isEmpty(useurl)){
+    console.log('use url: ',useurl);
+    URL_APP = useurl;
+}
+
 //API Socket
 var ewsio = io(URL_APP + 'ews', {
     transports: ['websocket'],
