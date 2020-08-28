@@ -172,6 +172,11 @@ function RunLive(df) {
         var c = df.data;
         displayz[0] = "Cam: " + c.name;
         displayz[2] = "Source: " + c.source;
+        timezone = c.time.timezone;        
+        types = c.type;
+        sereload = c.refresh;
+        setimg = URL_CDN + "timelapse/" + camid + "/" + tp + ".jpg";  
+        pw = sereload;
 
         //if live mode, check live tag
         if (live_mode) {
@@ -192,15 +197,8 @@ function RunLive(df) {
         }
 
         //API Sudah di Set
-        setimg = URL_CDN + "timelapse/" + camid + "/" + tp + ".jpg";
-        types = c.type;
-        sereload = c.refresh;
-
         Run_Update(true);
         Run_Update();
-
-        timezone = c.time.timezone;
-        pw = sereload;
 
         //debug mode
         if (!isEmpty(token_user)) {

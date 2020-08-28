@@ -50,10 +50,11 @@ function OnData(x) {
     var showicon = URL_CDN + 'core/img/magnitude.png';
     var wait_close = 10;
 
-    var list = $('#log');
-    var ismap = true;
+    var ismap = false;
+    var ismsg = false;
 
     if (x.type == "earthquake") {
+        ismap = true;
         loc = L.latLng(datap.eq_lat, datap.eq_lon);
         var whereeq = '' + Number(datap.distance).toFixed(2) + ' miles of ' + datap.city + ' - ' + datap.country;
         var lastinfo = datap.provider + ' / ' + OnGempa(datap.status);
@@ -86,39 +87,23 @@ function OnData(x) {
         info_dua = '<i class="fab fa-audible"></i> ' + deept + ' km';
         info_tiga = '<i class="fas fa-clock"></i> <time data-now="' + toutc + '"></time>';
 
-
-        cek(list, '<li class="list-group-item list-group-item-' + icon + '">' + info_satu + ' ' + info_dua + ' ' + info_tiga + ' - ' + whereeq + ' (' + lastinfo + ')</li>');
+        cek($('#log'), '<li class="list-group-item list-group-item-' + icon + '">' + info_satu + ' ' + info_dua + ' ' + info_tiga + ' - ' + whereeq + ' (' + lastinfo + ')</li>');
 
     } else if (x.type == "volcano") {
-        wait_close = 10;
-        circle = false;
-
-        loc = L.latLng(datap.latitude, datap.longitude);
-        showicon = URL_CDN + 'core/img/volcano.png';
-
+        ismsg = true;
+        wait_close = 15;
         var info = datap.info;
         var sumber = datap.source;
-        var nama_volcano = datap.nama;
+        var nama_volcano = datap.volcano;
         var toutc = datap.date_input;
-        var evlt = datap.elevation;
-        var tyvc = datap.types;
-
-        info_center = nama_volcano + '<br>' + info + ' (' + sumber + ')';
-        info_satu = '<i class="fas fa-volcano"></i> ' + OnStatus(datap.status);
-        info_dua = '<i class="fab fa-audible"></i> ' + evlt;
-        info_tiga = '<i class="fas fa-clock"></i> <time data-now="' + toutc + '"></time>';
+        info_satu = 'Volcano ' + nama_volcano+' ('+sumber+')';
+        info_dua = info+' - <time data-now="' + toutc + '"></time>';       
     } else if (x.type == "notice") {
-        ismap = false;
-        $('#msg').html('<div class="alert alert-success ping" role="alert"><h4 class="alert-heading">Message from ' + datap.user + '</h4><p>' + datap.message + '</p></div>');
-        close_msg = setTimeout(
-            function () {
-                if (autohide == "true") {
-                    $('#msg').html('');
-                }
-            }, 1000 * 10);
+        ismap = true;
+        info_satu = 'Message from ' + datap.user;
+        info_dua = datap.message;
     } else {
         console.log('belum ada: ' + x.type);
-        ismap = false;
     }
 
     if (ismap) {
@@ -173,6 +158,16 @@ function OnData(x) {
                     $('#map').html('');
                 }
             }, 1000 * wait_close);
+    }
+
+    if (ismsg) {
+        $('#msg').html('<div class="alert alert-success ping" role="alert"><h4 class="alert-heading">'+info_satu+'</h4><p>' + info_dua+ '</p></div>');
+        close_msg = setTimeout(
+            function () {
+                if (autohide == "true") {
+                    $('#msg').html('');
+                }
+            }, 1000 * 10);
     }
 }
 
