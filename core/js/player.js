@@ -1,7 +1,17 @@
-Object.assign({ flash: {hls: { withCredentials: false }, swf: '/static/video-js.swf'}}, this.options)
+Object.assign({
+    flash: {
+        hls: {
+            withCredentials: false
+        },
+        swf: '/static/video-js.swf'
+    }
+}, this.options)
 
 var JSPlayer;
 var FSPlayer;
+var IoPlayer;
+
+var Interval_Update;
 
 var displayz = new Array();
 
@@ -19,14 +29,15 @@ var slideIndex = 1;
 var timer = false;
 var hideimg = true;
 var showliveimg = false;
-var jpgr = false;
 var ispause = false;
 var playt = "live";
 var countl = 0;
 var timezone = 'Asia/Makassar';
 
 var ffisplay = false;
-var ceklive = false;
+var cek_broke_link = false;
+
+var live_io = false;
 
 var types;
 var setimg;
@@ -36,7 +47,7 @@ var pp;
 var flash = getAllUrlParams().flash;
 var rtyt = getAllUrlParams().rtyt;
 var camid = getAllUrlParams().cam; //auto setup cam
-var uproxy = getAllUrlParams().uproxy; //force proxy auto
+//var uproxy = getAllUrlParams().uproxy; //force proxy auto
 var namacam = getAllUrlParams().nama; //nama kamera
 var setvol = getAllUrlParams().audio;
 var volume = parseFloat(setvol / 100);
@@ -45,10 +56,17 @@ var setforce = getAllUrlParams().force;
 var tp = getAllUrlParams().tp || 'last'; //last or raw
 var sereload = parseInt(getAllUrlParams().r) || 60; //reload img
 var hidehd = getAllUrlParams().hidehd;
-var skiplive = getAllUrlParams().skiplive;
+var skiplive = false; //getAllUrlParams().skiplive;
 
 var usebackup = getAllUrlParams().backup;
 var token_user = getAllUrlParams().token_user;
+
+var useurl = getAllUrlParams().URL;
+var live_mode = getAllUrlParams().live;
+if (!isEmpty(useurl)) {
+    console.log('Io PLayer Proxy ', useurl);
+    URL_APP = useurl;
+}
 
 var dev = getAllUrlParams().dev;
 $('.log').hide();
@@ -103,8 +121,12 @@ function good(msg, count = true) {
     if (!isEmpty(msg)) {
         console.log(msg);
     }
-    showliveimg = false;
-    ceklive = false;
+    if (types == 6) {
+        showliveimg = true;
+    } else {
+        showliveimg = false;
+    }
+    cek_broke_link = false;
     if (count)
         countl = 0;
 }
@@ -114,7 +136,7 @@ function bad(msg) {
         console.log(msg);
     }
     showliveimg = true;
-    ceklive = true;
+    cek_broke_link = true;
 }
 
 function StopP(id = 'vid1') {
@@ -138,44 +160,52 @@ var last_loading = null;
 function RunLive(df) {
     try {
 
-        if (isEmpty(df))
-            return console.log('no config');
-
-        last_loading = df;
-
-        console.log("API Start", df);
-
         if (isPlaying == "disabled")
             return console.log('disabled player');
 
+        if (isEmpty(df))
+            return console.log('No Config');
+
+        last_loading = df;
+        console.log("API Start", df);
+
         var c = df.data;
+        displayz[0] = "Cam: " + c.name;
+        displayz[2] = "Source: " + c.source;
+
+        //if live mode, check live tag
+        if (live_mode) {
+            if (c.refresh_live == 0) {
+                live_mode = false;
+            } else {
+                IoPlayer.disconnect();
+                IoPlayer.connect();
+                IoPlayer.emit('access', {
+                    cam: camid,
+                    password: "0000"
+                });
+                isPlaying = "playing";
+                types = 6;
+                showliveimg = true;
+            }
+            return console.log('live mode');
+        }
 
         //API Sudah di Set
         setimg = URL_CDN + "timelapse/" + camid + "/" + tp + ".jpg";
         types = c.type;
         sereload = c.refresh;
-        displayz[0] = "Cam: " + c.name;
-        displayz[2] = "Source: " + c.source;
+
+        Run_Update(true);
+        Run_Update();
+
         timezone = c.time.timezone;
-
-        //Live Mode Img
-        /*
-        if (uproxy == "true") {
-            if (c.refresh_live > 0) {
-                sereload = c.refresh_live - 1;
-                setimg = c.id; //set id if mode proxy live
-                jpgr = true;
-            }
-        }
-        */
-
         pw = sereload;
-        //TODO: player proxy
 
-        if (!isEmpty(token_user)) { 
+        //debug mode
+        if (!isEmpty(token_user)) {
             //Jika Ada Api Youtube Fokus ke youtube live dari pada live gambar
-
-            if(usebackup == "true"){
+            if (usebackup == "true") {
                 if (!isEmpty(c.url_backup)) {
                     types = 2;
                     c.url = c.url_backup;
@@ -370,23 +400,21 @@ function playvd() {
 
 var aw;
 async function UpdateMe() {
+
+    //jika live gambar ada
     if (!showliveimg) return false;
-    //console.log('jgjhj');
+
+    //jika live mode aktif jangan pakai snapshot
+    if (live_io) return false;
+
+    //jika sedang pause
     if (ispause) return false;
-    //console.log('abfghgccc');
+
+    //jika tiemaslpe sedang jalan
     if (ffisplay) return false;
 
-    //console.log('abccc');
-
     try {
-        var realimg = setimg;
-
-        //Live Mode
-        if (jpgr) {
-            realimg = URL_APP + "img?url=" + camid + '&timeout=' + sereload + 2;
-        }
-
-        //API Player
+        //API Player (Snapshot)
         try {
             window.parent.postMessage({
                 "api": "player_update",
@@ -399,10 +427,10 @@ async function UpdateMe() {
             console.log('error send data');
         }
 
-        if (!isEmpty(realimg)) {
+        if (!isEmpty(setimg)) {
             if (pw >= sereload) {
                 pw = 0;
-                aw = await Addimg(realimg, div_live, false, null, null, false, sereload + 2);
+                aw = await Addimg(setimg, div_live, false, null, null, false, sereload + 2);
             } else {
                 pw++;
             }
@@ -411,25 +439,35 @@ async function UpdateMe() {
                 if (aw.code !== 200) {
                     SendLog("Error load img");
                 } else {
-                    if (jpgr) {
-                        displayz[3] = "Live Now";
-                    } else {
-                        displayz[3] = "Updated since " + moment.utc(aw.update).fromNow();
-                    }
+                    displayz[3] = "Updated since " + moment.utc(aw.update).fromNow();
                 }
             }
+        } else {
+            console.log('no url?');
         }
     } catch (e) {
         console.log('Error update img: ', e);
     }
 }
-setInterval(UpdateMe, 1000);
+
+function Run_Update(kill = false) {
+    if (kill) {
+        try {
+            clearInterval(Interval_Update);
+        } catch (error) {
+            console.log('error kill update image');
+        }
+    } else {
+        Interval_Update = setInterval(UpdateMe, 1000);
+    }
+}
 
 //cek status player
 setInterval(function () {
 
+    //console.log("Status: "+isPlaying+" | Image DIV "+showliveimg+" ");
+
     try {
-        //jika tag hide sesuai
         if (showliveimg) {
             $(div_live).css("position", "");
             $(div_live).css("display", "");
@@ -443,15 +481,16 @@ setInterval(function () {
             $("#iconplay").attr('class', 'fas fa-pause');
         }
     } catch (error) {
-        //update
+        //NOTING HERE
     }
-
-    //console.log("Status: ",isPlaying);
 
     if (ffisplay)
         return null;
 
     if (types == 1)
+        return null;
+
+    if (types == 6)
         return null;
 
     if (setplay !== "true")
@@ -474,7 +513,7 @@ setInterval(function () {
 
     if (isPlaying == "pause") {
         playvd();
-    } else if (isPlaying == "durationchange" || isPlaying == "resize") {
+    } else if (isPlaying == "durationchange" || isPlaying == "resize" || isPlaying == "seeked") {
         //for api noting?
         good();
     } else if (isPlaying == "canplaythrough" || isPlaying == "canplay" || isPlaying == "waiting" || isPlaying == "loadstart") {
@@ -490,7 +529,7 @@ setInterval(function () {
                 good("reload");
                 return RunLive(last_loading);
             } else {
-                console.log("wair reload"+countl);
+                console.log("wair reload" + countl);
                 countl++;
                 good("", false);
             }
@@ -509,8 +548,8 @@ setInterval(function () {
 
 //Automatic Check
 setInterval(function () {
-    if (ceklive) {
-        ceklive = false;
+    if (cek_broke_link) {
+        cek_broke_link = false;
         FastCek();
     }
     try {
@@ -635,8 +674,8 @@ $('#proses').on('click', function (e) {
             title: title,
             tweet: tweet,
             id: camid,
-            fps:10,
-            hd:2
+            fps: 10,
+            hd: 2
         },
         url: URL_API + 'camera/timelapse/create.json',
     }).done(function (data) {
@@ -927,6 +966,10 @@ setInterval(function () {
 //API Play
 function start() {
     console.log("Go " + playt + " | " + types);
+    if(types == 6){
+        return console.log('not yet supported');
+    }
+
     if (ispause) {
         ispause = false;
     } else {
@@ -970,3 +1013,85 @@ $('#set_start').datetimepicker({
 $('#set_end').datetimepicker({
     format: 'YYYY-MM-DD HH:mm',
 });
+
+//API IoPlayer
+var IoPlayer = io(URL_APP + 'camera', {
+    //transports: ['websocket'],
+    //upgrade: false
+    autoConnect: false
+});
+IoPlayer.on('connect', function () {
+    console.log('player konek');
+    live_io = true;
+    /*
+    if (!isEmpty(cam)) {
+        socket.emit('access', {
+            cam: cam,
+            password: "0000"
+        });
+    }
+    */
+});
+IoPlayer.on('disconnect', function () {
+    console.log('player putus');
+    live_io = false;
+});
+IoPlayer.on('stream', function (e) {
+    if (e.image) {
+        document.getElementById("live").src = 'data:image/jpeg;base64,' + base64ArrayBuffer(e.buffer);
+    } else {
+        console.log(e.data);
+    }
+});
+
+function base64ArrayBuffer(arrayBuffer) {
+    var base64 = ''
+    var encodings = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+
+    var bytes = new Uint8Array(arrayBuffer)
+    var byteLength = bytes.byteLength
+    var byteRemainder = byteLength % 3
+    var mainLength = byteLength - byteRemainder
+
+    var a, b, c, d
+    var chunk
+
+    // Main loop deals with bytes in chunks of 3
+    for (var i = 0; i < mainLength; i = i + 3) {
+        // Combine the three bytes into a single integer
+        chunk = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2]
+
+        // Use bitmasks to extract 6-bit segments from the triplet
+        a = (chunk & 16515072) >> 18 // 16515072 = (2^6 - 1) << 18
+        b = (chunk & 258048) >> 12 // 258048   = (2^6 - 1) << 12
+        c = (chunk & 4032) >> 6 // 4032     = (2^6 - 1) << 6
+        d = chunk & 63 // 63       = 2^6 - 1
+
+        // Convert the raw binary segments to the appropriate ASCII encoding
+        base64 += encodings[a] + encodings[b] + encodings[c] + encodings[d]
+    }
+
+    // Deal with the remaining bytes and padding
+    if (byteRemainder == 1) {
+        chunk = bytes[mainLength]
+
+        a = (chunk & 252) >> 2 // 252 = (2^6 - 1) << 2
+
+        // Set the 4 least significant bits to zero
+        b = (chunk & 3) << 4 // 3   = 2^2 - 1
+
+        base64 += encodings[a] + encodings[b] + '=='
+    } else if (byteRemainder == 2) {
+        chunk = (bytes[mainLength] << 8) | bytes[mainLength + 1]
+
+        a = (chunk & 64512) >> 10 // 64512 = (2^6 - 1) << 10
+        b = (chunk & 1008) >> 4 // 1008  = (2^6 - 1) << 4
+
+        // Set the 2 least significant bits to zero
+        c = (chunk & 15) << 2 // 15    = 2^4 - 1
+
+        base64 += encodings[a] + encodings[b] + encodings[c] + '='
+    }
+
+    return base64
+}

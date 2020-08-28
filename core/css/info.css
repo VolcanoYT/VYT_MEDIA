@@ -9,3 +9,31 @@ html,body {
     margin: 0px;
     color: white;
 }
+
+
+.boxf {
+    position: fixed;
+    width: 700px;
+    height: 428px;
+    right: 14px;
+    bottom: 14px;
+    border-radius: 25px;
+}
+
+.ping{
+    position: fixed;
+    width: 600px;
+    top: 15%;
+    left: 50%;
+    margin-top: -100px;
+    margin-left: -250px;
+}
+
+ul#log {
+    position: fixed;
+    width: 830px;
+    height: 428px;
+    left: 15px;
+    bottom: 14px;
+    border-radius: 25px;
+}

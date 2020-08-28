@@ -1,11 +1,13 @@
+var close_map;
+var close_msg;
+var close_list;
+
 var autohide = getAllUrlParams().autohide;
 var audiois = getAllUrlParams().audio;
-var close_info;
-
 var useurl = getAllUrlParams().URL;
 
-if(!isEmpty(useurl)){
-    console.log('use url: ',useurl);
+if (!isEmpty(useurl)) {
+    console.log('use url: ', useurl);
     URL_APP = useurl;
 }
 
@@ -31,13 +33,6 @@ ewsio.on('info', function (x) {
 function OnData(x) {
     console.log(x);
 
-    if (autohide == "true") {
-        //console.log('open it');
-        document.getElementById("auto").style.visibility = "";
-        document.getElementById("log").style.visibility = "";
-        clearTimeout(close_info);
-    }
-
     datap = x.data;
 
     var info_j = (x.type).toUpperCase();
@@ -56,6 +51,7 @@ function OnData(x) {
     var wait_close = 10;
 
     var list = $('#log');
+    var ismap = true;
 
     if (x.type == "earthquake") {
         loc = L.latLng(datap.eq_lat, datap.eq_lon);
@@ -70,18 +66,18 @@ function OnData(x) {
         var timelocal = moment.utc(toutc, 'YYYY-MM-DD HH:mm:ss').local();
         var lefttime = timelocal.local().fromNow();
 
-        if (mag >= 3.2 && mag <= 4.8) {
+        if (mag >= 3.2 && mag <= 5) {
             icon = "warning";
             wait_close = 15;
-        } else if (mag >= 4.8 && mag <= 8) {
+        } else if (mag >= 5 && mag <= 9) {
             icon = "danger";
             wait_close = 60;
         }
 
         if (audiois == "true") {
             console.log('audio');
-            if (mag >= 2.3) {
-                NotifMe("", "" + magty + "" + mag + " quake causing shaking near " + whereeq + " with depth " + deept + " km occurs in "+lefttime+"", "", true, 'en', 0.8);
+            if (mag >= 4.0) {
+                NotifMe("", "" + magty + "" + mag + " quake causing shaking near " + whereeq + " with depth " + deept + " km occurs in " + lefttime + "", "", true, 'en', 0.8);
             }
         }
 
@@ -90,9 +86,10 @@ function OnData(x) {
         info_dua = '<i class="fab fa-audible"></i> ' + deept + ' km';
         info_tiga = '<i class="fas fa-clock"></i> <time data-now="' + toutc + '"></time>';
 
+
         cek(list, '<li class="list-group-item list-group-item-' + icon + '">' + info_satu + ' ' + info_dua + ' ' + info_tiga + ' - ' + whereeq + ' (' + lastinfo + ')</li>');
 
-    } else {
+    } else if (x.type == "volcano") {
         wait_close = 10;
         circle = false;
 
@@ -110,64 +107,72 @@ function OnData(x) {
         info_satu = '<i class="fas fa-volcano"></i> ' + OnStatus(datap.status);
         info_dua = '<i class="fab fa-audible"></i> ' + evlt;
         info_tiga = '<i class="fas fa-clock"></i> <time data-now="' + toutc + '"></time>';
+    } else if (x.type == "notice") {
+        ismap = false;
+        $('#msg').html('<div class="alert alert-success ping" role="alert"><h4 class="alert-heading">Message from ' + datap.user + '</h4><p>' + datap.message + '</p></div>');
+        close_msg = setTimeout(
+            function () {
+                if (autohide == "true") {
+                    $('#msg').html('');
+                }
+            }, 1000 * 10);
+    } else {
+        console.log('belum ada: ' + x.type);
+        ismap = false;
     }
 
-    $('#auto').html('<div class="text-white bg-dark"> <h2 class="text-center">' + info_j + '</h2> <h3 class="text-center">' + info_center + '</h3> <div id="ewsmap"></div> <div class="container-fluid"><div class="row text-center" style="font-size: x-large"> <div class="col-sm">' + info_satu + '</div> <div class="col-sm">' + info_dua + '</div> <div class="col-sm">' + info_tiga + '</div> </div> </div> </div>');
-
-    var map = L.map('ewsmap', {
-        zoomControl: false,
-        attributionControl: false,
-        keyboard: false,
-        dragging: false,
-        boxZoom: false,
-        doubleClickZoom: false,
-        scrollWheelZoom: false,
-        tap: false,
-        touchZoom: false,
-    }).setView(loc, 6);
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-        maxZoom: 12,
-        minZoom: 3
-    }).addTo(map);
-
-    var seticon = L.icon({
-        iconUrl: showicon,
-        iconSize: [32, 32], // size of the icon
-        iconAnchor: [18, 14], // point of the icon which will correspond to marker's location
-    });
-
-    L.marker(loc, {
-        icon: seticon
-    }).addTo(map);
-    //.bindPopup(info_center).openPopup();    
-
-    close_info = setTimeout(
-        function () {
-            if (autohide == "true") {
-                //console.log('close it');
-                document.getElementById("auto").style.visibility = "hidden";
-                document.getElementById("log").style.visibility = "hidden";
-            }
-        }, 1000 * wait_close);
-
-    //console.log('close in... ' + wait_close);
-
-    if (circle) {
-        var counter = 0;
-        var i = setInterval(function () {
-            circle.setRadius(counter);
-            counter = counter + 1000;
-            if (counter > 70000) {
-                counter = 0;
-            }
-        }, 30);
-        var circle = L.circle(loc, 70000, {
-            weight: 3,
-            color: '#ff185a',
-            opacity: 0.75,
-            fillColor: '#ff185a',
-            fillOpacity: 0.25
+    if (ismap) {
+        $('#map').html('<div class="boxf text-white bg-dark animate__animated animate__shakeX"> <h2 class="text-center">' + info_j + '</h2> <h3 class="text-center">' + info_center + '</h3> <div id="ewsmap"></div> <div class="container-fluid"><div class="row text-center" style="font-size: x-large"> <div class="col-sm">' + info_satu + '</div> <div class="col-sm">' + info_dua + '</div> <div class="col-sm">' + info_tiga + '</div> </div> </div> </div>');
+        var map = L.map('ewsmap', {
+            zoomControl: false,
+            attributionControl: false,
+            keyboard: false,
+            dragging: false,
+            boxZoom: false,
+            doubleClickZoom: false,
+            scrollWheelZoom: false,
+            tap: false,
+            touchZoom: false,
+        }).setView(loc, 6);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 12,
+            minZoom: 3
         }).addTo(map);
+
+        var seticon = L.icon({
+            iconUrl: showicon,
+            iconSize: [32, 32],
+            iconAnchor: [18, 14],
+        });
+
+        L.marker(loc, {
+            icon: seticon
+        }).addTo(map);
+
+        if (circle) {
+            var counter = 0;
+            var i = setInterval(function () {
+                circle.setRadius(counter);
+                counter = counter + 1000;
+                if (counter > 70000) {
+                    counter = 0;
+                }
+            }, 30);
+            var circle = L.circle(loc, 70000, {
+                weight: 3,
+                color: '#ff185a',
+                opacity: 0.75,
+                fillColor: '#ff185a',
+                fillOpacity: 0.25
+            }).addTo(map);
+        }
+
+        close_map = setTimeout(
+            function () {
+                if (autohide == "true") {
+                    $('#map').html('');
+                }
+            }, 1000 * wait_close);
     }
 }
 
@@ -185,9 +190,42 @@ $.getJSON(URL_APP + 'warning', function (data) {
     }
 });
 
-function cek(list, vv, limit = 5) {
+function cek(list, vv, limit = 10) {
+
+    if (autohide == "true") {
+        document.getElementById("log").style.visibility = "";
+        clearTimeout(close_list);
+    }
+
     list.prepend(vv);
-    if (list.children().length > limit + 1) {
+    if (list.children().length >= limit + 1) {
         list.children().last().remove();
     }
+
+    close_list = setTimeout(
+        function () {
+            if (autohide == "true") {
+                document.getElementById("log").style.visibility = "hidden";
+            }
+        }, 1000 * 15);
 }
+
+function animateCSS(element, animation, prefix = 'animate__') {
+    // We create a Promise and return it
+    new Promise((resolve, reject) => {
+        const animationName = `${prefix}${animation}`;
+        const node = document.querySelector(element);
+
+        node.classList.add(`${prefix}animated`, animationName);
+
+        // When the animation ends, we clean the classes and resolve the Promise
+        function handleAnimationEnd() {
+            node.classList.remove(`${prefix}animated`, animationName);
+            node.removeEventListener('animationend', handleAnimationEnd);
+
+            resolve('Animation ended');
+        }
+
+        node.addEventListener('animationend', handleAnimationEnd);
+    })
+};

@@ -18,9 +18,10 @@ cp -r bootstrap-main/dist/* ${patch}bootstrap/
 cd $tmp || exit
 
 echo "Download Fontawesome"
-versi_font=5.13.0
+versi_font=5.14.0 #5.13.0
 mkdir -p $tmp/fontawesome && cd $tmp/fontawesome || exit
-wget https://github.com/ngdanghau/fontawesome-pro/releases/download/$versi_font/fontawesome-pro-$versi_font.zip
+# wget https://github.com/ngdanghau/fontawesome-pro/releases/download/$versi_font/fontawesome-pro-$versi_font.zip
+wget https://archive.org/download/fontawesome-pro-$versi_font/fontawesome-pro-$versi_font.zip
 unzip -o fontawesome-pro-$versi_font.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
 unzip -o fontawesome-pro-$versi_font-web.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
 rm -rf ${patch}fontawesome/ && mkdir -p ${patch}fontawesome/
@@ -29,7 +30,7 @@ cp -r fontawesome-pro-$versi_font-web/* ${patch}fontawesome/
 cd $tmp || exit
 
 echo "Download VideoJS"
-versi_videojs=7.8.3
+versi_videojs=7.9.3
 mkdir -p $tmp/videojs && cd $tmp/videojs || exit
 wget https://github.com/videojs/video.js/releases/download/v$versi_videojs/video-js-$versi_videojs.zip
 unzip -o video-js-$versi_videojs.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
@@ -41,7 +42,7 @@ rm -rf ${patch}videojs/examples
 cd $tmp || exit
 
 echo "Download Cesium for 3D Map"
-versi_cesium=1.70.1
+versi_cesium=1.72
 mkdir -p $tmp/cesium && cd $tmp/cesium || exit
 wget https://github.com/CesiumGS/cesium/releases/download/$versi_cesium/Cesium-$versi_cesium.zip
 unzip -o Cesium-$versi_cesium.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
