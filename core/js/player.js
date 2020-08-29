@@ -55,7 +55,7 @@ var setplay = getAllUrlParams().autoplay;
 var setforce = getAllUrlParams().force;
 var tp = getAllUrlParams().tp || 'last'; //last or raw
 var sereload = parseInt(getAllUrlParams().r) || 60; //reload img
-var hidehd = getAllUrlParams().hidehd;
+var wt = getAllUrlParams().wt;
 var skiplive = false; //getAllUrlParams().skiplive;
 
 var usebackup = getAllUrlParams().backup;
@@ -86,15 +86,15 @@ $('.log').on('click', function (e) {
 
 displayz[0] = namacam;
 
-function random() {
-    if (hidehd !== "true") {
+if (wt == "1") {
+    function random() {
         displayz[1] = "Time: " + moment().tz(timezone).format('DD/MM/YYYY HH:mm');
         var rand = Math.floor(Math.random() * displayz.length);
         $('#judul').text(displayz[rand]);
     }
-}
-setInterval(random, 1000 * 10);
-random();
+    setInterval(random, 1000 * 10);
+    random();
+};
 
 if (!isEmpty(camid)) {
     GetJson(URL_API + "camera/view.json?ceklive=true&id=" + camid + "&token_user=" + token_user)
@@ -172,10 +172,10 @@ function RunLive(df) {
         var c = df.data;
         displayz[0] = "Cam: " + c.name;
         displayz[2] = "Source: " + c.source;
-        timezone = c.time.timezone;        
+        timezone = c.time.timezone;
         types = c.type;
         sereload = c.refresh;
-        setimg = URL_CDN + "timelapse/" + camid + "/" + tp + ".jpg";  
+        setimg = URL_CDN + "timelapse/" + camid + "/" + tp + ".jpg";
         pw = sereload;
 
         //if live mode, check live tag
@@ -185,15 +185,11 @@ function RunLive(df) {
             } else {
                 IoPlayer.disconnect();
                 IoPlayer.connect();
-                IoPlayer.emit('access', {
-                    cam: camid,
-                    password: "0000"
-                });
                 isPlaying = "playing";
                 types = 6;
                 showliveimg = true;
+                return console.log('live mode');
             }
-            return console.log('live mode');
         }
 
         //API Sudah di Set
@@ -964,7 +960,7 @@ setInterval(function () {
 //API Play
 function start() {
     console.log("Go " + playt + " | " + types);
-    if(types == 6){
+    if (types == 6) {
         return console.log('not yet supported');
     }
 
@@ -1021,14 +1017,10 @@ var IoPlayer = io(URL_APP + 'camera', {
 IoPlayer.on('connect', function () {
     console.log('player konek');
     live_io = true;
-    /*
-    if (!isEmpty(cam)) {
-        socket.emit('access', {
-            cam: cam,
-            password: "0000"
-        });
-    }
-    */
+    IoPlayer.emit('access', {
+        cam: camid,
+        password: "0000"
+    });
 });
 IoPlayer.on('disconnect', function () {
     console.log('player putus');
