@@ -192,11 +192,10 @@ function pesanku(event) {
         } else if (data.api == 'player_update') {
             // ini data buat update data player dari ie
             data = data.data;
+            $("#get_message").html('<h6>Message:</h6>'+data.message);
+            
             if(data.type == 'live'){
-                $("#get_live").html("("+data.count+"  Watching)");
-                $("#get_message").html('<h6>Message:</h6>'+data.message);
-            }else if(data.type == 'message'){
-                $("#get_message").html('<h6>Message:</h6>'+data.message);
+                $("#get_live").html("("+data.count+"  Watching)");                
             }
             
         } else if (data.api == 'push') {

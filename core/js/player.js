@@ -1,26 +1,16 @@
 var FSPlayer;
 var IoPlayer;
+var PrPlayer;
 
-var div_player = "#player";
+var live = false;
+var type = "live";
+
 var div_ld = "#loading";
 var div_live = "#live";
-var div_tl_raw = "#player_timelapse_raw";
+var div_tl_raw = "player_timelapse_raw";
 var div_tl_vd = "#player_timelapse_video";
 
-var myIndex = 0;
-var slideIndex = 1;
-var timer = false;
-
-var playt = "live";
-
-var ffisplay = false;
-
-var types;
-
 var camid = getAllUrlParams().cam;
-
-var setvol = getAllUrlParams().audio;
-var volume = parseFloat(setvol / 100);
 
 //URL DEV
 var useurl = getAllUrlParams().URL;
@@ -71,11 +61,15 @@ $('.download').on('click', function (ex) {
     $('.download').prop('disabled', true);
     var xhr = new XMLHttpRequest();
     var live = div_live;
+
+    /*
     if (!isEmpty(getdiv)) {
         live = "#" + getdiv;
     } else if ($("#vid2_html5_api").length == 1) {
         live = $("#vid2_html5_api");
     }
+    */
+
     xhr.open('GET', $(live)[0].src, true);
     xhr.responseType = 'blob';
     xhr.onload = function (e) {
@@ -206,7 +200,6 @@ $('.timelapse_bt').on('click', function (e) {
 
                 dropdown.change(function (ex) {
                     console.log(ex);
-                    OpenTab(4);
 
                     //Jika Mode Foto
                     if ($('option:selected', this).text() == "Today" || $('option:selected', this).text() == "Daily") {
@@ -216,57 +209,43 @@ $('.timelapse_bt').on('click', function (e) {
                         }
 
                         //Api load type find file
-                        $.getJSON(URL_API + "camera/data.json?id=" + camid + "&type=" + isjoin, async function (z) {
+                        $.getJSON(URL_API + "camera/data.json?id=" + camid + "&type=" + isjoin, function (z) {
+
+                            if (PrPlayer)
+                                PrPlayer.clear();
+
 
                             var options2 = [];
                             $.each(z.file, function (key, entry) {
-                                var tpX = entry.url.replace(/^.*[\\\/]/, '').replace(".jpg", '');
+                                var tp = entry.url.replace(/^.*[\\\/]/, '').replace(".jpg", '');
                                 options2.push({
-                                    value: entry.url,
-                                    label: tpX
+                                    url: URL_CDN + entry.url,
+                                    index: tp
                                 });
                             });
-                            options2 = options2.sort(function (a, b) {
-                                var x = a['label'];
-                                var y = b['label'];
-                                return ((x < y) ? -1 : ((x > y) ? 1 : 0));
+
+                            OpenTab(2);
+
+                            PrPlayer = new PlayBack({
+                                div: div_tl_raw
                             });
-
-                            var countx = 0;
-                            for (const value of options2) {
-
-                                //jika timer jalan stop lalu hapus?
-                                if (timer) {
-                                    break;
-                                }
-
-                                var datax = await Addimg(URL_CDN + value.value.replace("..", ''), value.label, true, div_tl_raw);
-                                countx++;
-                                proses(percentage(countx, options2.length));
-                                if (datax.code == 200) {
-                                    //done
-                                    if (countx == options2.length) {
-
-                                        //sort div ke last
-                                        tinysort('div' + div_tl_raw + '>img', {
-                                            attr: 'id'
-                                        });
-                                        OpenTab(2);
-                                    }
-                                } else {
-                                    console.log("Error load img: ", datax);
-                                }
-                            };
+                            PrPlayer.proses(options2).then((tes) => {
+                                $("#error").html('');
+                                PrPlayer.main();
+                            });
+                            PrPlayer.listen("proses", function (obj, eventType, data) {
+                                $("#error").html('<div class="alert alert-primary" role="alert"><h3>' + data + ' % process making timelapse!</h3></div>');
+                            });
 
                         });
 
                     } else {
-
+                        StopStart('vid2');
                         //Jika Video API
                         $(div_tl_vd).html('<video id="vid2" class="video-js vjs-default-skin" controls></video>');
                         FSPlayer = videojs('vid2', {
                             plugins: {
-                               // abLoopPlugin: {}
+                                // abLoopPlugin: {}
                             }
                         });
                         var thhis = $('option:selected', this).val().replace("..", '');
@@ -276,15 +255,18 @@ $('.timelapse_bt').on('click', function (e) {
                         });
                         FSPlayer.play();
                         OpenTab(3);
+                        $("#error").html('');
                     }
 
                 });
+
             }).fail(function (jqXHR, textStatus, errorThrown) {
-                console.log('getJSON request failed! ' + textStatus);
+                $("#error").html('getJSON request failed! ' + textStatus);
             })
 
         } catch (error) {
-            console.log('FF errp: ', error);
+            console.log(error);
+            $("#error").html('Error Load FF');
         }
 
     } else {
@@ -293,166 +275,290 @@ $('.timelapse_bt').on('click', function (e) {
     }
 })
 
-// Api OpenTab
+function StopStart(id = '', manual = false, islive = true) {
+    try {
+        if (id == 'vid2') {
+            var element = document.getElementById(id);
+            if (element) {
+                videojs(element).dispose();
+            }
+            FSPlayer = null;
+        } else if (id == 'manual') {
+            if (type == "live") {
+                if (live) {
+                    IoPlayer.disconnect();
+                } else {
+                    IoPlayer.connect();
+
+                }
+            } else {
+                console.log('belum support11 ', id);
+            }
+        } else {
+            console.log('belum support ', id);
+        }
+
+        if (manual) {
+            live = islive;
+        }
+
+        if (live) {
+            $("#iconplay").attr('class', 'fas fa-pause');
+            $(div_live).show();
+        } else {
+            $("#iconplay").attr('class', 'fas fa-play');
+            $(div_live).hide();
+        }
+
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+// API OpenTab
 function OpenTab(open = 1) {
     try {
         if (open == 1) {
             //player normal
-            playt = 'live';
-            ffisplay = false;
-            timer = false;
-            StopP('vid2');
-            $(div_player).show();
+            type = 'live';
             $(div_tl_vd).hide();
-            $(div_tl_raw).hide();
-            $(div_ld).hide();
-            $(div_tl_raw).empty();
-        } else if (open == 2) {
-            //player ff foto
-            playt = 'fotott';
-            slideIndex = 1;
-            myIndex = 0;
-            timer = true;
-            ffisplay = true;
-            StopP('vid2');
+            $("#" + div_tl_raw).hide();
+            $("#" + div_tl_raw).empty();
+            StopStart('manual');
+            StopStart('vid2');
 
-            $(div_player).hide();
+            if (PrPlayer)
+                PrPlayer.clear();
+
+        } else if (open == 2) {
+            //player ff foto            
             $(div_tl_vd).hide();
-            $(div_tl_raw).show();
-            $(div_ld).hide();
-            //$(div_tl_raw).empty();
+            $("#" + div_tl_raw).show();
+
+            if (live)
+                StopStart('manual');
+
+            StopStart('vid2');
+
+            type = 'raw_ff';
         } else if (open == 3) {
             //player ff video
-            ffisplay = true;
-            timer = false;
-            playt = 'videott';
-            $(div_player).hide();
+
+            if (live)
+                StopStart('manual');
+
+            if (PrPlayer)
+                PrPlayer.clear();
+
             $(div_tl_vd).show();
-            $(div_tl_raw).hide();
-            $(div_ld).hide();
-            $(div_tl_raw).empty();
-        } else if (open == 4) {
-            //loading player
-            playt = 'loading';
-            timer = false;
-            proses(0);
-            StopP('vid2');
-            $(div_tl_raw).empty();
-            $(div_player).show();
-            $(div_tl_vd).hide();
-            $(div_tl_raw).hide();
-            $(div_ld).show();
+            $("#" + div_tl_raw).hide();
+            $("#" + div_tl_raw).empty();
+
+            type = 'raw_video';
         }
     } catch (error) {
         console.log(error);
     }
 }
 
-// Api Proses Loading Raw Timelaspe
-function proses(current_progress) {
-    $("#loadingc").css("width", current_progress + "%").attr("aria-valuenow", current_progress).text(current_progress + "% Complete | wait making timelapse...");
-}
-
 //Api Control FF
 document.addEventListener('keydown', (event) => {
-    //console.log(event.key);
     switch (event.key) {
         case "ArrowLeft":
-            MoveTo(-1);
+            console.log('ArrowLeft');
             break;
         case "ArrowRight":
-            MoveTo(1);
+            console.log('ArrowRight');
             break;
         case " ":
-            start();
+            console.log('space');
             break;
     }
 })
 
-// APi Time Lapse Raw
-var tmp = 0;
-var file = 1440;
-var fps = 30;
-var fast = 2;
-var getdiv;
+var PlayBack;
+(PlayBack = function (config) {
+    this.div = config.div;
+}).prototype = {
 
-function TimeLapse(Z = null) {
-    try {
-        var i;
-        var x = document.getElementsByClassName("mySlides");
+    fps: 30,
+    speed: 2,
+    total: 1440,
+    index: 0,
+    frame: null,
+    Interval: null,
+    ff: false,
 
-        //tutup yang lain
-        for (i = 0; i < x.length; i++) {
-            x[i].style.display = "none";
+    listen: function (type, method, scope, context) {
+        var listeners, handlers;
+        if (!(listeners = this.listeners)) {
+            listeners = this.listeners = {};
         }
-
-        if (isEmpty(Z)) {
-            //jika tidak di set gunakan index
-            myIndex++;
-            if (myIndex > x.length) {
-                myIndex = 1
+        if (!(handlers = listeners[type])) {
+            handlers = listeners[type] = [];
+        }
+        scope = (scope ? scope : window);
+        handlers.push({
+            method: method,
+            scope: scope,
+            context: (context ? context : scope)
+        });
+    },
+    fireEvent: function (type, data, context) {
+        var listeners, handlers, i, n, handler, scope;
+        if (!(listeners = this.listeners)) {
+            return;
+        }
+        if (!(handlers = listeners[type])) {
+            return;
+        }
+        for (i = 0, n = handlers.length; i < n; i++) {
+            handler = handlers[i];
+            if (typeof (context) !== "undefined" && context !== handler.context) continue;
+            if (handler.method.call(
+                    handler.scope, this, type, data
+                ) === false) {
+                return false;
             }
-            x[myIndex - 1].style.display = "block";
+        }
+        return true;
+    },
+    main: function () {
+        if (!this.ff) {
+            var sef = this;
+            var tmp = 0;
+            this.ff = true;
+            this.Interval = setInterval(function () {
+                try {
+                    var t = (sef.total / (sef.fps * sef.speed));
+                    if (tmp >= t) {
+                        tmp = 0;
+                        sef.next();
+                    } else {
+                        tmp++;
+                    }
+                } catch (error) {}
+            });
         } else {
-            //jika di set gunakan
-            if (Z > x.length) {
-                slideIndex = 1
-            }
-            if (Z < 1) {
-                slideIndex = x.length
-            }
-            x[slideIndex - 1].style.display = "block";
-            myIndex = slideIndex - 1;
+            clearInterval(this.Interval);
+            this.ff = false;
         }
-        //udi
-        getdiv = x[myIndex - 1].id;
-
-    } catch (error) {
-        console.log(error)
-    }
-
-}
-
-function MoveTo(n) {
-    TimeLapse(slideIndex += n);
-}
-
-function SetId(n) {
-    TimeLapse(slideIndex = n);
-}
-
-//https://stackoverflow.com/a/19773537
-//https://stackoverflow.com/a/44013686
-setInterval(function () {
-    if (!timer)
-        return
-    try {
-        var t = (file / (fps * fast));
-        if (tmp >= t) {
-            tmp = 0;
-            TimeLapse();
+    },
+    clear: function () {
+        this.index = 0;
+        this.frame = 0;
+        if (this.Interval) {
+            clearInterval(this.Interval);
+            this.ff = false;
+        }
+    },
+    next: function () {
+        if (this.index < (this.frame.length - 1)) {
+            this.set(this.index + 1);
         } else {
-            tmp++;
+            this.set(0);
         }
-    } catch (error) {}
-});
+    },
+    back: function () {
+        if (this.index > (this.frame.length - 1)) {
+            this.set(this.index - 1);
+        } else {
+            this.set(0);
+        }
+    },
+    set: function (index) {
+        try {
+            document.getElementById(this.div).src = this.frame[index].src;
+            this.index = index;
+        } catch (error) {
+            console.log('faild set?', error);
+        }
+    },
+    add: async function (url) {
+        return new Promise((resolve, reject) => {
 
-// Tombol Play API
-function start() {
+            var timerStart = Date.now();
+            var hasil = new Array();
+            hasil.url = url;
 
-    return console.log('not yet supported');
-    
-}
+            jQuery.ajax({
+                url: url,
+                cache: true,
+                timeout: 1000 * 10,
+                xhr: function () {
+                    var xhr = new XMLHttpRequest();
+                    xhr.responseType = 'blob'
+                    return xhr;
+                },
+                success: function (data, status, xhr) {
+                    try {
+                        var filetime = xhr.getResponseHeader('Last-Modified');
+                        hasil.update = filetime;
 
-$('#set_start').datetimepicker({
-    format: 'YYYY-MM-DD HH:mm',
-});
-$('#set_end').datetimepicker({
-    format: 'YYYY-MM-DD HH:mm',
-});
+                        hasil.code = 200;
+                        hasil.time = Date.now() - timerStart;
+
+                        var url = window.URL || window.webkitURL;
+                        hasil.src = url.createObjectURL(data);
+                        resolve(hasil);
+                    } catch (error) {
+                        hasil.code = 402;
+                        hasil.error = error;
+                        resolve(hasil);
+                    }
+                },
+                error: function (jqXHR, textStatus) {
+                    hasil.code = 401;
+                    hasil.textStatus = textStatus;
+                    hasil.jqXHR = jqXHR;
+                    resolve(hasil);
+                }
+            });
+
+        })
+    },
+    proses: async function (data_temp) {
+        var sef = this;
+        return new Promise((resolve, reject) => {
+            var t = [];
+            var c = 0;
+
+            //sort it
+            data_temp = data_temp.sort(function (a, b) {
+                var x = a['index'];
+                var y = b['index'];
+                return ((x < y) ? -1 : ((x > y) ? 1 : 0));
+            });
+
+            if (data_temp.length >= 1) {
+                (async () => {
+                    for (const item of data_temp) {
+                        var getsc = await sef.add(item.url);
+                        if (getsc.code == 200) {
+                            t.push({
+                                url: item.url,
+                                index: item.index,
+                                src: getsc.src
+                            });
+                        } else {
+                            console.log(getsc);
+                        }
+                        sef.fireEvent("proses", ((c / (data_temp.length - 1)) * 100).toFixed(2));
+                        c++;
+                    };
+                    this.frame = t;
+                    resolve(true);
+                })();
+            } else {
+                resolve(false);
+            }
+
+        });
+    },
+};
 
 //API IoPlayer
-var noenter= true;
+var noenter = true;
 var IoPlayer = io(URL_APP + 'camera');
 IoPlayer.on('connect', function () {
     IoPlayer.emit('access', {
@@ -462,39 +568,29 @@ IoPlayer.on('connect', function () {
 });
 IoPlayer.on('disconnect', function () {
     $("#error").html('<div class="alert alert-primary" role="alert"><h3>Camera disconnected</h3></div>');
+    live = false;
 });
 IoPlayer.on('stream', function (e) {
     if (e.image) {
         document.getElementById("live").src = 'data:image/jpeg;base64,' + base64ArrayBuffer(e.buffer);
-        if(noenter){
+        if (noenter) {
             noenter = false;
+            StopStart(true, true);
             $("#error").html('');
         }
     } else {
         console.log(e.data);
         noenter = true;
-        $("#error").html('<div class="alert alert-primary" role="alert"><h3>'+e.data.message+'</h3></div>');
-        
+        StopStart(true, false);
+
+        $("#error").html('<div class="alert alert-primary" role="alert"><h3>' + e.data.message + '</h3></div>');
+
         // API Player (Live)
         try {
-            if (typeof e.data.online !== "undefined") {
-                window.parent.postMessage({
-                    "api": "player_update",
-                    "data": {
-                        "type": "live",
-                        "count": e.data.online,
-                        "message": e.data.message
-                    }
-                }, "*");            
-            } else {
-                window.parent.postMessage({
-                    "api": "player_update",
-                    "data": {
-                        "type": "message",
-                        "message": e.data.message
-                    }
-                }, "*");
-            }
+            window.parent.postMessage({
+                "api": "player_update",
+                "data": e.data
+            }, "*");
         } catch (error) {
             console.log('error send data');
         }
@@ -552,3 +648,10 @@ function base64ArrayBuffer(arrayBuffer) {
 
     return base64
 }
+
+$('#set_start').datetimepicker({
+    format: 'YYYY-MM-DD HH:mm',
+});
+$('#set_end').datetimepicker({
+    format: 'YYYY-MM-DD HH:mm',
+});
