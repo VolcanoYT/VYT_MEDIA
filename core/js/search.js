@@ -192,15 +192,13 @@ function pesanku(event) {
         } else if (data.api == 'player_update') {
             // ini data buat update data player dari ie
             data = data.data;
-            $("#got").html(' (Update in ' + (data.count) + ' seconds)');
-            if (data.aw) {
-                if (data.aw.code == 200) {
-                    if (lastupdate != data.aw.update) {
-                        lastupdate = data.aw.update;
-                        $("#updatetm").attr('data-now', data.aw.update);
-                    }
-                }
+            if(data.type == 'live'){
+                $("#get_live").html("("+data.count+"  Watching)");
+                $("#get_message").html('<h6>Message:</h6>'+data.message);
+            }else if(data.type == 'message'){
+                $("#get_message").html('<h6>Message:</h6>'+data.message);
             }
+            
         } else if (data.api == 'push') {
             // data disini di kirim lewat push data
             data = data.data;
