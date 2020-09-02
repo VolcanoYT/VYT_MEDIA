@@ -292,10 +292,10 @@ function StopStart(id = '', manual = false, islive = true) {
 
                 }
             } else {
-                console.log('belum support11 ', id);
+                //console.log('belum support11 ', id);
             }
         } else {
-            console.log('belum support ', id);
+            //console.log('belum support ', id);
         }
 
         if (manual) {
@@ -321,9 +321,13 @@ function OpenTab(open = 1) {
         if (open == 1) {
             //player normal
             type = 'live';
+            $(div_live).show();
+
             $(div_tl_vd).hide();
+
             $("#" + div_tl_raw).hide();
             $("#" + div_tl_raw).empty();
+
             StopStart('manual');
             StopStart('vid2');
 
@@ -331,8 +335,12 @@ function OpenTab(open = 1) {
                 PrPlayer.clear();
 
         } else if (open == 2) {
-            //player ff foto            
+            //player ff foto 
+
+            $(div_live).hide();
+
             $(div_tl_vd).hide();
+
             $("#" + div_tl_raw).show();
 
             if (live)
@@ -350,7 +358,10 @@ function OpenTab(open = 1) {
             if (PrPlayer)
                 PrPlayer.clear();
 
+            $(div_live).hide();
+
             $(div_tl_vd).show();
+
             $("#" + div_tl_raw).hide();
             $("#" + div_tl_raw).empty();
 
@@ -563,7 +574,8 @@ var IoPlayer = io(URL_APP + 'camera');
 IoPlayer.on('connect', function () {
     IoPlayer.emit('access', {
         cam: camid,
-        token_user: token_user
+        token_user: token_user,
+        version: '1.0.2'
     });
 });
 IoPlayer.on('disconnect', function () {
@@ -571,29 +583,39 @@ IoPlayer.on('disconnect', function () {
     live = false;
 });
 IoPlayer.on('stream', function (e) {
-    if (e.image) {
-        document.getElementById("live").src = 'data:image/jpeg;base64,' + base64ArrayBuffer(e.buffer);
-        if (noenter) {
-            noenter = false;
-            StopStart(true, true);
-            $("#error").html('');
-        }
-    } else {
-        console.log(e.data);
-        noenter = true;
-        StopStart(true, false);
+    //console.log(e);
+    if (e) {
+        if (e.image) {
+            document.getElementById("live").src = 'data:image/jpeg;base64,' + base64ArrayBuffer(e.buffer);
+            if (noenter) {
+                noenter = false;
+                StopStart(true, true);
+                $("#error").html('');
+            }
+        } else {
+            noenter = true;
+            StopStart(true, false);
 
-        $("#error").html('<div class="alert alert-primary" role="alert"><h3>' + e.data.message + '</h3></div>');
+            //GUI Player
+            if (e.data.code == 600 || e.data.code == 601) {
+                //TODO: add to list tw              
+            } else {
+                $("#error").html('<div class="alert alert-primary" role="alert"><h3>' + e.data.message + '</h3></div>');
+                console.log(e.data);
+            }
 
-        // API Player (Live)
-        try {
-            window.parent.postMessage({
-                "api": "player_update",
-                "data": e.data
-            }, "*");
-        } catch (error) {
-            console.log('error send data');
+            // API Player
+            try {
+                window.parent.postMessage({
+                    "api": "player_update",
+                    "data": e.data
+                }, "*");
+            } catch (error) {
+                console.log('error send data');
+            }
         }
+    }else{
+        console.log('hmm no data?');
     }
 });
 
