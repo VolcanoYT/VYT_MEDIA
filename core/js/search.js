@@ -43,22 +43,25 @@ $('.search').on('click', async function (e) {
         showCancelButton: true,
     });
 
-    Swal.fire({
-        title: 'Search ' + firme + '?',
-        input: 'text',
-        inputAttributes: {
-            autocapitalize: 'off'
-        },
-        showCancelButton: true,
-        confirmButtonText: 'Look up'
-    }).then((result) => {
-        console.log(idv + ' | ' + firme + ' | ' + result.value);
-        if (result.value) {
-            return window.location.replace("/" + firme + "?search=" + result.value);
-        } else if (result.dismiss === Swal.DismissReason.cancel) {
-            //batal
-        }
-    })
+    if (!isEmpty(firme)) {
+        Swal.fire({
+            title: 'Search ' + firme + '?',
+            input: 'text',
+            inputAttributes: {
+                autocapitalize: 'off'
+            },
+            showCancelButton: true,
+            confirmButtonText: 'Look up'
+        }).then((result) => {
+            console.log(idv + ' | ' + firme + ' | ' + result.value);
+            if (result.value) {
+                return window.location.replace("/" + firme + "?search=" + result.value);
+            } else if (result.dismiss === Swal.DismissReason.cancel) {
+                //batal
+            }
+        })
+    }
+
 });
 
 //ini buat like
@@ -192,10 +195,10 @@ function pesanku(event) {
         } else if (data.api == 'player_update') {
             // ini data buat update data player dari ie
             data = data.data;
-            if(data.code == 600 || data.code == 601){
-                $("#get_live").html("("+data.online+"  Watching)");                
-            }else{
-                $("#get_message").html('<h6>Message:</h6>'+data.message);
+            if (data.code == 600 || data.code == 601) {
+                $("#get_live").html("(" + data.online + "  Watching)");
+            } else {
+                $("#get_message").html('<h6>Message:</h6>' + data.message);
             }
         } else if (data.api == 'push') {
             // data disini di kirim lewat push data

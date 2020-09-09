@@ -6,11 +6,24 @@ var live = false;
 var type = "live";
 
 var div_ld = "#loading";
-var div_live = "#live";
+var div_live = "#player_new";
 var div_tl_raw = "player_timelapse_raw";
 var div_tl_vd = "#player_timelapse_video";
 
 var camid = getAllUrlParams().cam;
+
+var canvas_player = document.getElementById("player_new");
+var ctx_player = canvas_player.getContext("2d");
+var last_frame = null;
+
+var wt = 110;
+var ht = 40;
+
+var bwt = -13;
+var bht = -30;
+
+var online = 0;
+var zona = "Asia/Makassar";
 
 //URL DEV
 var useurl = getAllUrlParams().URL;
@@ -59,18 +72,9 @@ $('.full').on('click', function () {
 $('.download').on('click', function (ex) {
     $('.download').children().removeClass('fas fa-download').addClass('fas fa-sync fa-spin');
     $('.download').prop('disabled', true);
+
     var xhr = new XMLHttpRequest();
-    var live = div_live;
-
-    /*
-    if (!isEmpty(getdiv)) {
-        live = "#" + getdiv;
-    } else if ($("#vid2_html5_api").length == 1) {
-        live = $("#vid2_html5_api");
-    }
-    */
-
-    xhr.open('GET', $(live)[0].src, true);
+    xhr.open('GET', canvas_player.toDataURL("image/jpg"), true);
     xhr.responseType = 'blob';
     xhr.onload = function (e) {
         //console.log(xhr.getAllResponseHeaders())
@@ -83,6 +87,7 @@ $('.download').on('click', function (ex) {
         }
     };
     xhr.send();
+
 });
 
 // Tombol settings
@@ -226,9 +231,7 @@ $('.timelapse_bt').on('click', function (e) {
 
                             OpenTab(2);
 
-                            PrPlayer = new PlayBack({
-                                div: div_tl_raw
-                            });
+                            PrPlayer = new PlayBack();
                             PrPlayer.proses(options2).then((tes) => {
                                 $("#error").html('');
                                 PrPlayer.main();
@@ -277,6 +280,9 @@ $('.timelapse_bt').on('click', function (e) {
 
 function StopStart(id = '', manual = false, islive = true) {
     try {
+
+        console.log('type ' + type + ' - islive ' + islive + ' - ' + manual + ' - id ' + id + ' ');
+
         if (id == 'vid2') {
             var element = document.getElementById(id);
             if (element) {
@@ -291,9 +297,17 @@ function StopStart(id = '', manual = false, islive = true) {
                     IoPlayer.connect();
 
                 }
+            } else if (type == 'raw_ff') {
+                PrPlayer.main();
             } else {
                 //console.log('belum support11 ', id);
             }
+        } else if (id == 'dcio') {
+            IoPlayer.disconnect();
+            live = false;
+        } else if (id == 'cnio') {
+            IoPlayer.connect();
+            live = true;
         } else {
             //console.log('belum support ', id);
         }
@@ -304,10 +318,10 @@ function StopStart(id = '', manual = false, islive = true) {
 
         if (live) {
             $("#iconplay").attr('class', 'fas fa-pause');
-            $(div_live).show();
+            //$(div_live).show();
         } else {
             $("#iconplay").attr('class', 'fas fa-play');
-            $(div_live).hide();
+            //$(div_live).hide();
         }
 
     } catch (error) {
@@ -321,14 +335,11 @@ function OpenTab(open = 1) {
         if (open == 1) {
             //player normal
             type = 'live';
-            $(div_live).show();
 
+            $(div_live).show();
             $(div_tl_vd).hide();
 
-            $("#" + div_tl_raw).hide();
-            $("#" + div_tl_raw).empty();
-
-            StopStart('manual');
+            StopStart('cnio');
             StopStart('vid2');
 
             if (PrPlayer)
@@ -337,33 +348,23 @@ function OpenTab(open = 1) {
         } else if (open == 2) {
             //player ff foto 
 
-            $(div_live).hide();
-
+            $(div_live).show();
             $(div_tl_vd).hide();
 
-            $("#" + div_tl_raw).show();
-
-            if (live)
-                StopStart('manual');
-
+            StopStart('dcio');
             StopStart('vid2');
 
             type = 'raw_ff';
         } else if (open == 3) {
             //player ff video
 
-            if (live)
-                StopStart('manual');
+            StopStart('dcio');
 
             if (PrPlayer)
                 PrPlayer.clear();
 
             $(div_live).hide();
-
             $(div_tl_vd).show();
-
-            $("#" + div_tl_raw).hide();
-            $("#" + div_tl_raw).empty();
 
             type = 'raw_video';
         }
@@ -374,27 +375,33 @@ function OpenTab(open = 1) {
 
 //Api Control FF
 document.addEventListener('keydown', (event) => {
-    switch (event.key) {
-        case "ArrowLeft":
-            console.log('ArrowLeft');
-            break;
-        case "ArrowRight":
-            console.log('ArrowRight');
-            break;
-        case " ":
-            console.log('space');
-            break;
+    try {
+        switch (event.key) {
+            case "ArrowLeft":
+                if (type == 'raw_ff')
+                    PrPlayer.back();
+                break;
+            case "ArrowRight":
+                if (type == 'raw_ff')
+                    PrPlayer.next();
+                break;
+            case " ":
+                if (type == 'raw_ff')
+                    PrPlayer.main();
+                break;
+        }
+    } catch (error) {
+        console.log(error);
     }
+
 })
 
 var PlayBack;
-(PlayBack = function (config) {
-    this.div = config.div;
-}).prototype = {
+(PlayBack = function (config) {}).prototype = {
 
     fps: 30,
-    speed: 2,
-    total: 1440,
+    speed: 0.01,
+    // total: 1440,
     index: 0,
     frame: null,
     Interval: null,
@@ -435,13 +442,12 @@ var PlayBack;
         return true;
     },
     main: function () {
-        if (!this.ff) {
+        if (!this.Interval) {
             var sef = this;
             var tmp = 0;
-            this.ff = true;
             this.Interval = setInterval(function () {
                 try {
-                    var t = (sef.total / (sef.fps * sef.speed));
+                    var t = (sef.total() / (sef.fps * sef.speed));
                     if (tmp >= t) {
                         tmp = 0;
                         sef.next();
@@ -452,7 +458,6 @@ var PlayBack;
             });
         } else {
             clearInterval(this.Interval);
-            this.ff = false;
         }
     },
     clear: function () {
@@ -460,26 +465,28 @@ var PlayBack;
         this.frame = 0;
         if (this.Interval) {
             clearInterval(this.Interval);
-            this.ff = false;
         }
     },
+    total: function () {
+        return (this.frame.length - 1)
+    },
     next: function () {
-        if (this.index < (this.frame.length - 1)) {
+        if (this.index < this.total()) {
             this.set(this.index + 1);
         } else {
             this.set(0);
         }
     },
     back: function () {
-        if (this.index > (this.frame.length - 1)) {
+        if (this.index > 0) {
             this.set(this.index - 1);
         } else {
-            this.set(0);
+            this.set(this.total());
         }
     },
     set: function (index) {
         try {
-            document.getElementById(this.div).src = this.frame[index].src;
+            draw_image(this.frame[index].src);
             this.index = index;
         } catch (error) {
             console.log('faild set?', error);
@@ -568,14 +575,74 @@ var PlayBack;
     },
 };
 
+CanvasRenderingContext2D.prototype.clear =
+    CanvasRenderingContext2D.prototype.clear || function (preserveTransform) {
+        if (preserveTransform) {
+            this.save();
+            this.setTransform(1, 0, 0, 1, 0, 0);
+        }
+
+        this.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        if (preserveTransform) {
+            this.restore();
+        }
+    };
+
 //API IoPlayer
+function resize(f = null, watermark = false) {
+    var w = window.innerWidth;
+    var h = window.innerHeight;
+
+    //clear it
+    ctx_player.clear();
+
+    //set player
+    ctx_player.canvas.width = w;
+    ctx_player.canvas.height = h;
+
+    //add image
+    if (f) {
+        ctx_player.drawImage(f, 0, 0, w, h);
+        last_frame = f;
+    }
+
+    if (last_frame) {
+        if (!f)
+            ctx_player.drawImage(last_frame, 0, 0, w, h);
+    }
+
+    if (watermark) {
+        ctx_player.font = '42px sans-serif';
+        ctx_player.globalCompositeOperation = 'lighter';
+        ctx_player.fillStyle = '#444';
+        ctx_player.textAlign = 'center';
+        ctx_player.textBaseline = 'middle';
+
+        ctx_player.fillText('VolcanoYT', w - wt, h - ht);
+
+        ctx_player.font = '12px sans-serif';
+        ctx_player.fillText("(Watch " + online + ") " + moment().tz(zona).format('DD/MM/YYYY HH:mm:ss'), (w - wt) - bwt, (h - ht) - bht);
+    }
+}
+window.addEventListener('resize', resize(), false);
+resize();
+
+function draw_image(imgdata,watermark=false) {
+    var image = new Image();
+    image.onload = function () {
+        resize(image,watermark);
+    };
+    image.src = imgdata;
+}
+
 var noenter = true;
 var IoPlayer = io(URL_APP + 'camera');
 IoPlayer.on('connect', function () {
     IoPlayer.emit('access', {
         cam: camid,
         token_user: token_user,
-        version: '1.0.2'
+        version: '1.0.3'
     });
 });
 IoPlayer.on('disconnect', function () {
@@ -586,7 +653,7 @@ IoPlayer.on('stream', function (e) {
     //console.log(e);
     if (e) {
         if (e.image) {
-            document.getElementById("live").src = 'data:image/jpeg;base64,' + base64ArrayBuffer(e.buffer);
+            draw_image('data:image/jpeg;base64,' + base64ArrayBuffer(e.buffer),e.live);
             if (noenter) {
                 noenter = false;
                 StopStart(true, true);
@@ -595,13 +662,16 @@ IoPlayer.on('stream', function (e) {
         } else {
             noenter = true;
             StopStart(true, false);
-
+            console.log(e);
             //GUI Player
-            if (e.data.code == 600 || e.data.code == 601) {
-                //TODO: add to list tw              
+            if (e.data.code == 601) {
+                try {
+                    zona = e.data.info.time.timezone;
+                } catch (error) {
+                    console.log(error);
+                }
             } else {
                 $("#error").html('<div class="alert alert-primary" role="alert"><h3>' + e.data.message + '</h3></div>');
-                console.log(e.data);
             }
 
             // API Player
@@ -614,7 +684,7 @@ IoPlayer.on('stream', function (e) {
                 console.log('error send data');
             }
         }
-    }else{
+    } else {
         console.log('hmm no data?');
     }
 });
