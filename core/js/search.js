@@ -195,8 +195,10 @@ function pesanku(event) {
         } else if (data.api == 'player_update') {
             // ini data buat update data player dari ie
             data = data.data;
-            if (data.code == 600 || data.code == 601) {
+            if (data.code == 600) {
                 $("#get_live").html("(" + data.online + "  Watching)");
+            }else  if (data.code == 601) {
+                $("#get_live").html("(1  Watching)");
             } else {
                 $("#get_message").html('<h6>Message:</h6>' + data.message);
             }

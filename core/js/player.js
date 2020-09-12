@@ -1,6 +1,9 @@
-var FSPlayer;
+// Player use io for proxy stream
 var IoPlayer;
+// Player Time Lapse use for playback
 var PrPlayer;
+// Player for recod
+var RpPlayer;
 
 var live = false;
 var type = "live";
@@ -19,11 +22,12 @@ var last_frame = null;
 var wt = 110;
 var ht = 40;
 
-var bwt = -13;
+var bwt = 40;
 var bht = -30;
 
-var online = 0;
+var online = 1;
 var zona = "Asia/Makassar";
+var name = "noname";
 
 //URL DEV
 var useurl = getAllUrlParams().URL;
@@ -70,7 +74,7 @@ $('.full').on('click', function () {
 
 // Tombol Download
 $('.download').on('click', function (ex) {
-    $('.download').children().removeClass('fas fa-download').addClass('fas fa-sync fa-spin');
+    $('.download').children().removeClass('fas fa-camera-retro').addClass('fas fa-sync fa-spin');
     $('.download').prop('disabled', true);
 
     var xhr = new XMLHttpRequest();
@@ -78,28 +82,17 @@ $('.download').on('click', function (ex) {
     xhr.responseType = 'blob';
     xhr.onload = function (e) {
         //console.log(xhr.getAllResponseHeaders())
-        $('.download').children().removeClass('fas fa-sync fa-spin').addClass('fas fa-download');
+        $('.download').children().removeClass('fas fa-sync fa-spin').addClass('fas fa-camera-retro');
         $('.download').prop('disabled', false);
         if (this.status == 200) {
             var myBlob = this.response;
             var filetime = Math.floor(Date.now() / 1000); //'tes';//xhr.getResponseHeader('Last-Modified');
-            saveAs(myBlob, 'volcanoyt-' + filetime + '.jpg');
+            saveAs(myBlob, name + '-volcanoyt-' + filetime + '.jpg');
         }
     };
     xhr.send();
 
 });
-
-// Tombol settings
-$('.kkp').on('click', function (e) {
-    if ($('.btt').css('display') == 'none') {
-        $(".showme").show();
-        $(".goset").hide();
-    } else {
-        $(".showme").hide();
-        $(".goset").show();
-    }
-})
 
 // API Save As
 function saveAs(blob, fileName) {
@@ -122,254 +115,56 @@ function saveAs(blob, fileName) {
     }, 1000);
 }
 
-
-// Tombol Create Time lapse
-$('#proses').on('click', function (e) {
-    console.log(e);
-    var set_start = moment($('#set_start').val()).utc().format("X");
-    var set_end = moment($('#set_end').val()).utc().format("X");
-    var title = $('#title').val();
-    var tweet = $('#tweet').val();
-    console.log(set_start + set_end + title);
-    $('#getinfo').hide();
-    $('#cloban').hide();
-    $('#loadff').show();
-    $('#msg').html('');
-    $.ajax({
-        method: "POST",
-        dataType: "json",
-        data: {
-            start: set_start,
-            end: set_end,
-            title: title,
-            tweet: tweet,
-            id: camid,
-            fps: 10,
-            hd: 2
-        },
-        url: URL_API + 'camera/timelapse/create.json',
-    }).done(function (data) {
-        $('#getinfo').show();
-        $('#loadff').hide();
-        $('#cloban').show();
-        if (data.code == 200) {
-            $('#msg').append('<div class="form-group"><video width="100%" height="240" controls autoplay mute loop><source src="' + URL_CDN + 'collection/' + data.md5 + '.mp4" type="video/mp4"></video><label>Download Link</label><div class="input-group"><input type="text" class="form-control" value="' + URL_CDN + 'collection/' + data.md5 + '.mp4"></div></div>');
-        }
-        $('#msg').append('<div class="alert alert-warning" role="alert">' + data.status + '</div>');
-    }).fail(function (a) {
-        $('#cloban').show();
-        $('#getinfo').show();
-        $('#loadff').hide();
-        $('#msg').append('<div class="alert alert-warning" role="alert">Error Load</div>');
-    });
-})
-
-// Tombol Timelaspe
-$('.timelapse_bt').on('click', function (e) {
-    if ($('.gotimelapse').css('display') == 'none') {
-        $(".gotimelapse").show();
-        try {
-
-            $('.gotimelapse').css("display", "");
-
-            //idk
-            var dropdown = $('#select_timelapse');
-            dropdown.empty();
-            dropdown.append('<option selected="true" disabled>Choose</option>');
-            dropdown.prop('selectedIndex', 0);
-
-            $.getJSON(URL_API + "camera/data.json?id=" + camid + "&type=2").done(function (z) {
-
-                var options = [];
-                $.each(z.file, function (key, entry) {
-                    var tpZ = entry.url.replace(/^.*[\\\/]/, '').replace(".mp4", '');
-                    if (tpZ !== "last") {
-                        options.push({
-                            value: entry.url,
-                            label: tpZ
-                        });
-                    }
-                })
-                options = options.sort(function (a, b) {
-                    var x = b['label'];
-                    var y = a['label'];
-                    return ((x < y) ? -1 : ((x > y) ? 1 : 0));
-                });
-                $.each(options, function (i, option) {
-                    dropdown.append($('<option></option>').attr('value', URL_CDN + option.value).text(moment.unix(option.label).format("DD-MM-YYYY HH:mm:ss")));
-                });
-
-                //API Pilih
-                dropdown.append($('<option></option>').attr('value', "").text("Today"));
-                dropdown.append($('<option></option>').attr('value', "").text("Daily"));
-
-                dropdown.change(function (ex) {
-                    console.log(ex);
-
-                    //Jika Mode Foto
-                    if ($('option:selected', this).text() == "Today" || $('option:selected', this).text() == "Daily") {
-                        var isjoin = 1;
-                        if ($('option:selected', this).text() == "Daily") {
-                            isjoin = 3
-                        }
-
-                        //Api load type find file
-                        $.getJSON(URL_API + "camera/data.json?id=" + camid + "&type=" + isjoin, function (z) {
-
-                            if (PrPlayer)
-                                PrPlayer.clear();
-
-
-                            var options2 = [];
-                            $.each(z.file, function (key, entry) {
-                                var tp = entry.url.replace(/^.*[\\\/]/, '').replace(".jpg", '');
-                                options2.push({
-                                    url: URL_CDN + entry.url,
-                                    index: tp
-                                });
-                            });
-
-                            OpenTab(2);
-
-                            PrPlayer = new PlayBack();
-                            PrPlayer.proses(options2).then((tes) => {
-                                $("#error").html('');
-                                PrPlayer.main();
-                            });
-                            PrPlayer.listen("proses", function (obj, eventType, data) {
-                                $("#error").html('<div class="alert alert-primary" role="alert"><h3>' + data + ' % process making timelapse!</h3></div>');
-                            });
-
-                        });
-
-                    } else {
-                        StopStart('vid2');
-                        //Jika Video API
-                        $(div_tl_vd).html('<video id="vid2" class="video-js vjs-default-skin" controls></video>');
-                        FSPlayer = videojs('vid2', {
-                            plugins: {
-                                // abLoopPlugin: {}
-                            }
-                        });
-                        var thhis = $('option:selected', this).val().replace("..", '');
-                        FSPlayer.src({
-                            src: thhis,
-                            type: "video/mp4"
-                        });
-                        FSPlayer.play();
-                        OpenTab(3);
-                        $("#error").html('');
-                    }
-
-                });
-
-            }).fail(function (jqXHR, textStatus, errorThrown) {
-                $("#error").html('getJSON request failed! ' + textStatus);
-            })
-
-        } catch (error) {
-            console.log(error);
-            $("#error").html('Error Load FF');
-        }
-
-    } else {
-        $(".gotimelapse").hide();
-        OpenTab();
-    }
-})
-
-function StopStart(id = '', manual = false, islive = true) {
+//API Start
+function StopStart(id = '', manual = false) {
     try {
-
-        console.log('type ' + type + ' - islive ' + islive + ' - ' + manual + ' - id ' + id + ' ');
-
+        console.log('type ' + type + ' - ' + manual + ' - id ' + id + ' ');
         if (id == 'vid2') {
-            var element = document.getElementById(id);
-            if (element) {
-                videojs(element).dispose();
-            }
-            FSPlayer = null;
+            console.log('No suppot player video');
         } else if (id == 'manual') {
             if (type == "live") {
                 if (live) {
                     IoPlayer.disconnect();
+                    swbt(false);
                 } else {
                     IoPlayer.connect();
+                    swbt(true);
 
                 }
             } else if (type == 'raw_ff') {
                 PrPlayer.main();
+                swbt(!PrPlayer.pause);
             } else {
-                //console.log('belum support11 ', id);
+                console.log('belum support11 ', id);
             }
+        } else if (id == 'meow') {
+            swbt(manual);
         } else if (id == 'dcio') {
             IoPlayer.disconnect();
-            live = false;
+            swbt(false);
         } else if (id == 'cnio') {
             IoPlayer.connect();
-            live = true;
+            swbt();
         } else {
-            //console.log('belum support ', id);
+            console.log('belum support ', id);
         }
-
-        if (manual) {
-            live = islive;
-        }
-
-        if (live) {
-            $("#iconplay").attr('class', 'fas fa-pause');
-            //$(div_live).show();
-        } else {
-            $("#iconplay").attr('class', 'fas fa-play');
-            //$(div_live).hide();
-        }
-
     } catch (error) {
         console.log(error);
     }
 }
 
-// API OpenTab
-function OpenTab(open = 1) {
-    try {
-        if (open == 1) {
-            //player normal
-            type = 'live';
+//API Exit Player FF
+function exitff(){
 
-            $(div_live).show();
-            $(div_tl_vd).hide();
+}
 
-            StopStart('cnio');
-            StopStart('vid2');
-
-            if (PrPlayer)
-                PrPlayer.clear();
-
-        } else if (open == 2) {
-            //player ff foto 
-
-            $(div_live).show();
-            $(div_tl_vd).hide();
-
-            StopStart('dcio');
-            StopStart('vid2');
-
-            type = 'raw_ff';
-        } else if (open == 3) {
-            //player ff video
-
-            StopStart('dcio');
-
-            if (PrPlayer)
-                PrPlayer.clear();
-
-            $(div_live).hide();
-            $(div_tl_vd).show();
-
-            type = 'raw_video';
-        }
-    } catch (error) {
-        console.log(error);
+function swbt(live=true){
+    if (live) {
+        $("#iconplay").attr('class', 'fas fa-pause');
+        //$(div_live).show();
+    } else {
+        $("#iconplay").attr('class', 'fas fa-play');
+        //$(div_live).hide();
     }
 }
 
@@ -393,19 +188,19 @@ document.addEventListener('keydown', (event) => {
     } catch (error) {
         console.log(error);
     }
-
 })
 
+// API Playback
 var PlayBack;
 (PlayBack = function (config) {}).prototype = {
 
-    fps: 30,
-    speed: 0.01,
-    // total: 1440,
+    fps: 24,
+    speed: 2,
+    totalfile: 1440,
     index: 0,
-    frame: null,
+    frame: [],
     Interval: null,
-    ff: false,
+    pause: false,
 
     listen: function (type, method, scope, context) {
         var listeners, handlers;
@@ -445,9 +240,10 @@ var PlayBack;
         if (!this.Interval) {
             var sef = this;
             var tmp = 0;
+            this.pause = false;
             this.Interval = setInterval(function () {
                 try {
-                    var t = (sef.total() / (sef.fps * sef.speed));
+                    var t = (sef.totalfile / (sef.fps * sef.speed));
                     if (tmp >= t) {
                         tmp = 0;
                         sef.next();
@@ -458,11 +254,13 @@ var PlayBack;
             });
         } else {
             clearInterval(this.Interval);
+            this.Interval = null;
+            this.pause = true;
         }
     },
     clear: function () {
         this.index = 0;
-        this.frame = 0;
+        this.frame = [];
         if (this.Interval) {
             clearInterval(this.Interval);
         }
@@ -575,6 +373,11 @@ var PlayBack;
     },
 };
 
+PrPlayer = new PlayBack();
+PrPlayer.listen("proses", function (obj, eventType, data) {
+    $("#msg").html('<div class="alert alert-primary" role="alert"><h3>' + data + ' % process making timelapse!</h3></div>');
+});
+
 CanvasRenderingContext2D.prototype.clear =
     CanvasRenderingContext2D.prototype.clear || function (preserveTransform) {
         if (preserveTransform) {
@@ -589,8 +392,76 @@ CanvasRenderingContext2D.prototype.clear =
         }
     };
 
+//API Recorder
+function createCanvasRecorder(player) {
+    var date = new Date();
+    var link = null;
+    var mtp = 'video/x-matroska;codecs=avc1';
+
+    var filename = `Recording ${date.toISOString().slice(0, 10)} at ${date.toTimeString().slice(0, 8).replace(/:/g, ".")}.mkv`;
+    var download = true;
+    var recorderOptions = {
+        mimeType: mtp,
+    }
+
+    if (download) {
+        link = link || document.createElement("a");
+        link.download = filename;
+    }
+
+    var chunks = [];
+    var stream = player.captureStream();
+
+    var recorder = new MediaRecorder(stream, recorderOptions);
+    recorder.ondataavailable = event => {
+        event.data.size && chunks.push(event.data);
+    };
+    recorder.onstop = () => {
+        if (download && chunks.length) {
+            const blob = new Blob(chunks, {
+                type: mtp
+            });
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+
+            const event = new MouseEvent("click");
+            link.dispatchEvent(event);
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+            }, 1);
+        }
+    };
+    return {
+        start() {
+            chunks = [];
+            recorder.start();
+        },
+        set filename(name) {
+            link.download = name;
+        },
+        step() {
+            stream.getVideoTracks()[0].requestFrame();
+        },
+        stop() {
+            recorder.stop();
+            return chunks;
+        },
+        dispose() {
+            recorder = null;
+            stream = null;
+        },
+        stream,
+        recorder
+    };
+}
+
+RpPlayer = createCanvasRecorder(canvas_player);
+
 //API IoPlayer
-function resize(f = null, watermark = false) {
+var speed = 3;
+var tmp_speed = 0;
+
+function resize(f = null, watermark = false, invert = false) {
     var w = window.innerWidth;
     var h = window.innerHeight;
 
@@ -616,22 +487,40 @@ function resize(f = null, watermark = false) {
         ctx_player.font = '42px sans-serif';
         ctx_player.globalCompositeOperation = 'lighter';
         ctx_player.fillStyle = '#444';
-        ctx_player.textAlign = 'center';
-        ctx_player.textBaseline = 'middle';
+        //ctx_player.textAlign = 'center';
+        // ctx_player.textBaseline = 'middle';
 
-        ctx_player.fillText('VolcanoYT', w - wt, h - ht);
+        var c = 'VolcanoYT';
+        var metrics = ctx_player.measureText(c);
+        //var fontHeight = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent;
+        var actualHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+        ctx_player.fillText(c, (w - metrics.width) - 5, h - actualHeight);
 
-        ctx_player.font = '12px sans-serif';
-        ctx_player.fillText("(Watch " + online + ") " + moment().tz(zona).format('DD/MM/YYYY HH:mm:ss'), (w - wt) - bwt, (h - ht) - bht);
+        ctx_player.font = '12px sans-serif'; // 
+        var c = "(Watch " + online + ") " + moment().tz(zona).format('DD/MM/YYYY HH:mm:ss');
+        ctx_player.fillText(c, (w - ctx_player.measureText(c).width) - 10, (h - ht) - bht);
+    }
+
+    if (invert) {
+        var imgData = ctx_player.getImageData(0, 0, w, h);
+        // invert colors
+        var i;
+        for (i = 0; i < imgData.data.length; i += 4) {
+            imgData.data[i] = 255 - imgData.data[i];
+            imgData.data[i + 1] = 255 - imgData.data[i + 1];
+            imgData.data[i + 2] = 255 - imgData.data[i + 2];
+            imgData.data[i + 3] = 255;
+        }
+        ctx_player.putImageData(imgData, 0, 0);
     }
 }
 window.addEventListener('resize', resize(), false);
 resize();
 
-function draw_image(imgdata,watermark=false) {
+function draw_image(imgdata, watermark = false) {
     var image = new Image();
     image.onload = function () {
-        resize(image,watermark);
+        resize(image, watermark);
     };
     image.src = imgdata;
 }
@@ -647,29 +536,35 @@ IoPlayer.on('connect', function () {
 });
 IoPlayer.on('disconnect', function () {
     $("#error").html('<div class="alert alert-primary" role="alert"><h3>Camera disconnected</h3></div>');
+    StopStart('meow', false);
     live = false;
 });
 IoPlayer.on('stream', function (e) {
     //console.log(e);
     if (e) {
         if (e.image) {
-            draw_image('data:image/jpeg;base64,' + base64ArrayBuffer(e.buffer),e.live);
+            draw_image('data:image/jpeg;base64,' + base64ArrayBuffer(e.buffer), e.live);
             if (noenter) {
                 noenter = false;
-                StopStart(true, true);
+                live = true;
+                StopStart('meow', true);
                 $("#error").html('');
             }
         } else {
             noenter = true;
-            StopStart(true, false);
+            StopStart('meow', false);
             console.log(e);
+
             //GUI Player
             if (e.data.code == 601) {
                 try {
                     zona = e.data.info.time.timezone;
+                    name = e.data.info.name;
                 } catch (error) {
                     console.log(error);
                 }
+            } else if (e.data.code == 600) {
+                online = e.data.online;
             } else {
                 $("#error").html('<div class="alert alert-primary" role="alert"><h3>' + e.data.message + '</h3></div>');
             }
@@ -741,9 +636,177 @@ function base64ArrayBuffer(arrayBuffer) {
     return base64
 }
 
+//API Select Time
+$.fn.datetimepicker.Constructor.Default = $.extend({}, $.fn.datetimepicker.Constructor.Default, {
+    icons: {
+        time: 'far fa-clock',
+        date: 'fas fa-calendar-check',
+        up: 'fas fa-arrow-up',
+        down: 'fas fa-arrow-down',
+        previous: 'fas fa-chevron-left',
+        next: 'fas fa-chevron-right',
+        today: 'fas fa-calendar-check-o',
+        clear: 'fas fa-trash',
+        close: 'fas fa-times-circle'
+    }
+});
 $('#set_start').datetimepicker({
     format: 'YYYY-MM-DD HH:mm',
 });
 $('#set_end').datetimepicker({
     format: 'YYYY-MM-DD HH:mm',
+});
+
+// API Auto Menu
+var ct = null;
+$('html').mouseover(function () {
+    $(".menu_player").show();
+
+    if (ct) {
+        clearTimeout(ct);
+        ct = null;
+    }
+
+    ct = setTimeout(function () {
+        $(".menu_player").hide();
+    }, 5000);
+});
+$('html').mouseout(function () {
+    if (ct) {
+        clearTimeout(ct);
+        ct = null;
+    }
+    $(".menu_player").hide();
+});
+
+// Tombol Create Time lapse
+$('#proses').on('click', function (e) {
+
+    var set_start = moment($('#set_start').val()).utc().format("X");
+    var set_end = moment($('#set_end').val()).utc().format("X");
+
+    var title = $('#title').val();
+    var tweet = $('#tweet').val();
+    var whattype = $('#what_use').val();
+
+    console.log('' + set_start + ' - ' + set_end + ' - ' + title + ' - ' + whattype);
+
+    if (whattype == '1') {
+        $('#getinfo').hide();
+        $('#cloban').hide();
+        $('#loadff').show();
+        $('#msg').html('');
+
+        $.ajax({
+            method: "POST",
+            dataType: "json",
+            data: {
+                start: set_start,
+                end: set_end,
+                title: title,
+                tweet: tweet,
+                id: camid,
+                fps: 10,
+                hd: 2
+            },
+            url: URL_API + 'camera/timelapse/create.json',
+        }).done(function (data) {
+            $('#getinfo').show();
+            $('#loadff').hide();
+            $('#cloban').show();
+            if (data.code == 200) {
+                $('#msg').append('<div class="form-group"><div class="embed-responsive embed-responsive-16by9"><video controls autoplay mute loop><source src="' + URL_CDN + 'collection/' + data.md5 + '.mp4" type="video/mp4"></video></div><label>Download Link</label><div class="input-group"><input type="text" class="form-control" value="' + URL_CDN + 'collection/' + data.md5 + '.mp4"></div></div>');
+            }
+            $('#msg').append('<div class="alert alert-warning" role="alert">' + data.status + '</div>');
+        }).fail(function (a) {
+            $('#cloban').show();
+            $('#getinfo').show();
+            $('#loadff').hide();
+            $('#msg').append('<div class="alert alert-warning" role="alert">Error Load</div>');
+        });
+    } else if (whattype == 2) {
+
+        StopStart('dcio');
+
+        PrPlayer.clear();
+        $('#getinfo').hide();
+       // $('#loadff').show();
+        $('#cloban').hide();
+
+        $.ajax({
+            method: "POST",
+            dataType: "json",
+            data: {
+                start: set_start,
+                end: set_end,
+                id: camid
+            },
+            url: URL_API + 'camera/data.json',
+        }).done(function (data) {
+            var options2 = [];
+            $.each(data.file, function (key, entry) {
+                var tp = entry.url.replace(/^.*[\\\/]/, '').replace(".jpg", '');
+                options2.push({
+                    url: URL_CDN + entry.url,
+                    index: tp
+                });
+            });
+
+            PrPlayer.clear();
+            PrPlayer.proses(options2).then((tes) => {
+
+                type = 'raw_ff';
+
+                console.log(tes);
+                $('#getinfo').show();
+               // $('#loadff').hide();
+                $('#cloban').show();
+                $('.goplayback').show();
+                $('#error').html('');
+                $('#msg').html('');
+                $('#makeff').modal('hide');
+
+                PrPlayer.main();
+            });
+
+        }).fail(function (a) {
+            console.log(a);
+            $('#getinfo').show();
+           // $('#loadff').hide();
+            $('#cloban').show();
+        });
+    } else {
+        console.log('come soon');
+    }
+
+
+})
+
+$('#what_use').change(function (e) {
+    wtf = $(this).val();
+    console.log(wtf);
+    if (wtf == "1") {
+        // Create Timelapse (from server)
+        $('#proses').html('Create');
+        $('#title').parent().show();
+        $('#tweet').parent().show();
+        $('#set_start').parent().parent().show();
+        $('#set_end').parent().parent().show();
+    } else if (wtf == "2") {
+        //Watch Raw Timelapse (from browser)
+        $('#proses').html('Watch');
+        $('#title').parent().hide();
+        $('#tweet').parent().hide();
+        $('#set_start').parent().parent().show();
+        $('#set_end').parent().parent().show();
+    } else if (wtf == "3") {
+        //Record this event (from browser)
+        $('#proses').html('Record');
+        $('#title').parent().hide();
+        $('#tweet').parent().hide();
+        $('#set_start').parent().parent().hide();
+        $('#set_end').parent().parent().show();
+    } else {
+        console.log(wtf);
+    }
 });

@@ -148,7 +148,7 @@ npmjs moment-timezone 0.5.31 builds
 npmjs toastify-js 1.7.0 src
 npmjs tinysort 3.2.7 dist
 npmjs lazysizes 5.2.2
-npmjs tempusdominus-bootstrap-4 5.1.2 build
+npmjs tempusdominus-bootstrap 5.32.1 build
 npmjs uplot 1.0.10 dist
 npmjs howler 2.2.0
 
