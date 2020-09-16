@@ -23,9 +23,6 @@ var last_frame = null;
 var wt = 110;
 var ht = 40;
 
-var bwt = 40;
-var bht = -30;
-
 var online = 1;
 var zona = "Asia/Makassar";
 var name = "noname";
@@ -576,11 +573,11 @@ function resize(f = null, watermark = false, invert = false) {
         var metrics = ctx_player.measureText(c);
         //var fontHeight = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent;
         var actualHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-        ctx_player.fillText(c, (w - metrics.width) - 5, h - actualHeight);
+        ctx_player.fillText(c, (w - ctx_player.measureText(c).width) - 4, (h - ht) + 10);
 
         ctx_player.font = '12px sans-serif'; // (Watch " + online + ") 
-        var c = "" + moment().tz(zona).format('DD/MM/YYYY HH:mm:ss');
-        ctx_player.fillText(c, (w - ctx_player.measureText(c).width) - 10, (h - ht) - bht);
+        c = "" + moment().tz(zona).format('DD/MM/YYYY HH:mm:ss');
+        ctx_player.fillText(c, (w - ctx_player.measureText(c).width) - 10, (h - ht) - -30);
     }
 
     if (invert) {
