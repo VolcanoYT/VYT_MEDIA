@@ -1,3 +1,4 @@
+console.log('Browser: ', navigator.userAgent);
 // Player use io for proxy stream
 var IoPlayer;
 // Player Time Lapse use for playback
@@ -78,7 +79,7 @@ $('.download').on('click', function (ex) {
     $('.download').prop('disabled', true);
 
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', canvas_player.toDataURL("image/jpg"), true);
+    xhr.open('GET', canvas_player.toDataURL("image/webp"), true);
     xhr.responseType = 'blob';
     xhr.onload = function (e) {
         //console.log(xhr.getAllResponseHeaders())
@@ -87,7 +88,7 @@ $('.download').on('click', function (ex) {
         if (this.status == 200) {
             var myBlob = this.response;
             var filetime = Math.floor(Date.now() / 1000); //'tes';//xhr.getResponseHeader('Last-Modified');
-            saveAs(myBlob, name + '-volcanoyt-' + filetime + '.jpg');
+            saveAs(myBlob, name + '-volcanoyt-' + filetime + '.webp');
         }
     };
     xhr.send();
@@ -131,6 +132,9 @@ function StopStart(id = '', manual = false) {
                     swbt(true);
 
                 }
+            } else if (type == 'rec') {
+                RpPlayer.stop();
+                type = 'live';
             } else if (type == 'raw_ff') {
                 PrPlayer.main();
                 swbt(!PrPlayer.pause);
@@ -142,9 +146,11 @@ function StopStart(id = '', manual = false) {
         } else if (id == 'dcio') {
             IoPlayer.disconnect();
             swbt(false);
+            type = "live";
         } else if (id == 'cnio') {
             IoPlayer.connect();
             swbt();
+            type = "live";
         } else {
             console.log('belum support ', id);
         }
@@ -154,11 +160,17 @@ function StopStart(id = '', manual = false) {
 }
 
 //API Exit Player FF
-function exitff(){
-
+function exitff() {
+    console.log("exit ", type);
+    if (type == 'raw_ff') {
+        $('.goplayback').hide();
+        PrPlayer.clear();
+    }
+    StopStart('cnio');
+    $('#exitbt').hide();
 }
 
-function swbt(live=true){
+function swbt(live = true) {
     if (live) {
         $("#iconplay").attr('class', 'fas fa-pause');
         //$(div_live).show();
@@ -263,6 +275,8 @@ var PlayBack;
         this.frame = [];
         if (this.Interval) {
             clearInterval(this.Interval);
+            this.Interval = null;
+            this.pause = false;
         }
     },
     total: function () {
@@ -393,69 +407,137 @@ CanvasRenderingContext2D.prototype.clear =
     };
 
 //API Recorder
-function createCanvasRecorder(player) {
-    var date = new Date();
-    var link = null;
+function createCanvasRecorder() {
+
+    var link;    
+    var time;
+    var stream;    
+    var recorder;
+    var chunks = [];
+    var last_time = moment();
     var mtp = 'video/x-matroska;codecs=avc1';
 
-    var filename = `Recording ${date.toISOString().slice(0, 10)} at ${date.toTimeString().slice(0, 8).replace(/:/g, ".")}.mkv`;
-    var download = true;
-    var recorderOptions = {
-        mimeType: mtp,
-    }
-
-    if (download) {
-        link = link || document.createElement("a");
-        link.download = filename;
-    }
-
-    var chunks = [];
-    var stream = player.captureStream();
-
-    var recorder = new MediaRecorder(stream, recorderOptions);
-    recorder.ondataavailable = event => {
-        event.data.size && chunks.push(event.data);
-    };
-    recorder.onstop = () => {
-        if (download && chunks.length) {
-            const blob = new Blob(chunks, {
-                type: mtp
-            });
-            const url = URL.createObjectURL(blob);
-            link.href = url;
-
-            const event = new MouseEvent("click");
-            link.dispatchEvent(event);
-            setTimeout(() => {
-                URL.revokeObjectURL(url);
-            }, 1);
-        }
-    };
     return {
         start() {
+            stream = canvas_player.captureStream();
+            try {
+                recorder = new MediaRecorder(stream, {
+                    mimeType: mtp,
+                });
+            } catch (error) {
+                console.log(error);
+                try {
+                    mtp = 'video/webm;codecs=h264';
+                    recorder = new MediaRecorder(stream, {
+                        mimeType: mtp,
+                    });
+                } catch (error) {
+                    console.log(error);
+                    try {
+                        mtp = 'video/webm';
+                        recorder = new MediaRecorder(stream, {
+                            mimeType: mtp,
+                        });
+                    } catch (error) {
+                        console.log(error);
+                        try {
+                            mtp = 'video/webm,codecs=vp9';
+                            recorder = new MediaRecorder(stream, {
+                                mimeType: mtp,
+                            });
+                        } catch (error) {
+                            console.log(error);
+                            try {
+                                mtp = 'video/vp8';
+                                recorder = new MediaRecorder(stream, {
+                                    mimeType: mtp,
+                                });
+                            } catch (error) {
+                                console.log(error);
+                                try {
+                                    mtp = 'video/webm;codecs=vp8,opus';
+                                    //for mozilla (https://github.com/w3c/mediacapture-record/issues/194#issue-561863354)
+                                    recorder = new MediaRecorder(stream, {
+                                        mimeType: mtp,
+                                    });
+                                } catch (error) {
+                                    console.log(error);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        
+            if (recorder) {
+                console.log(recorder);
+                recorder.ondataavailable = event => {
+                    event.data.size && chunks.push(event.data);
+                };
+                recorder.onstop = () => {
+                    if (chunks.length) {
+                        const blob = new Blob(chunks, {
+                            type: mtp
+                        });
+                        const url = URL.createObjectURL(blob);
+                        link.href = url;
+                        const event = new MouseEvent("click");
+                        link.dispatchEvent(event);
+                        setTimeout(() => {
+                            URL.revokeObjectURL(url);
+                        }, 1);
+                    }
+                };
+            } else {
+                console.log('no suppot');
+            }
+
+            last_time = moment();
+
+            if(time){
+                clearInterval(time);                
+            }
+
+            $('.RecordShow').show();
+
+            time = setInterval(function () {
+                $('#RecordTime').html(moment(last_time).fromNow());
+            }, 1000);
+
             chunks = [];
-            recorder.start();
-        },
-        set filename(name) {
-            link.download = name;
+
+            if(recorder){
+                recorder.start();
+            }else{
+                console.log('not yet');
+            }            
+
+            var filename = `Recording ${new Date().toISOString().slice(0, 10)} at ${new Date().toTimeString().slice(0, 8).replace(/:/g, ".")}.mkv`;
+            link = document.createElement("a");
+            link.download = filename;
+
         },
         step() {
             stream.getVideoTracks()[0].requestFrame();
         },
         stop() {
-            recorder.stop();
-            return chunks;
-        },
-        dispose() {
-            recorder = null;
+
+            if(time){
+                clearInterval(time);                
+            }
+
+            $('.RecordShow').hide();
+
+            if(recorder){
+                recorder.stop();
+                recorder = null;
+            }           
             stream = null;
-        },
-        stream,
-        recorder
+        }
     };
 }
 
-RpPlayer = createCanvasRecorder(canvas_player);
+RpPlayer = createCanvasRecorder();
 
 //API IoPlayer
 var speed = 3;
@@ -496,8 +578,8 @@ function resize(f = null, watermark = false, invert = false) {
         var actualHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
         ctx_player.fillText(c, (w - metrics.width) - 5, h - actualHeight);
 
-        ctx_player.font = '12px sans-serif'; // 
-        var c = "(Watch " + online + ") " + moment().tz(zona).format('DD/MM/YYYY HH:mm:ss');
+        ctx_player.font = '12px sans-serif'; // (Watch " + online + ") 
+        var c = "" + moment().tz(zona).format('DD/MM/YYYY HH:mm:ss');
         ctx_player.fillText(c, (w - ctx_player.measureText(c).width) - 10, (h - ht) - bht);
     }
 
@@ -538,12 +620,13 @@ IoPlayer.on('disconnect', function () {
     $("#error").html('<div class="alert alert-primary" role="alert"><h3>Camera disconnected</h3></div>');
     StopStart('meow', false);
     live = false;
+    console.log('Camera disconnected');
 });
 IoPlayer.on('stream', function (e) {
     //console.log(e);
     if (e) {
         if (e.image) {
-            draw_image('data:image/jpeg;base64,' + base64ArrayBuffer(e.buffer), e.live);
+            draw_image('data:image/webp;base64,' + base64ArrayBuffer(e.buffer), e.live);
             if (noenter) {
                 noenter = false;
                 live = true;
@@ -730,7 +813,7 @@ $('#proses').on('click', function (e) {
 
         PrPlayer.clear();
         $('#getinfo').hide();
-       // $('#loadff').show();
+        // $('#loadff').show();
         $('#cloban').hide();
 
         $.ajax({
@@ -745,7 +828,7 @@ $('#proses').on('click', function (e) {
         }).done(function (data) {
             var options2 = [];
             $.each(data.file, function (key, entry) {
-                var tp = entry.url.replace(/^.*[\\\/]/, '').replace(".jpg", '');
+                var tp = entry.url.replace(/^.*[\\\/]/, '').replace(".jpg", '').replace(".webp", '');
                 options2.push({
                     url: URL_CDN + entry.url,
                     index: tp
@@ -759,22 +842,27 @@ $('#proses').on('click', function (e) {
 
                 console.log(tes);
                 $('#getinfo').show();
-               // $('#loadff').hide();
+                // $('#loadff').hide();
                 $('#cloban').show();
                 $('.goplayback').show();
                 $('#error').html('');
                 $('#msg').html('');
                 $('#makeff').modal('hide');
+                $('#exitbt').show();
 
                 PrPlayer.main();
+
             });
 
         }).fail(function (a) {
             console.log(a);
             $('#getinfo').show();
-           // $('#loadff').hide();
+            // $('#loadff').hide();
             $('#cloban').show();
         });
+    } else if (whattype == 3) {
+        type = 'rec';        
+        RpPlayer.start();
     } else {
         console.log('come soon');
     }
@@ -805,7 +893,7 @@ $('#what_use').change(function (e) {
         $('#title').parent().hide();
         $('#tweet').parent().hide();
         $('#set_start').parent().parent().hide();
-        $('#set_end').parent().parent().show();
+        $('#set_end').parent().parent().hide();
     } else {
         console.log(wtf);
     }

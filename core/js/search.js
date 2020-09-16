@@ -198,7 +198,7 @@ function pesanku(event) {
             if (data.code == 600) {
                 $("#get_live").html("(" + data.online + "  Watching)");
             }else  if (data.code == 601) {
-                $("#get_live").html("(1  Watching)");
+                $("#get_live").html("(" + data.online + "  Watching)");
             } else {
                 $("#get_message").html('<h6>Message:</h6>' + data.message);
             }
