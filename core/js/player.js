@@ -633,9 +633,7 @@ IoPlayer.on('stream', function (e) {
         } else {
             noenter = true;
             StopStart('meow', false);
-            console.log(e);
 
-            //GUI Player
             if (e.data.code == 601) {
                 try {
                     zona = e.data.info.time.timezone;
@@ -643,10 +641,13 @@ IoPlayer.on('stream', function (e) {
                 } catch (error) {
                     console.log(error);
                 }
+            } else if (e.data.code == "ECONNRESET" | e.data.code == "ECONNABORTED") {
+                //TODO: GUI Loading
             } else if (e.data.code == 600) {
                 online = e.data.online;
             } else {
                 $("#error").html('<div class="alert alert-primary" role="alert"><h3>' + e.data.message + '</h3></div>');
+                console.log(e);
             }
 
             // API Player
