@@ -1,6 +1,6 @@
 const applicationServerPublicKey = 'BKU1P3Xq-JJMxQI5T4H5kteSxri6RRnusQxsP-qrwIqWxEzaT5xMIxUkWUNB3wjGg_2SVMeN9W5vR2nHxkQYLjQ';
 const saveSubscription = async subscription => {
-    const SERVER_URL = 'https://tapp.volcanoyt.com/sub'
+    const SERVER_URL = 'https://ews.volcanoyt.com/sub'
     const response = await fetch(SERVER_URL, {
         method: 'POST',
         headers: {
@@ -12,7 +12,7 @@ const saveSubscription = async subscription => {
     return response.json()
 }
 const revSubscription = async subscription_id => {
-    const SERVER_URL = 'https://tapp.volcanoyt.com/unsub?id=' + subscription_id
+    const SERVER_URL = 'https://ews.volcanoyt.com/unsub?id=' + subscription_id
     const response = await fetch(SERVER_URL, {
         method: 'GET'
     })

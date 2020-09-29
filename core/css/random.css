@@ -20,10 +20,10 @@ img {
     position: fixed;
     bottom: 4px;
     right: 10px;
-    font-family: Chicago;
-    font-size: 40px;
-    color: #FFFFFF;
+    font-size: 50px;
+    color: #ffffff;
     letter-spacing: 4.73px;
-    -webkit-text-stroke: 1px black;
     z-index: 999;
+    border-style: dashed;
+    background-color: rgb(0 0 0 / 63%);
 }

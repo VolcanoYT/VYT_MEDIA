@@ -929,9 +929,7 @@ a {
 }
 
 .tag-cloud-link {
-    background: #ccc none repeat scroll 0 0;
-    border-radius: 2px;
-    color: #fff;
+    background: #275079 none repeat scroll 0 0;
     display: inline-block;
     margin: 2px 0;
     padding: 4px 13px;
@@ -940,10 +938,6 @@ a {
 .tag-cloud-link:hover {
     background: #000 none repeat scroll 0 0;
     color: #fff;
-}
-
-.blog .card-title a {
-    color: #222 !important;
 }
 
 .blog .card-title {

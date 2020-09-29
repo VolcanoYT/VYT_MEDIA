@@ -14,14 +14,15 @@ canvas {
 }
 
 #judul {
-    font-size: 35px;
+    font-size: 3.0vw;
     z-index: 2;
     color: #FFF;
     position: absolute;
-    bottom: 0;
-    left: 0;
-    background-color: rgba(0, 0, 0, 0.73);
+    bottom: 8px;
+    left: 10px;
+    background-color: rgb(0 0 0 / 50%);
     padding: 0px 10px 0px 10px;
+    border-radius: 2.25rem;
 }
 
 .menu_player {
@@ -42,4 +43,8 @@ canvas {
     margin-top: -100px;
     margin-left: -250px;
     z-index: 2;
+}
+
+#full1 {
+    z-index: 999999;
 }

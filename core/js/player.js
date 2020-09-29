@@ -15,33 +15,28 @@ var div_tl_raw = "player_timelapse_raw";
 var div_tl_vd = "#player_timelapse_video";
 
 var camid = getAllUrlParams().cam;
+var showinfo = getAllUrlParams().info;
 
 var canvas_player = document.getElementById("player_new");
+var fullscreen_player = document.getElementById("full1");
 var ctx_player = canvas_player.getContext("2d");
+
 var last_frame = null;
 
 var wt = 110;
 var ht = 40;
+var interval = 60;
 
 var online = 1;
 var zona = "Asia/Makassar";
 var name = "noname";
 
-//URL DEV
+//URL Proxy Player for localhost or multi node
 var useurl = getAllUrlParams().URL;
 var token_user = getAllUrlParams().token_user;
 if (!isEmpty(useurl)) {
-    console.log('Io PLayer Proxy ', useurl);
+    console.log('Io Player Proxy ', useurl);
     URL_APP = useurl;
-}
-
-//Log DEV
-var dev = getAllUrlParams().dev;
-$('.log').hide();
-if (dev == "true") {
-    $('.log').show();
-} else {
-    $('#debug_console').css("display", "contents"); //not yet fix
 }
 
 // API Fullscreen by https://stackoverflow.com/questions/7130397/how-do-i-make-a-div-full-screen
@@ -406,9 +401,9 @@ CanvasRenderingContext2D.prototype.clear =
 //API Recorder
 function createCanvasRecorder() {
 
-    var link;    
+    var link;
     var time;
-    var stream;    
+    var stream;
     var recorder;
     var chunks = [];
     var last_time = moment();
@@ -465,7 +460,7 @@ function createCanvasRecorder() {
                     }
                 }
             }
-        
+
             if (recorder) {
                 console.log(recorder);
                 recorder.ondataavailable = event => {
@@ -491,8 +486,8 @@ function createCanvasRecorder() {
 
             last_time = moment();
 
-            if(time){
-                clearInterval(time);                
+            if (time) {
+                clearInterval(time);
             }
 
             $('.RecordShow').show();
@@ -503,11 +498,11 @@ function createCanvasRecorder() {
 
             chunks = [];
 
-            if(recorder){
+            if (recorder) {
                 recorder.start();
-            }else{
+            } else {
                 console.log('not yet');
-            }            
+            }
 
             var filename = `Recording ${new Date().toISOString().slice(0, 10)} at ${new Date().toTimeString().slice(0, 8).replace(/:/g, ".")}.mkv`;
             link = document.createElement("a");
@@ -519,16 +514,16 @@ function createCanvasRecorder() {
         },
         stop() {
 
-            if(time){
-                clearInterval(time);                
+            if (time) {
+                clearInterval(time);
             }
 
             $('.RecordShow').hide();
 
-            if(recorder){
+            if (recorder) {
                 recorder.stop();
                 recorder = null;
-            }           
+            }
             stream = null;
         }
     };
@@ -537,34 +532,132 @@ function createCanvasRecorder() {
 RpPlayer = createCanvasRecorder();
 
 //API IoPlayer
-var speed = 3;
-var tmp_speed = 0;
+var scale = 1.0;
+var scaleMultiplier = 0.8;
+var startDragOffset = {
+    x: 0,
+    y: 0
+};
+var mouseDown = false;
+var translatePos = {
+    x: 0,
+    y: 0
+};
 
-function resize(f = null, watermark = false, invert = false) {
+// add event listeners to handle screen drag
+fullscreen_player.addEventListener("mousedown", function (evt) {
+    mouseDown = true;
+    startDragOffset.x = evt.clientX - translatePos.x;
+    startDragOffset.y = evt.clientY - translatePos.y;
+});
+fullscreen_player.addEventListener("mouseup", function (evt) {
+    mouseDown = false;
+});
+fullscreen_player.addEventListener("mouseover", function (evt) {
+    mouseDown = false;
+});
+fullscreen_player.addEventListener("mouseout", function (evt) {
+    mouseDown = false;
+});
+fullscreen_player.addEventListener("mousemove", function (evt) {
+    if (mouseDown) {
+        //console.log(evt);
+        translatePos.x = evt.clientX - startDragOffset.x;
+        translatePos.y = evt.clientY - startDragOffset.y;
+        resize();
+    }
+});
+
+function zoomit() {
+    scale *= scaleMultiplier;
+    resize();
+};
+
+function zoomout() {
+    scale /= scaleMultiplier;
+    resize();
+};
+
+function reset() {
+    scale = 1.0;
+    translatePos = {
+        x: 0,
+        y: 0
+    }
+    resize();
+};
+
+var config_exposure = 1.0;
+var config_brightness = 0.0;
+var isfliter = false;
+$('#config_setimg').on('change', function () {
+    isfliter = this.checked;
+});
+$('#config_exposure').on('change', function (e) {
+    config_exposure = parseFloat(e.target.value);
+});
+$('#config_brightness').on('change', function (e) {
+    config_brightness = parseFloat(e.target.value);
+});
+
+function resize(f = null, watermark = false) {
     var w = window.innerWidth;
     var h = window.innerHeight;
 
     //clear it
     ctx_player.clear();
+    //ctx_player.clearRect(0, 0, ctx_player.width, ctx_player.height);
 
     //set player
     ctx_player.canvas.width = w;
     ctx_player.canvas.height = h;
 
+    ctx_player.globalCompositeOperation = 'lighter';
+    //ctx_player.filter = "brightness(180%)";
+
     //add image
     if (f) {
-        ctx_player.drawImage(f, 0, 0, w, h);
+        ctx_player.drawImage(f, translatePos.x, translatePos.y, w / scale, h / scale);
         last_frame = f;
     }
 
+    //use last image
     if (last_frame) {
         if (!f)
-            ctx_player.drawImage(last_frame, 0, 0, w, h);
+            ctx_player.drawImage(last_frame, translatePos.x, translatePos.y, w / scale, h / scale);
     }
 
+    if (isfliter) {
+
+        //pixel data
+        var dt = ctx_player.getImageData(0, 0, w, h);
+
+        if (config_exposure !== 1.0) {
+            JSManipulate.exposure.filter(dt, {
+                exposure: config_exposure,
+            });
+        }
+        if (config_brightness !== 0.0) {
+            JSManipulate.brightness.filter(dt, {
+                amount: config_brightness,
+            });
+        }
+        /*
+        JSManipulate.contrast.filter(dt, {
+            amount: 2,
+        });
+        JSManipulate.gain.filter(dt, {
+            gain: 0.22,
+            bias: 0.77
+        });
+*/
+        //Now finally put the data back into the context, which will render
+        ctx_player.putImageData(dt, 0, 0);
+    }
+
+    //selalu paling bawah
     if (watermark) {
         ctx_player.font = '42px sans-serif';
-        ctx_player.globalCompositeOperation = 'lighter';
         ctx_player.fillStyle = '#444';
         //ctx_player.textAlign = 'center';
         // ctx_player.textBaseline = 'middle';
@@ -579,19 +672,6 @@ function resize(f = null, watermark = false, invert = false) {
         c = "" + moment().tz(zona).format('DD/MM/YYYY HH:mm:ss');
         ctx_player.fillText(c, (w - ctx_player.measureText(c).width) - 10, (h - ht) - -30);
     }
-
-    if (invert) {
-        var imgData = ctx_player.getImageData(0, 0, w, h);
-        // invert colors
-        var i;
-        for (i = 0; i < imgData.data.length; i += 4) {
-            imgData.data[i] = 255 - imgData.data[i];
-            imgData.data[i + 1] = 255 - imgData.data[i + 1];
-            imgData.data[i + 2] = 255 - imgData.data[i + 2];
-            imgData.data[i + 3] = 255;
-        }
-        ctx_player.putImageData(imgData, 0, 0);
-    }
 }
 window.addEventListener('resize', resize(), false);
 resize();
@@ -605,16 +685,17 @@ function draw_image(imgdata, watermark = false) {
 }
 
 var noenter = true;
+var reason = "Internet Slow";
 var IoPlayer = io(URL_APP + 'camera');
 IoPlayer.on('connect', function () {
     IoPlayer.emit('access', {
         cam: camid,
         token_user: token_user,
-        version: '1.0.3'
+        version: '1.0.4'
     });
 });
 IoPlayer.on('disconnect', function () {
-    $("#error").html('<div class="alert alert-primary" role="alert"><h3>Camera disconnected</h3></div>');
+    $("#error").html('<div class="alert alert-primary" role="alert"><h3>Camera disconnected: '+reason+'</h3></div>');
     StopStart('meow', false);
     live = false;
     console.log('Camera disconnected');
@@ -623,7 +704,10 @@ IoPlayer.on('stream', function (e) {
     //console.log(e);
     if (e) {
         if (e.image) {
-            draw_image('data:image/webp;base64,' + base64ArrayBuffer(e.buffer), e.live);
+            draw_image('data:image/webp;base64,' + base64ArrayBuffer(e.buffer));
+            if (showinfo == "true") {
+                $('#judul').text(name+" ("+moment().tz(zona).format('DD/MM/YYYY HH:mm:ss')+")");
+            }
             if (noenter) {
                 noenter = false;
                 live = true;
@@ -636,13 +720,18 @@ IoPlayer.on('stream', function (e) {
 
             if (e.data.code == 601) {
                 try {
+                    interval = e.data.info.interval;
                     zona = e.data.info.time.timezone;
                     name = e.data.info.name;
                 } catch (error) {
                     console.log(error);
                 }
-            } else if (e.data.code == "ECONNRESET" | e.data.code == "ECONNABORTED") {
+            } else if (e.data.code == "ECONNRESET" | e.data.code == "ECONNABORTED" | e.data.code == "ECONNREFUSED") {
                 //TODO: GUI Loading
+            } else if (e.data.code == 0) {
+                //exit camera
+                reason = e.data.status;
+                StopStart('dcio');
             } else if (e.data.code == 600) {
                 online = e.data.online;
             } else {
@@ -733,9 +822,11 @@ $.fn.datetimepicker.Constructor.Default = $.extend({}, $.fn.datetimepicker.Const
 });
 $('#set_start').datetimepicker({
     format: 'YYYY-MM-DD HH:mm',
+    defaultDate: moment().add(-1, 'hours').format('YYYY-MM-DD HH:mm'),
 });
 $('#set_end').datetimepicker({
     format: 'YYYY-MM-DD HH:mm',
+    defaultDate: moment().format('YYYY-MM-DD HH:mm'),
 });
 
 // API Auto Menu
@@ -787,8 +878,9 @@ $('#proses').on('click', function (e) {
                 title: title,
                 tweet: tweet,
                 id: camid,
-                fps: 10,
-                hd: 2
+                fps: 15,
+                hd: 0,
+                interval: interval
             },
             url: URL_API + 'camera/timelapse/create.json',
         }).done(function (data) {
@@ -859,7 +951,7 @@ $('#proses').on('click', function (e) {
             $('#cloban').show();
         });
     } else if (whattype == 3) {
-        type = 'rec';        
+        type = 'rec';
         RpPlayer.start();
     } else {
         console.log('come soon');

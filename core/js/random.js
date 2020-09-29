@@ -35,7 +35,7 @@ function get(addme) {
                     var img = document.getElementById("AGCCTV0");
                     var url = window.URL || window.webkitURL;
                     img.src = url.createObjectURL(data);
-                    $('#namax').text(addme.name + " (" + addme.id+")");
+                    $('#namax').text(addme.name); // + " (" + addme.id+")"
                     resolve(200);
                 },
                 error: function() {
