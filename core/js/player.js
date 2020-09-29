@@ -726,7 +726,7 @@ IoPlayer.on('stream', function (e) {
                 } catch (error) {
                     console.log(error);
                 }
-            } else if (e.data.code == "ECONNRESET" | e.data.code == "ECONNABORTED" | e.data.code == "ECONNREFUSED") {
+            } else if (e.data.code == "ECONNRESET" | e.data.code == "ECONNABORTED" | e.data.code == "ECONNREFUSED" | e.data.code == "Service Unavailable") {
                 //TODO: GUI Loading
             } else if (e.data.code == 0) {
                 //exit camera
