@@ -1,4 +1,5 @@
 console.log('Browser: ', navigator.userAgent);
+console.log('Cookies: ',Cookies.get());
 // Player use io for proxy stream
 var IoPlayer;
 // Player Time Lapse use for playback
@@ -16,6 +17,16 @@ var div_tl_vd = "#player_timelapse_video";
 
 var camid = getAllUrlParams().cam;
 var showinfo = getAllUrlParams().info;
+
+var get_drag_position = {
+    x: 0,
+    y: 0
+};
+var get_zoom_position = {
+    x: 0,
+    y: 0
+};
+var get_int_zoom = 0;
 
 var canvas_player = document.getElementById("player_new");
 var fullscreen_player = document.getElementById("full1");
@@ -534,21 +545,14 @@ RpPlayer = createCanvasRecorder();
 //API IoPlayer
 var scale = 1.0;
 var scaleMultiplier = 0.8;
-var startDragOffset = {
-    x: 0,
-    y: 0
-};
 var mouseDown = false;
-var translatePos = {
-    x: 0,
-    y: 0
-};
 
 // add event listeners to handle screen drag
 fullscreen_player.addEventListener("mousedown", function (evt) {
     mouseDown = true;
-    startDragOffset.x = evt.clientX - translatePos.x;
-    startDragOffset.y = evt.clientY - translatePos.y;
+    get_drag_position.x = evt.clientX - get_zoom_position.x;
+    get_drag_position.y = evt.clientY - get_zoom_position.y;
+    //savedrag();
 });
 fullscreen_player.addEventListener("mouseup", function (evt) {
     mouseDown = false;
@@ -562,29 +566,70 @@ fullscreen_player.addEventListener("mouseout", function (evt) {
 fullscreen_player.addEventListener("mousemove", function (evt) {
     if (mouseDown) {
         //console.log(evt);
-        translatePos.x = evt.clientX - startDragOffset.x;
-        translatePos.y = evt.clientY - startDragOffset.y;
+        get_zoom_position.x = evt.clientX - get_drag_position.x;
+        get_zoom_position.y = evt.clientY - get_drag_position.y;
         resize();
+        savedrag();
     }
 });
+function savedrag(){
+    Cookies.set('drag_cam_'+camid, JSON.stringify({
+        get_drag_position:get_drag_position,
+        get_zoom_position:get_zoom_position
+    }));
+}
 
 function zoomit() {
-    scale *= scaleMultiplier;
+    scale *= scaleMultiplier;    
+    get_int_zoom++;
     resize();
+    savezoom();
 };
-
 function zoomout() {
-    scale /= scaleMultiplier;
+    scale /= scaleMultiplier;    
+    get_int_zoom--;    
     resize();
+    savezoom();
 };
+function savezoom(){
+    Cookies.set('zoom_cam_'+camid, JSON.stringify({
+        scale:scale,
+        get_int_zoom:get_int_zoom
+    }));
+}
+
+var load_zoom = tryParse(Cookies.get('zoom_cam_'+camid));
+if(!isEmpty(load_zoom)){
+    console.log(load_zoom);
+    scale = load_zoom.scale;
+    get_int_zoom = load_zoom.get_int_zoom;
+    resize();
+}
+
+var load_zoom = tryParse(Cookies.get('zoom_cam_'+camid));
+if(!isEmpty(load_zoom)){
+    console.log(load_zoom);
+    scale = load_zoom.scale;
+    get_int_zoom = load_zoom.get_int_zoom;
+    resize();
+}
+
+var load_drag = tryParse(Cookies.get('drag_cam_'+camid));
+if(!isEmpty(load_drag)){
+    console.log(load_drag);
+    get_drag_position = load_drag.get_drag_position;
+    get_zoom_position = load_drag.get_zoom_position;
+    resize();
+}
 
 function reset() {
     scale = 1.0;
-    translatePos = {
+    get_zoom_position = {
         x: 0,
         y: 0
     }
     resize();
+    savezoom();
 };
 
 var config_exposure = 1.0;
@@ -617,14 +662,14 @@ function resize(f = null, watermark = false) {
 
     //add image
     if (f) {
-        ctx_player.drawImage(f, translatePos.x, translatePos.y, w / scale, h / scale);
+        ctx_player.drawImage(f, get_zoom_position.x, get_zoom_position.y, w / scale, h / scale);
         last_frame = f;
     }
 
     //use last image
     if (last_frame) {
         if (!f)
-            ctx_player.drawImage(last_frame, translatePos.x, translatePos.y, w / scale, h / scale);
+            ctx_player.drawImage(last_frame, get_zoom_position.x, get_zoom_position.y, w / scale, h / scale);
     }
 
     if (isfliter) {
@@ -700,13 +745,17 @@ IoPlayer.on('disconnect', function () {
     live = false;
     console.log('Camera disconnected');
 });
-IoPlayer.on('stream', function (e) {
-    //console.log(e);
+IoPlayer.on('stream', function (e) {    
     if (e) {
         if (e.image) {
             draw_image('data:image/webp;base64,' + base64ArrayBuffer(e.buffer));
             if (showinfo == "true") {
-                $('#judul').text(name+" ("+moment().tz(zona).format('DD/MM/YYYY HH:mm:ss')+")");
+
+                var is = "fas fa-camera"
+                if(e.live){
+                    is = "fas fa-satellite-dish";
+                }
+                $('#judul').html('<i class="fa '+is+'" aria-hidden="true"></i> '+name+" ("+moment().tz(zona).format('DD/MM/YYYY HH:mm:ss')+")");
             }
             if (noenter) {
                 noenter = false;
@@ -715,10 +764,12 @@ IoPlayer.on('stream', function (e) {
                 $("#error").html('');
             }
         } else {
+            console.log(e);
             noenter = true;
             StopStart('meow', false);
 
             if (e.data.code == 601) {
+                //info camera
                 try {
                     interval = e.data.info.interval;
                     zona = e.data.info.time.timezone;
@@ -726,13 +777,12 @@ IoPlayer.on('stream', function (e) {
                 } catch (error) {
                     console.log(error);
                 }
-            } else if (e.data.code == "ECONNRESET" | e.data.code == "ECONNABORTED" | e.data.code == "ECONNREFUSED" | e.data.code == "Service Unavailable") {
-                //TODO: GUI Loading
             } else if (e.data.code == 0) {
                 //exit camera
-                reason = e.data.status;
+                reason = e.data.message;
                 StopStart('dcio');
             } else if (e.data.code == 600) {
+                //info online
                 online = e.data.online;
             } else {
                 $("#error").html('<div class="alert alert-primary" role="alert"><h3>' + e.data.message + '</h3></div>');
