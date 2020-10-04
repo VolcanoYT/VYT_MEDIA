@@ -12,10 +12,7 @@ if (!isEmpty(useurl)) {
 }
 
 //API Socket
-var ewsio = io(URL_APP + 'ews', {
-    transports: ['websocket'],
-    upgrade: false
-});
+var ewsio = io(URL_APP + 'ews');
 ewsio.on('disconnect', function () {
     console.log('disconnect');
 })
@@ -96,12 +93,18 @@ function OnData(x) {
         var sumber = datap.source;
         var nama_volcano = datap.volcano;
         var toutc = datap.date_input;
-        info_satu = 'Volcano ' + nama_volcano+' ('+sumber+')';
-        info_dua = info+' - <time data-now="' + toutc + '"></time>';       
+        info_satu = 'Volcano ' + nama_volcano + ' (' + sumber + ')';
+        info_dua = info + ' - <time data-now="' + toutc + '"></time>';
     } else if (x.type == "notice") {
-        ismap = true;
+        ismsg = true;
         info_satu = 'Message from ' + datap.user;
         info_dua = datap.message;
+
+        if (datap.mic) {
+            info_satu = 'Message (Audio) from ' + datap.user;
+            NotifMe("", datap.message, "", true, 'en', 0.8);
+        }
+        
     } else {
         console.log('belum ada: ' + x.type);
     }
@@ -161,7 +164,7 @@ function OnData(x) {
     }
 
     if (ismsg) {
-        $('#msg').html('<div class="alert alert-success ping" role="alert"><h4 class="alert-heading">'+info_satu+'</h4><p>' + info_dua+ '</p></div>');
+        $('#msg').html('<div class="alert alert-success ping" role="alert"><h4 class="alert-heading">' + info_satu + '</h4><p>' + info_dua + '</p></div>');
         close_msg = setTimeout(
             function () {
                 if (autohide == "true") {

@@ -1,108 +1,58 @@
-var camerasan;
-var namaserver = "Unknown";
-var idcamp = 0;
-var bb = $("#showme");
+var setscene = getAllUrlParams().scene;
+var setsource = getAllUrlParams().source;
+var ismultiview = false;
 
-var nama = getAllUrlParams().nama;
-var camnam = getAllUrlParams().camn;
+var tmpid = 0;
 
-//var hidehd = getAllUrlParams().hidehd;
-var hidebt = getAllUrlParams().hidebt;
-var uproxy = getAllUrlParams().uproxy;
-
-var flash = getAllUrlParams().flash;
-var rtyt = getAllUrlParams().rtyt;
-
-//var byjam = getAllUrlParams().byjam;
-//var bysource = getAllUrlParams().bysource;
-
-var boxio = io('https://tapp.volcanoyt.com/box', {
-    transports: ['websocket'],
-    upgrade: false
-});
-
-if (!isEmpty(nama)) {
-    namaserver = nama;
+var seturl = getAllUrlParams().URL;
+if (!isEmpty(seturl)) {
+    console.log('URL Proxy: ', seturl);
+    URL_APP = seturl;
 }
 
-//NET API
-boxio.on('disconnect', function(e) {
-    console.log("disconnect", e);
-    online(false, "Disconnected with Box: " + namaserver);
+var multiview = io(URL_APP + 'multiview');
+multiview.on('disconnect', function () {
+    $("#namax").html('Connect to Multiview Web...');
 })
-boxio.on('connect', function(e) {
-    console.log("konek: ", e);
-    AutoIndex();
-})
-boxio.on('error', (error) => {
-    console.log(error);
-    online(false, "Error 1");
-});
-
-//Box API
-boxio.on('request', function(data) {
-    if (data) {
-        if (data.box == namaserver) {
-            CameraMove(data.cam);
-        }
-    }
-});
-
-function CameraMove(idp) {
-    online();
-    idcamp = idp;
-    if (idp == "random") {
-        bb.html('<iframe src="'+URL_API+'spanel/random.html?update=' + new Date().getTime() + '"></iframe>');
-    } else if (idp == "blank") {
-        bb.html('');
-    } else {
-        bb.html('<iframe src="'+URL_API+'spanel/player.php?cam=' + idp + '&autoplay=true&mute=0&hidebt=' + hidebt + '&tp=raw&force=true&flash=' + flash + '&rtyt=' + rtyt + '&uproxy=' + uproxy + '"></iframe>');
-        //versi=' + Math.floor(Date.now() / 1000) + '&//&byjam=' + byjam + '&bysource=' + bysource + '&uproxy=' + uproxy + '&hidehd=' + hidehd + '
-    }
-}
-
-function online(online = true, pesan = "", nextindex = false) {
-    if (!isEmpty(pesan)) {
-        $('#namax').text(pesan);
-    } else {
-        $('#namax').text("");
-    }
-    if (online) {
-        $("#info").hide();
-        $("#namax").hide();
-    } else {
-        $("#info").show();
-        $("#namax").show();
-    }
-    //jika gagal cari index
-    if (nextindex) {
-        setTimeout(function() {
-            AutoIndex();
-        }, 1000 * 10);
-    }
-}
-
-function AutoIndex() {
-    $.ajax({
-        method: "GET",
-        dataType: "json",
-        cache: false,
-        url: "https://tapp.volcanoyt.com/scene",
-        data: {
-            name: namaserver
-        }
-    }).done(function(data) {
-        try {
-            if (!isEmpty(data)) {
-                CameraMove(data[0].idcam);
-            } else {
-                online(false, "No Camera Index", true);
-                //console.log(data);               
-            }
-        } catch (error) {
-            online(false, "Big Error AutoIndex: " + namaserver, true);
-        }
-    }).fail(function(a) {
-        online(false, "fail index: " + namaserver, true);
+multiview.on('connect', function () {
+    $("#namax").html('Connect to Multiview Web...');
+    multiview.emit('access', {
+        scene: setscene,
+        source: setsource,
     });
-}
+})
+multiview.on('error', (error) => {
+    console.log(error);
+});
+multiview.on('request', function (x) {    
+    $("#namax").html(x.message);
+    var start_move=false;
+    var idtmp = 0;
+    //cek apakah respon 200
+    if (x.code == 200) {
+        //cek apakah ada info
+        if(x.info){
+            //list info
+            $("#namax").html("This Source does not have a camera, please type in chat !bot cam "+setscene+" "+setsource+" idcam ");
+            x.info.forEach((item_add, index_scene) => {
+                //jika ada nama source
+                if (item_add.source == setsource) {
+                    start_move = true;
+                    idtmp = item_add.idcam;
+                }
+            })
+        }else{
+            console.log('no info');
+        }
+    }
+    if (start_move) {
+        if(tmpid !== idtmp){
+            tmpid = idtmp;
+            $("#put").html('<iframe src="' + URL_API + 'spanel/player.php?cam=' + idtmp + '&autoplay=true&info=true"></iframe>');
+            $("#namax").html("");
+        }else{
+            console.log('skip sama saja??');
+        }        
+    }
+    console.log(x);
+});
