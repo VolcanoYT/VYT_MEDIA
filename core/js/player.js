@@ -1,5 +1,5 @@
 console.log('Browser: ', navigator.userAgent);
-console.log('Cookies: ',Cookies.get());
+console.log('Cookies: ', Cookies.get());
 // Player use io for proxy stream
 var IoPlayer;
 // Player Time Lapse use for playback
@@ -17,6 +17,9 @@ var div_tl_vd = "#player_timelapse_video";
 
 var camid = getAllUrlParams().cam;
 var showinfo = getAllUrlParams().info;
+var useurl = getAllUrlParams().URL;
+var token_user = getAllUrlParams().token_user;
+var isobson = getAllUrlParams().obs;
 
 var get_drag_position = {
     x: 0,
@@ -40,11 +43,9 @@ var interval = 60;
 
 var online = 1;
 var zona = "Asia/Makassar";
-var name = "noname";
+var name = "NoName";
 
 //URL Proxy Player for localhost or multi node
-var useurl = getAllUrlParams().URL;
-var token_user = getAllUrlParams().token_user;
 if (!isEmpty(useurl)) {
     console.log('Io Player Proxy ', useurl);
     URL_APP = useurl;
@@ -572,50 +573,53 @@ fullscreen_player.addEventListener("mousemove", function (evt) {
         savedrag();
     }
 });
-function savedrag(){
-    Cookies.set('drag_cam_'+camid, JSON.stringify({
-        get_drag_position:get_drag_position,
-        get_zoom_position:get_zoom_position
+
+function savedrag() {
+    Cookies.set('drag_cam_' + camid, JSON.stringify({
+        get_drag_position: get_drag_position,
+        get_zoom_position: get_zoom_position
     }));
 }
 
 function zoomit() {
-    scale *= scaleMultiplier;    
+    scale *= scaleMultiplier;
     get_int_zoom++;
     resize();
     savezoom();
 };
+
 function zoomout() {
-    scale /= scaleMultiplier;    
-    get_int_zoom--;    
+    scale /= scaleMultiplier;
+    get_int_zoom--;
     resize();
     savezoom();
 };
-function savezoom(){
-    Cookies.set('zoom_cam_'+camid, JSON.stringify({
-        scale:scale,
-        get_int_zoom:get_int_zoom
+
+function savezoom() {
+    Cookies.set('zoom_cam_' + camid, JSON.stringify({
+        scale: scale,
+        get_int_zoom: get_int_zoom
     }));
 }
 
-var load_zoom = tryParse(Cookies.get('zoom_cam_'+camid));
-if(!isEmpty(load_zoom)){
+var load_zoom = tryParse(Cookies.get('zoom_cam_' + camid));
+if (!isEmpty(load_zoom)) {
     console.log(load_zoom);
     scale = load_zoom.scale;
     get_int_zoom = load_zoom.get_int_zoom;
     resize();
 }
 
-var load_zoom = tryParse(Cookies.get('zoom_cam_'+camid));
-if(!isEmpty(load_zoom)){
+var load_zoom = tryParse(Cookies.get('zoom_cam_' + camid));
+if (!isEmpty(load_zoom)) {
     console.log(load_zoom);
     scale = load_zoom.scale;
     get_int_zoom = load_zoom.get_int_zoom;
     resize();
 }
 
-var load_drag = tryParse(Cookies.get('drag_cam_'+camid));
-if(!isEmpty(load_drag)){
+var load_drag = tryParse(Cookies.get('drag_cam_' + camid));
+if (!isEmpty(load_drag)) {
     console.log(load_drag);
     get_drag_position = load_drag.get_drag_position;
     get_zoom_position = load_drag.get_zoom_position;
@@ -729,34 +733,45 @@ function draw_image(imgdata, watermark = false) {
     image.src = imgdata;
 }
 
+function BarInfo(is = "fas fa-spinner fa-spin") {
+    if (showinfo == "true") {
+        $('#judul').html('<i class="' + is + '" aria-hidden="true"></i> ' + name + " (" + moment().tz(zona).format('DD/MM/YYYY HH:mm:ss') + ")");
+    }
+}
+
 var noenter = true;
-var reason = "Internet Slow";
+
+var reason = "";
+var reason_icon = "fas fa-unlink";
+
 var IoPlayer = io(URL_APP + 'camera');
 IoPlayer.on('connect', function () {
     IoPlayer.emit('access', {
         cam: camid,
         token_user: token_user,
-        version: '1.0.4'
+        version: '1.0.5'
     });
 });
 IoPlayer.on('disconnect', function () {
-    $("#error").html('<div class="alert alert-primary" role="alert"><h3>Camera disconnected: '+reason+'</h3></div>');
+    $("#error").html('<div class="alert alert-primary" role="alert"><h3>Camera Disconnected: ' + reason + '</h3></div>');      
+    BarInfo(reason_icon);
     StopStart('meow', false);
     live = false;
-    console.log('Camera disconnected');
 });
-IoPlayer.on('stream', function (e) {    
+IoPlayer.on('stream', function (e) {
     if (e) {
         if (e.image) {
             draw_image('data:image/webp;base64,' + base64ArrayBuffer(e.buffer));
-            if (showinfo == "true") {
 
-                var is = "fas fa-camera"
-                if(e.live){
-                    is = "fas fa-satellite-dish";
-                }
-                $('#judul').html('<i class="fa '+is+'" aria-hidden="true"></i> '+name+" ("+moment().tz(zona).format('DD/MM/YYYY HH:mm:ss')+")");
+            //TODO: get time base framer
+            var is = "fas fa-camera"
+            if (e.live) {
+                is = "fas fa-satellite-dish";
             }
+
+            BarInfo(is);
+
+            //just use last ping
             if (noenter) {
                 noenter = false;
                 live = true;
@@ -764,10 +779,11 @@ IoPlayer.on('stream', function (e) {
                 $("#error").html('');
             }
         } else {
-            console.log(e);
+
             noenter = true;
             StopStart('meow', false);
-
+            BarInfo();
+            console.log(e);
             if (e.data.code == 601) {
                 //info camera
                 try {
@@ -781,15 +797,18 @@ IoPlayer.on('stream', function (e) {
                 //exit camera
                 reason = e.data.message;
                 StopStart('dcio');
+            } else if (e.data.code == 204) {
+                //loading
             } else if (e.data.code == 600) {
                 //info online
                 online = e.data.online;
             } else {
                 $("#error").html('<div class="alert alert-primary" role="alert"><h3>' + e.data.message + '</h3></div>');
                 console.log(e);
+                BarInfo('fas fa-exclamation-triangle');
             }
 
-            // API Player
+            //API Player
             try {
                 window.parent.postMessage({
                     "api": "player_update",
@@ -798,6 +817,7 @@ IoPlayer.on('stream', function (e) {
             } catch (error) {
                 console.log('error send data');
             }
+
         }
     } else {
         console.log('hmm no data?');
@@ -1038,3 +1058,29 @@ $('#what_use').change(function (e) {
         console.log(wtf);
     }
 });
+
+//for obs stream
+var no_first_time = false;
+if (isobson == "true") {
+    console.log('OBS Debug: ', window.obsstudio.pluginVersion);
+    window.addEventListener('obsSceneChanged', function (event) {
+        console.log('obsSceneChanged: ', event);
+    });
+    window.obsstudio.getStatus(function (status) {
+        console.log('Status OBS: ', status);
+    });
+    window.obsstudio.getCurrentScene(function (scene) {
+        console.log('OBS Secene: ', scene);
+    })
+    window.obsstudio.onVisibilityChange = function (visibility) {
+        console.log('OBS Visibility? ', visibility);
+    };
+    window.obsstudio.onActiveChange = function (active) {
+        console.log('OBS Active? ', active);
+        if (active) {
+            StopStart('cnio');
+        } else {
+            StopStart('dcio');
+        }
+    };
+}
