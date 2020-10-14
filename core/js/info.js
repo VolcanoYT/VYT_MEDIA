@@ -3,8 +3,9 @@ var close_msg;
 var close_list;
 
 var autohide = getAllUrlParams().autohide;
-var audiois = getAllUrlParams().audio;
-var useurl = getAllUrlParams().URL;
+var audiois  = getAllUrlParams().audio;
+var get_last = getAllUrlParams().last;
+var useurl   = getAllUrlParams().URL;
 
 if (!isEmpty(useurl)) {
     console.log('use url: ', useurl);
@@ -12,7 +13,9 @@ if (!isEmpty(useurl)) {
 }
 
 //API Socket
-var ewsio = io(URL_APP + 'ews');
+var ewsio = io(URL_APP + 'ews',{
+    transports: ['websocket']
+});
 ewsio.on('disconnect', function () {
     console.log('disconnect');
 })
@@ -49,10 +52,15 @@ function OnData(x) {
 
     var ismap = false;
     var ismsg = false;
+    var litemap = false;
 
-    if (x.type == "earthquake") {
+    if (x.type == "earthquake") {        
         ismap = true;
+
+        //info map
         loc = L.latLng(datap.eq_lat, datap.eq_lon);
+
+        //info lain
         var whereeq = '' + Number(datap.distance).toFixed(2) + ' miles of ' + datap.city + ' - ' + datap.country;
         var lastinfo = datap.provider + ' / ' + OnGempa(datap.status);
         var toutc = datap.data;
@@ -60,57 +68,71 @@ function OnData(x) {
         var magty = datap.mt;
         var deept = (datap.depth).toFixed(0);
         var loctxt = '' + (datap.eq_lat).toFixed(4) + ',' + (datap.eq_lon).toFixed(4) + '';
-
         var timelocal = moment.utc(toutc, 'YYYY-MM-DD HH:mm:ss').local();
         var lefttime = timelocal.local().fromNow();
 
+        var allowaudio = true;
+
+        //level warning
         if (mag >= 3.2 && mag <= 5) {
             icon = "warning";
             wait_close = 15;
         } else if (mag >= 5 && mag <= 9) {
             icon = "danger";
             wait_close = 60;
+        }else{
+            allowaudio = false;
         }
 
-        if (audiois == "true") {
-            console.log('audio');
-            if (mag >= 4.0) {
+        //audio
+        if(allowaudio){
+            if (audiois == "true") {
                 NotifMe("", "" + magty + "" + mag + " quake causing shaking near " + whereeq + " with depth " + deept + " km occurs in " + lefttime + "", "", true, 'en', 0.8);
             }
         }
-
+        
+        //info
         info_center = whereeq + '<br>' + lastinfo + ' (' + loctxt + ')';
-        info_satu = '<i class="fas fa-house-damage"></i> ' + mag + ' ' + magty;
+        info_satu = '<i class="fal fa-house-damage"></i> ' + mag + ' ' + magty;
         info_dua = '<i class="fab fa-audible"></i> ' + deept + ' km';
-        info_tiga = '<i class="fas fa-clock"></i> <time data-now="' + toutc + '"></time>';
-
-        cek($('#log'), '<li class="list-group-item list-group-item-' + icon + '">' + info_satu + ' ' + info_dua + ' ' + info_tiga + ' - ' + whereeq + ' (' + lastinfo + ')</li>');
-
+        info_tiga = '<i class="fal fa-clock"></i> <time data-now="' + toutc + '"></time>';
+        //cek($('#log'), '<li class="list-group-item list-group-item-' + icon + '">' + info_satu + ' ' + info_dua + ' ' + info_tiga + ' - ' + whereeq + ' (' + lastinfo + ')</li>');
+        info_j = 'Earthquake (' + info_satu + ' ' + info_dua + ' ' + info_tiga+')';
     } else if (x.type == "volcano") {
-        ismsg = true;
+
+        litemap = true;
         wait_close = 15;
+
         var info = datap.info;
         var sumber = datap.source;
         var nama_volcano = datap.volcano;
         var toutc = datap.date_input;
-        info_satu = 'Volcano ' + nama_volcano + ' (' + sumber + ')';
-        info_dua = info + ' - <time data-now="' + toutc + '"></time>';
+
+        info_j = 'Volcano ' + nama_volcano + ' (' + sumber + ')';
+        info_center = info + ' - <time data-now="' + toutc + '"></time>';
+
+        if (audiois == "true") {
+            var timelocal = moment.utc(toutc, 'YYYY-MM-DD HH:mm:ss').local();
+            var lefttime = timelocal.local().fromNow();
+            NotifMe("", "Info Volcano "+nama_volcano+" by "+sumber+" "+info+" "+lefttime, "", true, 'en', 0.8);
+        }
+
     } else if (x.type == "notice") {
         ismsg = true;
         info_satu = 'Message from ' + datap.user;
         info_dua = datap.message;
-
         if (datap.mic) {
             info_satu = 'Message (Audio) from ' + datap.user;
             NotifMe("", datap.message, "", true, 'en', 0.8);
-        }
-        
+        }        
     } else {
         console.log('belum ada: ' + x.type);
     }
-
+    if (litemap) {
+        $('#map').html('<div class="boxf text-white bg-dark animate__animated animate__fadeInRight"> <h2 class="text-center">' + info_j + '</h2> <h3 class="text-center">' + info_center + '</h3>');
+    }
     if (ismap) {
-        $('#map').html('<div class="boxf text-white bg-dark animate__animated animate__shakeX"> <h2 class="text-center">' + info_j + '</h2> <h3 class="text-center">' + info_center + '</h3> <div id="ewsmap"></div> <div class="container-fluid"><div class="row text-center" style="font-size: x-large"> <div class="col-sm">' + info_satu + '</div> <div class="col-sm">' + info_dua + '</div> <div class="col-sm">' + info_tiga + '</div> </div> </div> </div>');
+        $('#map').html('<div class="boxf bg-primary animate__animated animate__fadeInRight"> <h2 class="text-center">' + info_j + '</h2> <h3 class="text-center">' + info_center + '</h3> <div id="ewsmap"></div>');
         var map = L.map('ewsmap', {
             zoomControl: false,
             attributionControl: false,
@@ -175,18 +197,20 @@ function OnData(x) {
 }
 
 //API Info
-$.getJSON(URL_APP + 'warning', function (data) {
-    try {
-        for (let b in data) {
-            OnData({
-                "type": b,
-                "data": data[b]
-            });
+if(get_last == "true"){
+    $.getJSON(URL_APP + 'warning', function (data) {
+        try {
+            for (let b in data) {
+                OnData({
+                    "type": b,
+                    "data": data[b]
+                });
+            }
+        } catch (error) {
+            console.log(error);
         }
-    } catch (error) {
-        console.log(error);
-    }
-});
+    });
+}
 
 function cek(list, vv, limit = 10) {
 
@@ -207,23 +231,3 @@ function cek(list, vv, limit = 10) {
             }
         }, 1000 * 15);
 }
-
-function animateCSS(element, animation, prefix = 'animate__') {
-    // We create a Promise and return it
-    new Promise((resolve, reject) => {
-        const animationName = `${prefix}${animation}`;
-        const node = document.querySelector(element);
-
-        node.classList.add(`${prefix}animated`, animationName);
-
-        // When the animation ends, we clean the classes and resolve the Promise
-        function handleAnimationEnd() {
-            node.classList.remove(`${prefix}animated`, animationName);
-            node.removeEventListener('animationend', handleAnimationEnd);
-
-            resolve('Animation ended');
-        }
-
-        node.addEventListener('animationend', handleAnimationEnd);
-    })
-};

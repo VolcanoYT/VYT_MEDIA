@@ -20,6 +20,7 @@ var showinfo = getAllUrlParams().info;
 var useurl = getAllUrlParams().URL;
 var token_user = getAllUrlParams().token_user;
 var isobson = getAllUrlParams().obs;
+var istes = getAllUrlParams().tes;
 
 var get_drag_position = {
     x: 0,
@@ -79,7 +80,7 @@ $('.full').on('click', function () {
 
 // Tombol Download
 $('.download').on('click', function (ex) {
-    $('.download').children().removeClass('fas fa-camera-retro').addClass('fas fa-sync fa-spin');
+    $('.download').children().removeClass('fal fa-camera-retro').addClass('fal fa-sync fa-spin');
     $('.download').prop('disabled', true);
 
     var xhr = new XMLHttpRequest();
@@ -87,7 +88,7 @@ $('.download').on('click', function (ex) {
     xhr.responseType = 'blob';
     xhr.onload = function (e) {
         //console.log(xhr.getAllResponseHeaders())
-        $('.download').children().removeClass('fas fa-sync fa-spin').addClass('fas fa-camera-retro');
+        $('.download').children().removeClass('fal fa-sync fa-spin').addClass('fal fa-camera-retro');
         $('.download').prop('disabled', false);
         if (this.status == 200) {
             var myBlob = this.response;
@@ -176,10 +177,10 @@ function exitff() {
 
 function swbt(live = true) {
     if (live) {
-        $("#iconplay").attr('class', 'fas fa-pause');
+        $("#iconplay").attr('class', 'fal fa-pause');
         //$(div_live).show();
     } else {
-        $("#iconplay").attr('class', 'fas fa-play');
+        $("#iconplay").attr('class', 'fal fa-play');
         //$(div_live).hide();
     }
 }
@@ -733,27 +734,41 @@ function draw_image(imgdata, watermark = false) {
     image.src = imgdata;
 }
 
-function BarInfo(is = "fas fa-spinner fa-spin") {
+function BarInfo(is = "fal fa-spinner fa-spin") {
     if (showinfo == "true") {
         $('#judul').html('<i class="' + is + '" aria-hidden="true"></i> ' + name + " (" + moment().tz(zona).format('DD/MM/YYYY HH:mm:ss') + ")");
+    }
+}
+
+function inIframe() {
+    try {
+        return window.self !== window.top;
+    } catch (e) {
+        return true;
     }
 }
 
 var noenter = true;
 
 var reason = "";
-var reason_icon = "fas fa-unlink";
+var reason_icon = "fad fa-wifi-slash";
 
-var IoPlayer = io(URL_APP + 'camera');
-IoPlayer.on('connect', function () {
-    IoPlayer.emit('access', {
+var IoPlayer = io(URL_APP + 'camera', {
+    query: {
         cam: camid,
         token_user: token_user,
-        version: '1.0.5'
-    });
+        version: '1.0.6',
+        referrer: document.referrer,
+        iframe: inIframe()
+    },
+    transports: ['websocket']
+});
+
+IoPlayer.on('connect', function (e) {
+    BarInfo('fad fa-wifi-2');
 });
 IoPlayer.on('disconnect', function () {
-    $("#error").html('<div class="alert alert-primary" role="alert"><h3>Camera Disconnected: ' + reason + '</h3></div>');      
+    $("#error").html('<div class="alert alert-primary" role="alert"><h3>Camera Disconnected: ' + reason + '</h3></div>');
     BarInfo(reason_icon);
     StopStart('meow', false);
     live = false;
@@ -764,10 +779,13 @@ IoPlayer.on('stream', function (e) {
             draw_image('data:image/webp;base64,' + base64ArrayBuffer(e.buffer));
 
             //TODO: get time base framer
-            var is = "fas fa-camera"
+            var is = "fal fa-camera"
             if (e.live) {
-                is = "fas fa-satellite-dish";
+                is = "fal fa-satellite-dish";
             }
+
+            if (istes == "true")
+                console.log(e);
 
             BarInfo(is);
 
@@ -782,8 +800,9 @@ IoPlayer.on('stream', function (e) {
 
             noenter = true;
             StopStart('meow', false);
-            BarInfo();
+
             console.log(e);
+
             if (e.data.code == 601) {
                 //info camera
                 try {
@@ -793,19 +812,21 @@ IoPlayer.on('stream', function (e) {
                 } catch (error) {
                     console.log(error);
                 }
+                BarInfo('fal fa-file-invoice');
             } else if (e.data.code == 0) {
                 //exit camera
                 reason = e.data.message;
                 StopStart('dcio');
             } else if (e.data.code == 204) {
                 //loading
+                BarInfo();
             } else if (e.data.code == 600) {
                 //info online
                 online = e.data.online;
+                //BarInfo('fal fa-user-plus');
             } else {
                 $("#error").html('<div class="alert alert-primary" role="alert"><h3>' + e.data.message + '</h3></div>');
-                console.log(e);
-                BarInfo('fas fa-exclamation-triangle');
+                BarInfo('fal fa-exclamation-triangle');
             }
 
             //API Player
@@ -879,15 +900,15 @@ function base64ArrayBuffer(arrayBuffer) {
 //API Select Time
 $.fn.datetimepicker.Constructor.Default = $.extend({}, $.fn.datetimepicker.Constructor.Default, {
     icons: {
-        time: 'far fa-clock',
-        date: 'fas fa-calendar-check',
-        up: 'fas fa-arrow-up',
-        down: 'fas fa-arrow-down',
-        previous: 'fas fa-chevron-left',
-        next: 'fas fa-chevron-right',
-        today: 'fas fa-calendar-check-o',
-        clear: 'fas fa-trash',
-        close: 'fas fa-times-circle'
+        time: 'fal fa-clock',
+        date: 'fal fa-calendar-check',
+        up: 'fal fa-arrow-up',
+        down: 'fal fa-arrow-down',
+        previous: 'fal fa-chevron-left',
+        next: 'fal fa-chevron-right',
+        today: 'fal fa-calendar-check-o',
+        clear: 'fal fa-trash',
+        close: 'fal fa-times-circle'
     }
 });
 $('#set_start').datetimepicker({
@@ -1062,25 +1083,29 @@ $('#what_use').change(function (e) {
 //for obs stream
 var no_first_time = false;
 if (isobson == "true") {
-    console.log('OBS Debug: ', window.obsstudio.pluginVersion);
-    window.addEventListener('obsSceneChanged', function (event) {
-        console.log('obsSceneChanged: ', event);
-    });
-    window.obsstudio.getStatus(function (status) {
-        console.log('Status OBS: ', status);
-    });
-    window.obsstudio.getCurrentScene(function (scene) {
-        console.log('OBS Secene: ', scene);
-    })
-    window.obsstudio.onVisibilityChange = function (visibility) {
-        console.log('OBS Visibility? ', visibility);
-    };
-    window.obsstudio.onActiveChange = function (active) {
-        console.log('OBS Active? ', active);
-        if (active) {
-            StopStart('cnio');
-        } else {
-            StopStart('dcio');
-        }
-    };
+    try {
+        console.log('OBS Debug: ', window.obsstudio.pluginVersion);
+        window.addEventListener('obsSceneChanged', function (event) {
+            console.log('obsSceneChanged: ', event);
+        });
+        window.obsstudio.getStatus(function (status) {
+            console.log('Status OBS: ', status);
+        });
+        window.obsstudio.getCurrentScene(function (scene) {
+            console.log('OBS Secene: ', scene);
+        })
+        window.obsstudio.onVisibilityChange = function (visibility) {
+            console.log('OBS Visibility? ', visibility);
+        };
+        window.obsstudio.onActiveChange = function (active) {
+            console.log('OBS Active? ', active);
+            if (active) {
+                StopStart('cnio');
+            } else {
+                StopStart('dcio');
+            }
+        };
+    } catch (error) {
+        console.log(error);
+    }
 }

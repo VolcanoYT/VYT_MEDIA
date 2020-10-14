@@ -1,27 +1,33 @@
-#ewsmap {
-    width: 100%;
-    height: 250px;
-    margin-top: 20px
-}
-
 html,body {
     padding: 0px;
     margin: 0px;
-    color: white;
 }
 
+.boxf, #ewsmap,ul {
+    border-radius: 25px;
+}
+
+#ewsmap {
+    width: 949px;
+    height: 122px;
+    top: -1px;
+    position: absolute;
+    left: 0px;
+    z-index: -1;
+    opacity: 0.8;
+}
 
 .boxf {
-    position: fixed;
-    width: 700px;
-    height: 428px;
+    position: absolute;
+    width: 949px;
+    height: 121px;
     right: 14px;
     bottom: 14px;
     border-radius: 25px;
 }
 
 .ping{
-    position: fixed;
+    position: absolute;
     width: 600px;
     top: 15%;
     left: 50%;
@@ -30,10 +36,9 @@ html,body {
 }
 
 ul#log {
-    position: fixed;
+    position: absolute;
     width: 830px;
     height: 428px;
     left: 15px;
     bottom: 14px;
-    border-radius: 25px;
 }
