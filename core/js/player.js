@@ -1,5 +1,5 @@
-console.log('Browser: ', navigator.userAgent);
-console.log('Cookies: ', Cookies.get());
+//console.log('Browser: ', navigator.userAgent);
+//console.log('Cookies: ', Cookies.get());
 // Player use io for proxy stream
 var IoPlayer;
 // Player Time Lapse use for playback
@@ -48,8 +48,10 @@ var name = "NoName";
 
 //URL Proxy Player for localhost or multi node
 if (!isEmpty(useurl)) {
-    console.log('Io Player Proxy ', useurl);
-    URL_APP = useurl;
+    if (useurl !== 'undefined') {
+        console.log('Io Player Proxy ', useurl);
+        URL_APP = useurl;
+    }
 }
 
 // API Fullscreen by https://stackoverflow.com/questions/7130397/how-do-i-make-a-div-full-screen
@@ -611,14 +613,6 @@ if (!isEmpty(load_zoom)) {
     resize();
 }
 
-var load_zoom = tryParse(Cookies.get('zoom_cam_' + camid));
-if (!isEmpty(load_zoom)) {
-    console.log(load_zoom);
-    scale = load_zoom.scale;
-    get_int_zoom = load_zoom.get_int_zoom;
-    resize();
-}
-
 var load_drag = tryParse(Cookies.get('drag_cam_' + camid));
 if (!isEmpty(load_drag)) {
     console.log(load_drag);
@@ -634,6 +628,7 @@ function reset() {
         y: 0
     }
     resize();
+    savedrag();
     savezoom();
 };
 
@@ -766,6 +761,9 @@ var IoPlayer = io(URL_APP + 'camera', {
 
 IoPlayer.on('connect', function (e) {
     BarInfo('fad fa-wifi-2');
+});
+IoPlayer.on('error', (error) => {
+    console.log('Error IoPlayer: ', error);
 });
 IoPlayer.on('disconnect', function () {
     $("#error").html('<div class="alert alert-primary" role="alert"><h3>Camera Disconnected: ' + reason + '</h3></div>');

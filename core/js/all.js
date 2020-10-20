@@ -15,7 +15,7 @@ try {
 }
 
 var localDate;
-var utc_time_mm; 
+var utc_time_mm;
 var loc_time_mm;
 setInterval(function () {
     try {
@@ -23,8 +23,8 @@ setInterval(function () {
         loc_time_mm = moment().format('DD/MM/YYYY HH:mm:ss');
         localDate = Math.floor(new Date().getTime() / 1000);
         if (document.getElementById("mytime")) {
-            document.getElementById("mytime").innerHTML=utc_time_mm + " GMT | " + loc_time_mm + " LocalTime";
-        }        
+            document.getElementById("mytime").innerHTML = utc_time_mm + " GMT | " + loc_time_mm + " LocalTime";
+        }
     } catch (error) {
         //tidak harus di pakai 
     }
@@ -96,6 +96,9 @@ function getRandomValue() {
 }
 
 function isEmpty(str) {
+    if (str == "undefined") {
+        str = "";
+    }
     return (!str || 0 === str.length);
 }
 
@@ -546,6 +549,9 @@ function getAllUrlParams(url) {
                 }
             }
         }
+    }
+    if (obj == "undefined") {
+        obj = "";
     }
     return obj;
 }

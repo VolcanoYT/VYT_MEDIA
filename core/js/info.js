@@ -48,7 +48,7 @@ function OnData(x) {
     var circle = true;
 
     var showicon = URL_CDN + 'core/img/magnitude.png';
-    var wait_close = 10;
+    var wait_close = 3;
 
     var ismap = false;
     var ismsg = false;
@@ -76,10 +76,10 @@ function OnData(x) {
         //level warning
         if (mag >= 3.2 && mag <= 5) {
             icon = "warning";
-            wait_close = 15;
+            wait_close = 7;
         } else if (mag >= 5 && mag <= 9) {
             icon = "danger";
-            wait_close = 60;
+            wait_close = 20;
         }else{
             allowaudio = false;
         }
@@ -101,7 +101,7 @@ function OnData(x) {
     } else if (x.type == "volcano") {
 
         litemap = true;
-        wait_close = 15;
+        wait_close = 5;
 
         var info = datap.info;
         var sumber = datap.source;
