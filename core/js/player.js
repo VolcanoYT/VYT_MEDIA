@@ -15,12 +15,18 @@ var div_live = "#player_new";
 var div_tl_raw = "player_timelapse_raw";
 var div_tl_vd = "#player_timelapse_video";
 
-var camid = getAllUrlParams().cam;
-var showinfo = getAllUrlParams().info;
-var useurl = getAllUrlParams().URL;
+var camid      = getAllUrlParams().cam;
+var showinfo   = getAllUrlParams().info;
+var useurl     = getAllUrlParams().URL;
 var token_user = getAllUrlParams().token_user;
-var isobson = getAllUrlParams().obs;
-var istes = getAllUrlParams().tes;
+var isobson    = getAllUrlParams().obs;
+var istes      = getAllUrlParams().tes;
+
+var tmpg = true;
+var nologo     = getAllUrlParams().nologo;
+if(nologo == 'true'){
+    tmpg =false;
+}
 
 var get_drag_position = {
     x: 0,
@@ -752,7 +758,7 @@ var IoPlayer = io(URL_APP + 'camera', {
     query: {
         cam: camid,
         token_user: token_user,
-        version: '1.0.6',
+        version: '1.0.7',
         referrer: document.referrer,
         iframe: inIframe()
     },
@@ -774,7 +780,7 @@ IoPlayer.on('disconnect', function () {
 IoPlayer.on('stream', function (e) {
     if (e) {
         if (e.image) {
-            draw_image('data:image/webp;base64,' + base64ArrayBuffer(e.buffer));
+            draw_image('data:image/webp;base64,' + base64ArrayBuffer(e.buffer),tmpg);
 
             //TODO: get time base framer
             var is = "fal fa-camera"

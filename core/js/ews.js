@@ -215,7 +215,7 @@ function OnData(x) {
     } else if (document.getElementById("putmap") !== null) {
         if (x.type == "earthquake") {
             var loc = L.latLng(datap.eq_lat, datap.eq_lon);
-            var whereeq = '' + Number(datap.distance).toFixed(2) + ' miles of ' + datap.city + ' - ' + datap.country + '';
+            var whereeq = '' + Number(datap.distance).toFixed(2) + ' km of ' + datap.city + ' - ' + datap.country + '';
             var toutc = datap.data;
             var loctxt = '' + (datap.eq_lat).toFixed(4) + ',' + (datap.eq_lon).toFixed(4) + '';
             $('#timeutc').html('<time data-now="' + toutc + '">' + toutc + '</time>');

@@ -61,7 +61,7 @@ function OnData(x) {
         loc = L.latLng(datap.eq_lat, datap.eq_lon);
 
         //info lain
-        var whereeq = '' + Number(datap.distance).toFixed(2) + ' miles of ' + datap.city + ' - ' + datap.country;
+        var whereeq = '' + Number(datap.distance).toFixed(2) + ' km of ' + datap.city + ' - ' + datap.country;
         var lastinfo = datap.provider + ' / ' + OnGempa(datap.status);
         var toutc = datap.data;
         var mag = (datap.magnitude).toFixed(2);
