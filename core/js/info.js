@@ -99,7 +99,7 @@ function OnData(x) {
         //cek($('#log'), '<li class="list-group-item list-group-item-' + icon + '">' + info_satu + ' ' + info_dua + ' ' + info_tiga + ' - ' + whereeq + ' (' + lastinfo + ')</li>');
         info_j = 'Earthquake (' + info_satu + ' ' + info_dua + ' ' + info_tiga+')';
     } else if (x.type == "volcano") {
-
+return
         litemap = true;
         wait_close = 5;
 

@@ -37,12 +37,19 @@ if (!isEmpty(setuser)) {
     $('#join_room .name').val(setuser);
 }
 
-//auto show
-login();
+if (isauto == "true") {
+    setTimeout(function () {
+        $('.proses').trigger('click');
+    }, 3000);
+} else {
+    //auto show
+    login();
+}
+
 
 var multiview = io(URL_APP + 'multiview', {
     query: {
-        version: '1.0.6',
+        version: '1.0.7',
         referrer: document.referrer
     },
     transports: ['websocket']
@@ -99,7 +106,7 @@ multiview.on('request', function (request) {
                 var urlz = "";
 
                 if (type == 1) {
-                    urlz = URL_API + 'spanel/player.php?cam=' + idurl + '&token_user='+token_user+'&autoplay=true&info=true&URL=' + seturl;
+                    urlz = URL_API + 'spanel/player.php?cam=' + idurl + '&token_user=' + token_user + '&autoplay=true&info=true&nologo=true&URL=' + seturl;
                     html = '<iframe src="' + urlz + '"></iframe>';
                 } else {
                     console.log('come soon');
@@ -119,19 +126,19 @@ multiview.on('request', function (request) {
                             //all
                             var main = $('#' + idsource);
                             if (main.attr('id') !== idsource) {
-                                main.attr('id', idsource);                                    
+                                main.attr('id', idsource);
                             }
                             if (main.attr('data-type') !== type) {
-                                main.attr('data-type', type);                                    
+                                main.attr('data-type', type);
                             }
                             if (main.attr('data-url') !== idurl) {
-                                main.attr('data-url', idurl);                                    
+                                main.attr('data-url', idurl);
                             }
                             if (main.attr('data-source') !== name) {
-                                main.attr('data-source', name);                                    
+                                main.attr('data-source', name);
                             }
                             if (main.attr('data-scene') !== name_scene) {
-                                main.attr('data-scene', name_scene);                                    
+                                main.attr('data-scene', name_scene);
                             }
                             if (main.attr('data-id-scene') !== scene) {
                                 main.attr('data-id-scene', scene);
@@ -141,8 +148,8 @@ multiview.on('request', function (request) {
                             if (type == 1) {
                                 var sub = $('#' + idsource + " > iframe");
                                 if (sub.attr('src') !== urlz) {
-                                    sub.attr('src', urlz);                                    
-                                }                                
+                                    sub.attr('src', urlz);
+                                }
                             }
 
                         } else {
