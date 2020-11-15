@@ -3,7 +3,12 @@ var map_loading = false;
 var ews_loading = false;
 var ews_link = null;
 
+var tmp_open;
+
 var TemporaryEarthquake = [];
+
+var isfullscreen = getAllUrlParams().fullscreen;
+
 var auto_mode = getAllUrlParams().auto;
 var auto_twait = 0;
 var auto_gwait = 60;
@@ -64,17 +69,39 @@ var platetectonics = new L.TileLayer("https://earthquake.usgs.gov/basemap/tiles/
 var places = new L.TileLayer("https://services.arcgisonline.com/arcgis/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}");
 var highrisk = new L.TileLayer("https://{s}.tiles.mapbox.com/v4/temblor.d2byhogx/{z}/{x}/{y}.jpg?access_token=" + keymapbox);
 highrisk.setOpacity(0.4);
-
-/*
-var krb = L.esri.featureLayer({
-    url: 'https://services7.arcgis.com/g7FCBALNv7UNIenl/arcgis/rest/services/KRB_GA_ID2/FeatureServer/0'
+var seismicportal = L.tileLayer.wms('https://www.seismicportal.eu/wms?', {
+    layers: 'event'
 });
-*/
+
+//https://www.seismicportal.eu/wms?&&SERVICE=WMS&REQUEST=GetMap&VERSION=1.1.1&LAYERS=event&STYLES=&FORMAT=image%2Fpng&TRANSPARENT=true&HEIGHT=256&WIDTH=256&TILED=true&SRS=EPSG%3A4326&BBOX={z},0,{x},{y}
+
+//https://www.seismicportal.eu/wms?&service=WMS&request=GetMap&layers=event&styles=&format=image%2Fjpeg&transparent=false&version=1.1.1&width=256&height=256&srs=EPSG%3A3857&bbox=16280475.528516265,-2504688.542848655,17532819.79994059,-1252344.2714243263
+
+var krb = L.esri.featureLayer({
+    ////https://services6.arcgis.com/WVOVRvVBhANSlrYg/arcgis/rest/services/Kawasan_Rawan_Bencana_Gunung_Api/FeatureServer/0/query
+    //https://services7.arcgis.com/g7FCBALNv7UNIenl/arcgis/rest/services/KRB_GA_ID2/FeatureServer/0
+    url: 'https://services6.arcgis.com/WVOVRvVBhANSlrYg/arcgis/rest/services/Kawasan_Rawan_Bencana_Gunung_Api/FeatureServer/0',
+}).bindPopup(function(layer) {
+    switch (layer.feature.properties.INDGA) {
+        case 1:
+            var krb = 'Kawasan Rawan Bencana (KRB) I';
+            break;
+    case 2:
+            var krb = 'Kawasan Rawan Bencana (KRB) II';                        
+            break;
+        default:
+            var krb = 'Kawasan Rawan Bencana (KRB) III';
+            break;
+    }
+    return L.Util.template('<h3>'+krb+'</h3><hr/><p>{REMARK}</p>', layer.feature.properties);
+});
+
+var get_zona = moment.tz(moment.tz.guess()).zoneAbbr();
 
 var map = new L.Map('map_2d', {
     attributionControl: true,
     //G_Seismometer
-    layers: [googleSat, G_Earthquake, G_Earthquake_C, platetectonics, places]
+    layers: [googleSat, G_Earthquake, G_Earthquake_C, G_Camera,platetectonics, places]
 }).fitWorld();
 map.setView([-1.62, 120.13], 5.4);
 map.locate({
@@ -102,12 +129,13 @@ var overlays = {
     "Places Name": places,
     "Plate Tectonics": platetectonics,
     "High Risk": highrisk,
-    // "Kawasan Rawan Bencana": krb,
+    "Kawasan Rawan Bencana": krb.setWhere("MAG_CODE='MER'"),
 
     "Seismometer Station": G_Seismometer,
     // "Tsunami Station": G_Tsunami,
     "Camera Station": G_Camera,
     "Antipodes (90km)": G_Antipodes,
+    "TES": seismicportal
 };
 
 L.control.scale().addTo(map);
@@ -119,36 +147,61 @@ L.easyButton('<span class="star">&starf;</span>', function () {
 
 var last_map = [];
 
-function clean_map() {
+var counter = 0;
+
+function clean_map(cleanid = "") {
 
     // Clean by Bounds Map
     var isloc = map.getBounds();
+    if (!isEmpty(cleanid)) {
+        last_map = "";
+    }
     if (JSON.stringify(last_map) !== JSON.stringify(isloc)) {
         last_map = isloc;
 
         //add layer jika tersedia
-        TemporaryEarthquake.forEach(async (item) => {
-            if (isloc.contains(item.loc)) {
-                G_Earthquake.addLayer(item.marker);
-                G_Earthquake_C.addLayer(item.circle);
+        TemporaryEarthquake.forEach(async (item, index_cam) => {
+            if (isEmpty(cleanid)) {
+                if (isloc.contains(item.loc)) {
+                    G_Earthquake.addLayer(item.marker);
+                    G_Earthquake_C.addLayer(item.circle);
+                } else {
+                    G_Earthquake.removeLayer(item.marker);
+                    G_Earthquake_C.removeLayer(item.circle);
+                }
             } else {
-                G_Earthquake.removeLayer(item.marker);
-                G_Earthquake_C.removeLayer(item.circle);
+                if (cleanid.spawn.id == item.spawn.id) {
+                    console.log('found id to remove');
+
+                    if (isloc.contains(item.loc)) {
+                        G_Earthquake.removeLayer(item.marker);
+                        G_Earthquake_C.removeLayer(item.circle);
+                    }
+
+                    TemporaryEarthquake[index_cam].spawn  = cleanid.spawn;
+                    TemporaryEarthquake[index_cam].circle = cleanid.circle
+                    TemporaryEarthquake[index_cam].marker = cleanid.marker;
+
+                    if (isloc.contains(item.loc)) {
+                        G_Earthquake.addLayer(cleanid.marker);
+                        G_Earthquake_C.addLayer(cleanid.circle);
+                    }
+                }
             }
         });
         SeismometerTemp.forEach(async (item) => {
             if (isloc.contains(item.loc)) {
                 G_Seismometer.addLayer(item.marker);
-                if(ews_loading){
+                if (ews_loading) {
                     ews_link.send(JSON.stringify({
-                        "subscribe": ""+item.item.network+"."+item.item.station+"",
+                        "subscribe": "" + item.item.network + "." + item.item.station + "",
                     }));
                 }
             } else {
                 G_Seismometer.removeLayer(item.marker);
-                if(ews_loading){
+                if (ews_loading) {
                     ews_link.send(JSON.stringify({
-                        "unsubscribe": ""+item.item.network+"."+item.item.station+"",
+                        "unsubscribe": "" + item.item.network + "." + item.item.station + "",
                     }));
                 }
             }
@@ -160,17 +213,23 @@ function clean_map() {
                 G_Camera.removeLayer(item.marker);
             }
         });
-        //console.log('map berubah?');
-    } else {
-        //console.log('map belum berubah?');
+        console.log('map berubah?');
     }
 
     // Clean by Time
     var toDelete = [];
     var set_color = getRandomColor();
     var currentdate = new Date(moment().utc().format('YYYY-MM-DD HH:mm:ss')); //GMT NOW
+
+    counter++;
+
+    if (counter > 7) {
+        counter = 0;
+    }
+
     TemporaryEarthquake.forEach(async (item, index) => {
-        var olddate = new Date(item.expire);
+        var olddate = new Date(item.spawn.properties.time);
+        var eq_low = item.spawn.properties.mag;
         var hours = Math.floor(Math.abs(currentdate - olddate) / 36e5);
         if (hours > 24) {
             G_Earthquake.removeLayer(item.marker);
@@ -178,10 +237,17 @@ function clean_map() {
             toDelete.push(index);
         } else {
             if (hours < 1) {
-                TemporaryEarthquake[index].circle.setStyle({
-                    color: set_color,
-                    fillColor: set_color,
-                });
+                //set circle if new earthquake
+                if (eq_low >= 2) {
+                    TemporaryEarthquake[index].circle.setRadius(counter * eq_low * 100);
+                } else {
+                    TemporaryEarthquake[index].circle.setStyle({
+                        color: set_color,
+                        fillColor: set_color,
+                    });
+                }
+            } else {
+                TemporaryEarthquake[index].circle.setRadius(TemporaryEarthquake[index].rdnum);
             }
         }
     });
@@ -223,12 +289,29 @@ async function GetEarthquake() {
     });
 }
 
-function add(spawn) {
+function add(spawn, notif = false) {
+
     var ecid = spawn.id;
+    var timeupd = spawn.properties.update;
+
+    var thisupdate = null;
     var noproblem = true;
-    TemporaryEarthquake.forEach(async (item) => {
-        if (item.id == ecid) {
-            noproblem = false;
+
+    TemporaryEarthquake.forEach(async (item, index_item) => {
+        if (item.spawn.id == ecid) {
+
+            var item_time_update = item.spawn.properties.update;
+
+            try {
+                if (timeupd !== item_time_update) {
+                    console.log(' ' + timeupd + ' - ' + item_time_update + ' ');
+                    thisupdate = index_item;
+                } else {
+                    noproblem = false;
+                }
+            } catch (error) {
+                console.log(error);
+            }
             return;
         }
     });
@@ -244,8 +327,10 @@ function add(spawn) {
         var mt = spawn.properties.magType;
         var magnitudetwo = Number(spawn.properties.mag).toFixed(1);
         var depthtwo = Number(spawn.geometry.coordinates[2]).toFixed(0);
-        //var tsunami = spawn.properties.tsunami;
-        var mystatus = EarthquakeStatus(spawn.properties.status);
+        var tsunami = spawn.properties.tsunami;
+        var statsid = spawn.properties.status;
+        var cont = spawn.properties.count;
+        var mystatus = EarthquakeStatus(statsid);
         var cp = new L.LatLng(latx, lotx, (magnitudetwo + depthtwo / 100) * 1000);
 
         /*
@@ -270,29 +355,63 @@ function add(spawn) {
         }
         */
 
+        var deep_color = ColorDepth(depthtwo);
+        var eq_color = getMagnitudeColor(magnitudetwo);
+        if (statsid == "0") {
+            deep_color = "#ffffff";
+            eq_color = "#ffffff";
+        }
+
         var link_gempa = 'https://volcanoyt.com/earthquake/track/' + ecid;
-        var icon_eq = new L.marker(cp, {
-            icon: L.divIcon({
-                iconSize: null,
-                html: '<div class="map-label eq"><div class="map-label-content" style="border-color: ' + ColorDepth(depthtwo) + ';background-color:' + getMagnitudeColor(magnitudetwo) + '">' + mt + '' + magnitudetwo + '</div><div class="map-label-arrow"></div></div>'
-            })
-        }).bindPopup('<strong>' + whereeq + '</strong><br><b>Location: </b><br>' + lokasi + ' <br><br>' + mt + '' + magnitudetwo + ' | depth ' + depthtwo + 'km <br><br>' + timeutc + ' GMT<br>' + timelocal.format("YYYY-MM-DD HH:mm:ss") + ' LocalTime<br><br>Source ' + provider + ' (Status ' + mystatus + ') <br>Share: <a href="https://www.facebook.com/sharer/sharer.php?u=' + link_gempa + '" target="_blank">Facebook</a> | <a href="https://twitter.com/intent/tweet/?text=' + link_gempa + '" target="_blank">Twitter</a> | <a href="whatsapp://send?text=' + link_gempa + '" target="_blank">WhatsApp</a>');
+        var msgpop = '<strong>' + whereeq + '</strong><br><b>Location: </b><br>' + lokasi + ' <br>' + mt + '' + magnitudetwo + ' | depth ' + depthtwo + 'km <br><br>' + timeutc + ' GMT<br>' + timelocal.format("YYYY-MM-DD HH:mm:ss") + ' ' + get_zona + '<br><br>Source ' + provider + '<br>Status: ' + mystatus + '<br>Update: ' + timeupd + ' UTC (' + cont + 'x)<br><br>Share: <a href="https://www.facebook.com/sharer/sharer.php?u=' + link_gempa + '" target="_blank">Facebook</a> | <a href="https://twitter.com/intent/tweet/?text=' + link_gempa + '" target="_blank">Twitter</a> | <a href="whatsapp://send?text=' + link_gempa + '" target="_blank">WhatsApp</a>';
+
+        var iconpz = L.divIcon({
+            iconSize: null,
+            html: '<div class="map-label eq"><div class="map-label-content" style="border-color: ' + deep_color + ';background-color:' + eq_color + '">' + mt + '' + magnitudetwo + '</div><div class="map-label-arrow"></div></div>'
+        });
+
+        var rdnum = getIntensityCircleRadius(magnitudetwo, depthtwo);
 
         var circle_eq = L.circle(cp, {
             fillColor: '#006400',
             color: 'green',
-            radius: getIntensityCircleRadius(magnitudetwo, depthtwo) * 1000
+            radius: rdnum
         });
-        if (depthtwo >= 90) {
-            G_Antipodes.addLatLng(antipode(cp));
+
+        var icon_eq = new L.marker(cp, {
+            icon: iconpz
+        }).bindPopup(msgpop);
+
+        if (isEmpty(thisupdate)) {
+            if (depthtwo >= 90) {
+                G_Antipodes.addLatLng(antipode(cp));
+            }
+            TemporaryEarthquake.push({
+                loc: cp,
+                marker: icon_eq,
+                circle: circle_eq,
+                spawn: spawn,
+                rdnum: rdnum
+            });
+        } else {
+            //clean map with new update
+            clean_map({
+                spawn: spawn,
+                circle: circle_eq,
+                marker: icon_eq
+            })
         }
-        TemporaryEarthquake.push({
-            loc: cp,
-            marker: icon_eq,
-            circle: circle_eq,
-            expire: timeutc,
-            id: ecid
-        });
+
+        if (notif) {
+            try {
+                map.flyTo([latx, lotx], 8);
+                tmp_open = TemporaryEarthquake.length - 1;
+                //TemporaryEarthquake[tmp_open].marker.openPopup(); //force open?
+            } catch (error) {
+                console.log(error);
+            }
+        }
+        
     }
 }
 
@@ -363,7 +482,7 @@ async function GetSeismometer() {
             cache: true,
             url: URL_API + "seismometer/data.json",
             data: {
-               // search: "GE"
+                // search: "GE"
             }
         }).done(function (data) {
             var tmp_data = data['results'];
@@ -398,7 +517,7 @@ async function GetSeismometer() {
                             loc: cp,
                             marker: newico,
                             id: id_station,
-                            item:item
+                            item: item
                         });
                     }
                 });
@@ -470,162 +589,9 @@ setInterval(async () => {
         }
 
         clean_map();
-
     }
 
-    //testing auto mode
-    if (auto_mode) {
-        //console.log('cek...');
-    } else {
-        //console.log('no cek pw');
-    }
-
-    //for testing color
-    /*
-    $(".seimot").each(function (i) {
-        var id_seimo = $(this).attr("data-id");
-        $(this).children( ".map-label-content" ).attr('style','background-color: '+getRandomColor()+'');
-        //console.log(id_seimo);
-    });
-    */
-
-    //console.log((new Date()).getTime());
 }, 1000 * 1);
-
-/**
- * 
- * @param {*} data
- * What is the status of an earthquake?
- */
-function EarthquakeStatus(data) {
-    if (data == "0") {
-        return "Preliminary";
-    } else if (data == "1") {
-        return "Confirmed";
-    } else if (data == "2") {
-        return "Update";
-    } else {
-        return "Unknown";
-    }
-}
-
-/**
- * 
- * @param {*} coord 
- * https://math.stackexchange.com/questions/1191689/how-to-calculate-the-antipodes-of-a-gps-coordinate
- * Antipodes are mostly used to predict earthquakes but that does not mean it will certainly happen
- */
-function antipode(coord) {
-    return new L.LatLng(-1 * coord['lat'], coord['lng'], coord['alt']);
-}
-
-/**
- * Return the radius of the circle in which the mmi is greater than 3.
- * The unit is km.
- * https://github.com/SPREP/mhews/blob/master/imports/api/geoutils.js
- */
-function getIntensityCircleRadius(mw, depth) {
-    let radiusResolution = 100;
-    let maximumRadius = 1000;
-    let radius = 0;
-    for (let sx = radiusResolution; sx <= maximumRadius; sx += radiusResolution) {
-        let mmi = getMMI(calculatePGV(mw, depth, sx));
-        if (mmi < 4) {
-            return radius;
-        }
-        radius = sx;
-    }
-    return radius;
-}
-
-/**
- * According to the table in http://earthquake.usgs.gov/earthquakes/shakemap/background.php#wald99b.
- * MMI=2 is skipped.
- */
-function getMMI(pgv) {
-    if (pgv < 0.1) return 1;
-    else if (pgv < 1.1) return 3;
-    else if (pgv < 3.4) return 4;
-    else if (pgv < 8.1) return 5;
-    else if (pgv < 16) return 6;
-    else if (pgv < 31) return 7;
-    else if (pgv < 60) return 8;
-    else if (pgv < 116) return 9;
-    else return 10;
-}
-
-/**
- * Calculate PGV at the surface distance sx from the epicenter.
- * According to http://www.data.jma.go.jp/svd/eew/data/nc/katsuyou/reference.pdf
- */
-function calculatePGV(mw, depth, sx) {
-    let l = Math.pow(10, 0.5 * mw - 1.85);
-    let x = Math.max(sx / Math.cos(Math.atan2(depth, sx)) - l * 0.5, 3);
-    let pgv600 = Math.pow(10, 0.58 * mw + 0.0038 * depth - 1.29 - log10(x + 0.0028 * Math.pow(10, 0.5 * mw) - 0.002 * x));
-    let pgv700 = pgv600 * 0.9;
-    let avs = 600;
-    let arv = Math.pow(10, 1.83 - 0.66 * log10(avs));
-    let pgv = arv * pgv700;
-
-    return pgv;
-}
-
-/**
- * Math.log10 seems not yet supported by all devices, so we define it here.
- */
-function log10(value) {
-    return Math.log(value) / Math.log(10);
-}
-
-/**
- * Vivid red color for a strong magnitude, mild yellow color for a weak magnitude.
- */
-function getMagnitudeColor(mw) {
-    if (mw < 3) {
-        return '#FFFF00';
-    } else if (mw < 4) {
-        return '#FFCC00';
-    } else if (mw < 5) {
-        return '#FF9900';
-    } else if (mw < 6) {
-        return '#FF6600';
-    } else if (mw < 7) {
-        return '#FF3300';
-    }
-    return '#FF0000';
-}
-
-/**
- * Color based on depth base
- */
-function ColorDepth(depthtwo) {
-    var normalicon = "blue";
-    if (depthtwo > 70) {
-        normalicon = "green";
-    }
-    if (depthtwo > 150) {
-        normalicon = "yellow";
-    }
-    if (depthtwo > 300) {
-        normalicon = "orange";
-    }
-    if (depthtwo > 700) {
-        normalicon = "pink";
-    }
-    return normalicon;
-}
-
-/**
- * Just random color :)
- */
-function getRandomColor() {
-    var letters = '0123456789ABCDEF';
-    var color = '#';
-    for (var i = 0; i < 6; i++) {
-        color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
-}
 
 /*
 ews_link = new ReconnectingWebSocket("wss://seedlink.volcanoyt.com");
@@ -649,24 +615,56 @@ ews_link.onclose = function (e) {
 };
 */
 
-function EWS_Proses(data){
+/*
+function EWS_Proses(data) {
     var network = data.network;
     var station = data.station;
-    var full_nama = ""+network+"."+station+"";
+    var full_nama = "" + network + "." + station + "";
     //var channel = data.channel;
     //var location = "";
 
     console.log(data);
 
-    var sub = $("div[data-id='"+full_nama+"']").children( ".map-label-content" );
-    sub.attr('style','background-color: '+getColor(data.pga)+'');
-    sub.html(''+full_nama+' | PGA '+data.pga+'');
+    var sub = $("div[data-id='" + full_nama + "']").children(".map-label-content");
+    sub.attr('style', 'background-color: ' + getColor(data.pga) + '');
+    sub.html('' + full_nama + ' | PGA ' + data.pga + '');
 }
+*/
 
-// https://stackoverflow.com/a/17268489
-// https://en.wikipedia.org/wiki/Peak_ground_acceleration
-function getColor(value) {
-    //value from 0 to 1
-    var hue = ((1 - value) * 120).toString(10);
-    return ["hsl(", hue, ",100%,50%)"].join("");
-  }
+//API Socket
+var ewsio = io(URL_APP + 'ews', {
+    transports: ['websocket']
+});
+ewsio.on('disconnect', function () {
+    console.log('disconnect');
+})
+ewsio.on('connect', function () {
+    console.log('connect');
+})
+ewsio.on('error', (error) => {
+    console.log(error);
+});
+ewsio.on('info', function (x) {
+    console.log('newinfo: ', x);
+    if (x.type == "earthquake") {
+        add(x.data, true);
+    }
+});
+
+map.on('zoomend', function () {
+    if (!isEmpty(tmp_open)) {
+        try {
+            setTimeout(function () {
+                //TemporaryEarthquake[tmp_open].marker.openPopup();
+                tmp_open = "";
+            }, 3000);
+        } catch (error) {
+            console.log(error);
+        }
+    }
+});
+
+if(isfullscreen == "true"){
+    $(".navbar").hide();
+    $("#map_2d").css("margin-top", "0");
+}

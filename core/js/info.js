@@ -3,17 +3,18 @@ var close_msg;
 var close_list;
 
 var autohide = getAllUrlParams().autohide;
-var audiois  = getAllUrlParams().audio;
+var audiois = getAllUrlParams().audio;
 var get_last = getAllUrlParams().last;
-var useurl   = getAllUrlParams().URL;
-
+var useurl = getAllUrlParams().URL;
+var filiter = getAllUrlParams().source;
+var lang = getAllUrlParams().lang;
 if (!isEmpty(useurl)) {
     console.log('use url: ', useurl);
     URL_APP = useurl;
 }
 
 //API Socket
-var ewsio = io(URL_APP + 'ews',{
+var ewsio = io(URL_APP + 'ews', {
     transports: ['websocket']
 });
 ewsio.on('disconnect', function () {
@@ -54,52 +55,98 @@ function OnData(x) {
     var ismsg = false;
     var litemap = false;
 
-    if (x.type == "earthquake") {        
+    if (x.type == "earthquake") {
         ismap = true;
 
+        var sumber = datap.properties.sources;
+        //console.log(sumber);
+        if (!isEmpty(filiter)) {
+            var wa = (filiter.split(","));
+            //console.log(wa);
+            if (!wa.includes(sumber)) {
+                //console.log('filiter');
+                return;
+            }
+        }
+
         //info map
-        loc = L.latLng(datap.eq_lat, datap.eq_lon);
+        loc = L.latLng(datap.geometry.coordinates[1], datap.geometry.coordinates[0]);
 
         //info lain
-        var whereeq = '' + Number(datap.distance).toFixed(2) + ' km of ' + datap.city + ' - ' + datap.country;
-        var lastinfo = datap.provider + ' / ' + OnGempa(datap.status);
-        var toutc = datap.data;
-        var mag = (datap.magnitude).toFixed(2);
-        var magty = datap.mt;
-        var deept = (datap.depth).toFixed(0);
-        var loctxt = '' + (datap.eq_lat).toFixed(4) + ',' + (datap.eq_lon).toFixed(4) + '';
-        var timelocal = moment.utc(toutc, 'YYYY-MM-DD HH:mm:ss').local();
-        var lefttime = timelocal.local().fromNow();
+        var countup = datap.properties.count;
+        var toutc = datap.properties.time;
+        var intsts = datap.properties.status;
+        var sumber = datap.properties.sources;
+        var mag = (datap.properties.mag).toFixed(2);
+        var magty = datap.properties.magType;
+        var deept = (datap.geometry.coordinates[2]).toFixed(0);
+
+        if (intsts == 3) {
+            countup = countup + "x"
+        } else {
+            countup = "";
+        }
 
         var allowaudio = true;
+        var loctxt = '' + (datap.geometry.coordinates[1]).toFixed(4) + ',' + (datap.geometry.coordinates[0]).toFixed(4) + '';
+        var timelocal = moment.utc(toutc, 'YYYY-MM-DD HH:mm:ss').local();
+        var lefttime = timelocal.local().fromNow();
+        var whereeq = '' + Number(datap.properties.distance).toFixed(2) + ' km of ' + datap.properties.city + ' - ' + datap.properties.country;
+        var lastinfo = sumber + ' / ' + EarthquakeStatus(intsts) + ' ' + countup;
 
         //level warning
-        if (mag >= 3.2 && mag <= 5) {
+        if (mag >= 3.0 && mag <= 5) {
             icon = "warning";
             wait_close = 7;
         } else if (mag >= 5 && mag <= 9) {
             icon = "danger";
             wait_close = 20;
-        }else{
+        } else {
             allowaudio = false;
         }
 
-        //audio
-        if(allowaudio){
-            if (audiois == "true") {
-                NotifMe("", "" + magty + "" + mag + " quake causing shaking near " + whereeq + " with depth " + deept + " km occurs in " + lefttime + "", "", true, 'en', 0.8);
-            }
-        }
-        
         //info
         info_center = whereeq + '<br>' + lastinfo + ' (' + loctxt + ')';
         info_satu = '<i class="fal fa-house-damage"></i> ' + mag + ' ' + magty;
         info_dua = '<i class="fab fa-audible"></i> ' + deept + ' km';
         info_tiga = '<i class="fal fa-clock"></i> <time data-now="' + toutc + '"></time>';
         //cek($('#log'), '<li class="list-group-item list-group-item-' + icon + '">' + info_satu + ' ' + info_dua + ' ' + info_tiga + ' - ' + whereeq + ' (' + lastinfo + ')</li>');
-        info_j = 'Earthquake (' + info_satu + ' ' + info_dua + ' ' + info_tiga+')';
+        info_j = 'Earthquake (' + info_satu + ' ' + info_dua + ' ' + info_tiga + ')';
+
+        //audio
+        if (allowaudio) {
+            if (audiois == "true") {
+
+                //hack
+                mag = parseInt(mag).toFixed(0).replace(".", ",");
+                deept = parseInt(deept).toFixed(0).replace(".", ",");
+                countup = countup.replace("x", "");
+                whereeq = datap.properties.city + ' ' + datap.properties.country;
+
+                //time id
+                if (lang == 'id') {
+                    lefttime = timelocal.locale("id").local().fromNow();
+                }
+
+                if (intsts == 3) {
+                    //TODO: remove audio update if found new update
+                    if (lang == 'id') {
+                        NotifMe("", "Pembaruan Gempa yang ke " + countup + " di lokasi " + whereeq + " dengan magnitudo " + mag + " pada kedalaman " + deept + " kilometer yang telah terjadi " + lefttime + " data dari bmkg", "", true, 'id', 0.5);
+                    } else {
+                        NotifMe("", "update quake " + mag + " magnitude already  " + countup + " time updates so far " + whereeq + " with depth " + deept + " km occurs in " + lefttime + "", "", true, 'en', 0.5);
+                    }
+                } else {
+                    if (lang == 'id') {
+                        NotifMe("", "Telah terjadi gempa pada status " + EarthquakeStatus(intsts) + " di lokasi " + whereeq + " dengan magnitudo " + mag + " pada kedalaman " + deept + " kilometer yang telah terjadi " + lefttime + " data dari bmkg", "", true, 'id', 0.8);
+                    } else {
+                        NotifMe("", "new quake with magnitude " + mag + " status " + EarthquakeStatus(intsts) + " causing shaking near " + whereeq + " with depth " + deept + " km occurs in " + lefttime + "", "", true, 'en', 0.8);
+                    }
+                }
+            }
+        }
+
     } else if (x.type == "volcano") {
-return
+        return
         litemap = true;
         wait_close = 5;
 
@@ -114,7 +161,7 @@ return
         if (audiois == "true") {
             var timelocal = moment.utc(toutc, 'YYYY-MM-DD HH:mm:ss').local();
             var lefttime = timelocal.local().fromNow();
-            NotifMe("", "Info Volcano "+nama_volcano+" by "+sumber+" "+info+" "+lefttime, "", true, 'en', 0.8);
+            NotifMe("", "Info Volcano " + nama_volcano + " by " + sumber + " " + info + " " + lefttime, "", true, 'en', 0.8);
         }
 
     } else if (x.type == "notice") {
@@ -123,8 +170,12 @@ return
         info_dua = datap.message;
         if (datap.mic) {
             info_satu = 'Message (Audio) from ' + datap.user;
-            NotifMe("", datap.message, "", true, 'en', 0.8);
-        }        
+            if (datap.message.includes('setid')) {
+                NotifMe("", (datap.message).replace("setid", ""), "", true, 'id', 0.8);
+            }else{
+                NotifMe("", datap.message, "", true, 'en', 0.8);
+            }
+        }
     } else {
         console.log('belum ada: ' + x.type);
     }
@@ -197,7 +248,7 @@ return
 }
 
 //API Info
-if(get_last == "true"){
+if (get_last == "true") {
     $.getJSON(URL_APP + 'warning', function (data) {
         try {
             for (let b in data) {

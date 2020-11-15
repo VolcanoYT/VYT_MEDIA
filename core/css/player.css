@@ -13,7 +13,7 @@ canvas {
     z-index: 1;
 }
 
-#judul {
+.judul {
     font-size: 3.0vw;
     z-index: 2;
     color: #FFF;

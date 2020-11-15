@@ -8,6 +8,20 @@ var setpass = getAllUrlParams().password;
 
 var seturl = getAllUrlParams().URL;
 var isauto = getAllUrlParams().autoplay;
+var isremotonly = getAllUrlParams().remotonly;
+
+var isadmin = getAllUrlParams().admin;
+
+var watchlog    = getAllUrlParams().watchlog;
+var isreconnect = getAllUrlParams().reconnect;
+
+var can_draggable = false;
+var can_resizable = false;
+
+if(isadmin == 'true'){
+    can_draggable = true;
+    can_resizable = true;
+}
 
 var edit_mode = false;
 var is_not_load = true;
@@ -37,15 +51,18 @@ if (!isEmpty(setuser)) {
     $('#join_room .name').val(setuser);
 }
 
+if (isremotonly == "true") {
+    $('#edit').hide();
+}
+
 if (isauto == "true") {
     setTimeout(function () {
-        $('.proses').trigger('click');
+        $('#join_room .proses').trigger('click');
     }, 3000);
 } else {
     //auto show
     login();
 }
-
 
 var multiview = io(URL_APP + 'multiview', {
     query: {
@@ -104,9 +121,10 @@ multiview.on('request', function (request) {
 
                 var html = "";
                 var urlz = "";
-
+                var edits = "display: none;";
+                var htmlbox = '' + name + ' (' + idurl + ')';
                 if (type == 1) {
-                    urlz = URL_API + 'spanel/player.php?cam=' + idurl + '&token_user=' + token_user + '&autoplay=true&info=true&nologo=true&URL=' + seturl;
+                    urlz = URL_API + 'spanel/player.php?cam=' + idurl + '&token_user=' + token_user + '&watchlog='+watchlog+'&reconnect='+isreconnect+'&autoplay=true&info=true&nologo=true&URL=' + seturl;
                     html = '<iframe src="' + urlz + '"></iframe>';
                 } else {
                     console.log('come soon');
@@ -114,7 +132,15 @@ multiview.on('request', function (request) {
 
                 var doc = document.getElementById(idsource);
                 if (doc == null) {
-                    $("#load_source").append('<div class="source" id="' + idsource + '" data-type="' + type + '" data-url="' + idurl + '" data-source="' + name + '" data-scene="' + name_scene + '" data-id-scene="' + scene + '"><div class="box text-center">' + name + '</div>' + html + '</div>');
+
+                    //no player no frame
+                    if (isremotonly == "true") {
+                        html = "";
+                        edits = "display: block;";
+                    }
+
+                    $("#load_source").append('<div class="source" id="' + idsource + '" data-type="' + type + '" data-url="' + idurl + '" data-source="' + name + '" data-scene="' + name_scene + '" data-id-scene="' + scene + '"><div class="box text-center noselect" style="' + edits + '">' + htmlbox + '</div>' + html + '</div>');
+
                 } else {
 
                     //hanya tag type saja yang boleh ubah jika doc sudah ada
@@ -133,6 +159,7 @@ multiview.on('request', function (request) {
                             }
                             if (main.attr('data-url') !== idurl) {
                                 main.attr('data-url', idurl);
+                                main.find(".box").html(htmlbox);
                             }
                             if (main.attr('data-source') !== name) {
                                 main.attr('data-source', name);
@@ -178,7 +205,6 @@ multiview.on('request', function (request) {
                     }
                 }
             });
-
         }
     }
     /*
@@ -270,10 +296,12 @@ interact('.source')
         },
         listeners: {
             move(event) {
-                save_source(event, "resizable");
+                if (can_resizable)
+                    save_source(event, "resizable");
             },
             end(event) {
-                save_source(event, "resizable", false);
+                if (can_resizable)
+                    save_source(event, "resizable", false);
             }
         },
         modifiers: [
@@ -289,10 +317,12 @@ interact('.source')
     .draggable({
         listeners: {
             move(event) {
-                save_source(event, "draggable");
+                if (can_draggable)
+                    save_source(event, "draggable");
             },
             end(event) {
-                save_source(event, "draggable", false);
+                if (can_draggable)
+                    save_source(event, "draggable", false);
             }
         }
     })
@@ -435,7 +465,64 @@ $('#add_camera .proses').on('click', function (e) {
     var what_use = $('#add_camera .what_use').val();
 
     if (what_use == '1') {
-        if (multiview) {
+
+        var po = $("div[data-url='" + set_url + "']");
+        var newor_old = $("div[data-source='" + set_source + "']");
+        var can_use = false;
+
+        if (po.length >= 1) {
+            if (newor_old.length >= 1) {
+
+                var atsc = po.attr('data-source');
+                var urls = po.attr('data-url');
+
+                var stsc = newor_old.attr('data-source');
+                var srls = newor_old.attr('data-url');
+
+                Swal.fire({
+                    title: 'Do you want to switch source?',
+                    text: 'Source ' + atsc + ' (' + urls + ') > ' + stsc + ' (' + srls + ')',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Yes'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+
+                        multiview.emit('update', {
+                            type: 'add',
+                            data: {
+                                scene: set_scene,
+                                password: set_passs,
+                                source: stsc,
+                                url: urls,
+                                type: 1,
+                                user: set_user
+                            }
+                        });
+                        multiview.emit('update', {
+                            type: 'add',
+                            data: {
+                                scene: set_scene,
+                                password: set_passs,
+                                source: atsc,
+                                url: srls,
+                                type: 1,
+                                user: set_user
+                            }
+                        });
+
+                    }
+                })
+            }else{
+                can_use = true;
+            }
+        }else{
+            can_use = true;
+        }
+
+        if(can_use){
             multiview.emit('update', {
                 type: 'add',
                 data: {
@@ -444,19 +531,18 @@ $('#add_camera .proses').on('click', function (e) {
                     source: set_source,
                     url: set_url,
                     obs_remot: set_obs_remot,
-                    type: what_use,
+                    type: 1,
                     user: set_user
                 }
             });
-            Toastify({
-                text: "In process add...",
-            }).showToast();
         }
+
     } else {
         Toastify({
             text: "Come soon (Add Camera)",
         }).showToast();
     }
+
 })
 
 $('#what_use').change(function (e) {
@@ -469,6 +555,12 @@ $('#what_use').change(function (e) {
     } else if (wtf == "3") {
         $('#set_obs_remot').parent().show();
     }
+});
+
+$("#load_source").on('dblclick', '.source', function (e) {
+    //Code here
+    console.log("source doubleClick", e);
+    $('#add_camera').modal('show');
 });
 
 // API Fullscreen by https://stackoverflow.com/questions/7130397/how-do-i-make-a-div-full-screen
