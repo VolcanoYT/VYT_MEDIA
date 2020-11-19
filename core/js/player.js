@@ -22,7 +22,7 @@ var datanext = ['', '', 'Media Player VolcanoYT'];
 
 var last_load = true;
 
-var camid = getAllUrlParams().cam;
+var camid = parseInt(getAllUrlParams().cam);
 var hide_info = getAllUrlParams().hide_info;
 var useurl = getAllUrlParams().URL;
 var token_user = getAllUrlParams().token_user;
@@ -95,9 +95,12 @@ var zona = "Asia/Makassar";
 
 //URL Proxy Player for localhost or multi node
 if (!isEmpty(useurl)) {
-    if (useurl !== 'undefined') {
-        logger('Io Player Proxy ', useurl);
-        URL_APP = useurl;
+    logger('Io Player Proxy ', useurl);
+    URL_APP = useurl;
+} else {
+    if ([324, 307, 306, 304, 291, 261, 258, 239, 175, 148, 147, 125, 93, 6].includes(camid)) {
+        logger('Singapura Server Tes Mode');
+        URL_APP = "https://sevsg.volcanoyt.com/";
     }
 }
 
@@ -237,17 +240,16 @@ function swbt(live = true) {
 //Api Control FF
 document.addEventListener('keydown', (event) => {
     try {
-/*
-        // Correct:
-        if (map[17] && map[16] && map[13]) { // CTRL+SHIFT+ENTER
-            alert('Whoa, mr. power user');
-        } else if (map[17] && map[13]) { // CTRL+ENTER
-            alert('You found me');
-        } else if (map[13]) { // ENTER
-            alert('You pressed Enter. You win the prize!')
-        }
-*/
         /*
+                // Correct:
+                if (map[17] && map[16] && map[13]) { // CTRL+SHIFT+ENTER
+                    alert('Whoa, mr. power user');
+                } else if (map[17] && map[13]) { // CTRL+ENTER
+                    alert('You found me');
+                } else if (map[13]) { // ENTER
+                    alert('You pressed Enter. You win the prize!')
+                }
+        */
         switch (event.key) {
             case "ArrowLeft":
                 if (type == 'raw_ff')
@@ -262,7 +264,6 @@ document.addEventListener('keydown', (event) => {
                     PrPlayer.main();
                 break;
         }
-        */
     } catch (error) {
         logger(error);
     }
@@ -814,9 +815,10 @@ var IoPlayer = io(URL_APP + 'camera', {
     query: {
         cam: camid,
         token_user: token_user,
-        version: '1.0.7',
+        version: '1.0.8',
         referrer: document.referrer,
-        iframe: inIframe()
+        iframe: inIframe(),
+        url: URL_APP
     },
     transports: ['websocket']
 });
