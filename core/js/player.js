@@ -98,10 +98,12 @@ if (!isEmpty(useurl)) {
     logger('Io Player Proxy ', useurl);
     URL_APP = useurl;
 } else {
+    /*
     if ([324, 307, 306, 304, 291, 261, 258, 239, 175, 148, 147, 125, 93, 6].includes(camid)) {
         logger('Singapura Server Tes Mode');
         URL_APP = "https://sevsg.volcanoyt.com/";
     }
+    */
 }
 
 // API Fullscreen by https://stackoverflow.com/questions/7130397/how-do-i-make-a-div-full-screen
