@@ -18,7 +18,7 @@ var div_tl_vd = "#player_timelapse_video";
 var name_cam = "Unknown?";
 var source_cam = "Unknown?";
 
-var datanext = ['', '', 'Media Player VolcanoYT'];
+var datanext = ['', '', 'Cloud Stream by VolcanoYT'];
 
 var last_load = true;
 
@@ -30,6 +30,7 @@ var isobson = getAllUrlParams().obs;
 
 var istes = getAllUrlParams().tes;
 var watchlog = getAllUrlParams().watchlog;
+var isegg = getAllUrlParams().egg;
 
 var consolere;
 var cansedlog = false;
@@ -859,7 +860,7 @@ IoPlayer.on('stream', function (e) {
             draw_image('data:image/webp;base64,' + base64ArrayBuffer(e.buffer), tmpg);
 
             //TODO: get base time take?
-            var dt = moment().tz(zona).format('HH:mm:ss');
+            var dt = moment().tz(zona).format('DD/MM/YYYY HH:mm:ss');
             if (document.getElementById("settime")) {
                 document.getElementById("settime").innerHTML = dt;
             }
@@ -896,9 +897,21 @@ IoPlayer.on('stream', function (e) {
                     interval = e.data.info.interval;
                     zona = e.data.info.time.timezone;
                     name_cam = e.data.info.name;
+                    var sourcex =  "Host by "+e.data.info.source;
 
-                    datanext[0] = '<timex id="settime">' + moment().tz(zona).format('HH:mm:ss') + '</timex>';
-                    datanext[1] = e.data.info.source;
+                    if(camid == 6){
+                        sourcex = "Host with Frekom,Tagana DIY,Lintas Media Net";
+                        if(isegg == "true"){
+                            datanext[3] ="Saat ini masih Level 3 (Siaga)";
+                            datanext[4] ="Sebelum chat, silakan baca deskripsi dulu.";
+                            datanext[5] ="Don't forget to like and subscribe👍";
+                            datanext[6] ="Join Telegram t.me/VolcanoYT";
+                            datanext[7] ="Donasi volcanoyt.com/ds";
+                        }
+                    }
+
+                    datanext[0] = '<timex id="settime">' + moment().tz(zona).format('YYYY-MM-DD HH:mm:ss') + '</timex>';
+                    datanext[1] =sourcex;
 
                 } catch (error) {
                     logger(error);
@@ -1207,7 +1220,7 @@ function NextText(i) {
         document.getElementById("text_me").innerHTML = name_cam + ' - ' + datanext[i];
         setTimeout(function () {
             NextText(++i);
-        }, 1000 * 30);
+        }, 1000 * 10);
     } else if (datanext.length == i) {
         NextText(0);
     }
