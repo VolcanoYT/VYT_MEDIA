@@ -6,7 +6,7 @@ var isonline = false;
 var myprofil;
 
 var timep;
-$.fn.modal.Constructor.prototype._enforceFocus = function () {};
+//$.fn.modal.Constructor.prototype._enforceFocus = function () {};
 
 //buat ambil info dasar
 try {

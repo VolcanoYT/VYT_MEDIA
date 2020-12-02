@@ -8,6 +8,7 @@ var tmp_open;
 var TemporaryEarthquake = [];
 
 var isfullscreen = getAllUrlParams().fullscreen;
+var isinfoscreen = getAllUrlParams().infoscreen;
 
 var auto_mode = getAllUrlParams().auto;
 var auto_twait = 0;
@@ -193,16 +194,20 @@ function clean_map(cleanid = "") {
             if (isloc.contains(item.loc)) {
                 G_Seismometer.addLayer(item.marker);
                 if (ews_loading) {
-                    ews_link.send(JSON.stringify({
-                        "subscribe": "" + item.item.network + "." + item.item.station + "",
-                    }));
+                    /*
+                    ewsio.emit('ewsbeta', {
+                        subscribe: "" + item.item.network + "." + item.item.station + "",
+                    });
+                     */                    
                 }
             } else {
                 G_Seismometer.removeLayer(item.marker);
                 if (ews_loading) {
-                    ews_link.send(JSON.stringify({
-                        "unsubscribe": "" + item.item.network + "." + item.item.station + "",
-                    }));
+                    /*
+                    ewsio.emit('ewsbeta', {
+                        unsubscribe: "" + item.item.network + "." + item.item.station + "",
+                    });
+                    */
                 }
             }
         });
@@ -632,14 +637,28 @@ function EWS_Proses(data) {
 */
 
 //API Socket
+var useurl = getAllUrlParams().URL;
+
+//URL Proxy Player for localhost or multi node
+if (!isEmpty(useurl)) {
+    URL_APP = useurl;
+}
+
 var ewsio = io(URL_APP + 'ews', {
     transports: ['websocket']
 });
 ewsio.on('disconnect', function () {
     console.log('disconnect');
+    ews_loading = false;
 })
 ewsio.on('connect', function () {
     console.log('connect');
+    ews_loading = true;
+
+    ewsio.emit('ewsbeta', {
+        subscribe: "GE.JAGI",
+    });
+
 })
 ewsio.on('error', (error) => {
     console.log(error);
@@ -667,4 +686,8 @@ map.on('zoomend', function () {
 if(isfullscreen == "true"){
     $(".navbar").hide();
     $("#map_2d").css("margin-top", "0");
+}
+
+if(isinfoscreen == "true"){
+    console.log('demo tes');
 }

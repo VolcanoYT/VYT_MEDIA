@@ -14,6 +14,7 @@ var isadmin = getAllUrlParams().admin;
 
 var watchlog    = getAllUrlParams().watchlog;
 var isreconnect = getAllUrlParams().reconnect;
+var isnopower   = getAllUrlParams().nopower;
 
 var can_draggable = false;
 var can_resizable = false;
@@ -124,7 +125,7 @@ multiview.on('request', function (request) {
                 var edits = "display: none;";
                 var htmlbox = '' + name + ' (' + idurl + ')';
                 if (type == 1) {
-                    urlz = URL_API + 'spanel/player.php?cam=' + idurl + '&token_user=' + token_user + '&watchlog='+watchlog+'&reconnect='+isreconnect+'&autoplay=true&info=true&nologo=true&URL=' + seturl;
+                    urlz = URL_API + 'spanel/player.php?cam=' + idurl + '&token_user=' + token_user + '&watchlog='+watchlog+'&reconnect='+isreconnect+'&autoplay=true&nopower='+isnopower+'&URL=' + seturl;
                     html = '<iframe src="' + urlz + '"></iframe>';
                 } else {
                     console.log('come soon');

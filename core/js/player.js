@@ -22,15 +22,17 @@ var datanext = ['', '', 'Cloud Stream by VolcanoYT'];
 
 var last_load = true;
 
-var camid = parseInt(getAllUrlParams().cam);
-var hide_info = getAllUrlParams().hide_info;
-var useurl = getAllUrlParams().URL;
+var camid      = parseInt(getAllUrlParams().cam);
+var hide_info  = getAllUrlParams().hide_info;
+var useurl     = getAllUrlParams().URL;
 var token_user = getAllUrlParams().token_user;
-var isobson = getAllUrlParams().obs;
+var isobson    = getAllUrlParams().obs;
 
-var istes = getAllUrlParams().tes;
+var istes    = getAllUrlParams().tes;
 var watchlog = getAllUrlParams().watchlog;
-var isegg = getAllUrlParams().egg;
+
+var isegg   = getAllUrlParams().egg;
+var nopower = getAllUrlParams().nopower;
 
 var consolere;
 var cansedlog = false;
@@ -897,21 +899,34 @@ IoPlayer.on('stream', function (e) {
                     interval = e.data.info.interval;
                     zona = e.data.info.time.timezone;
                     name_cam = e.data.info.name;
-                    var sourcex =  "Host by "+e.data.info.source;
+                    var sourcex = "Host by " + e.data.info.source;
 
-                    if(camid == 6){
+                    if (camid == 6) {
                         sourcex = "Host with Frekom,Tagana DIY,Lintas Media Net";
-                        if(isegg == "true"){
-                            datanext[3] ="Saat ini masih Level 3 (Siaga)";
-                            datanext[4] ="Sebelum chat, silakan baca deskripsi dulu.";
-                            datanext[5] ="Don't forget to like and subscribe👍";
-                            datanext[6] ="Join Telegram t.me/VolcanoYT";
-                            datanext[7] ="Donasi volcanoyt.com/ds";
-                        }
                     }
 
-                    datanext[0] = '<timex id="settime">' + moment().tz(zona).format('YYYY-MM-DD HH:mm:ss') + '</timex>';
-                    datanext[1] =sourcex;
+                    if (camid == 124) {
+                        sourcex = "Host with Frekom,Tagana DIY,Jumar Network";
+                    }
+                    
+
+                    //egg for merapi stream
+                    if (isegg == "true") {
+                        datanext[3] = "Saat ini masih Level 3 (Siaga)";
+                        datanext[4] = "Data Seismograf disediakan oleh BPPTKG";
+                        datanext[5] = "Laporan Magma-Var (cek pin chat) dari PVMBG";
+                        datanext[6] = "Sebelum chat, silakan baca deskripsi dulu.";
+                        datanext[7] = "Jangan lupa like dan subscribe👍";
+                        datanext[8] = "Join Telegram t.me/VolcanoYT";
+                        datanext[9] = "Donasi volcanoyt.com/ds";
+                    }
+
+                    if(nopower == "true"){
+                        datanext[2] = "";
+                    }
+
+                    datanext[0] = '<timex id="settime">' + moment().tz(zona).format('YYYY/MM/DD HH:mm:ss') + '</timex>';
+                    datanext[1] = sourcex;
 
                 } catch (error) {
                     logger(error);
@@ -1217,7 +1232,9 @@ if (isobson == "true") {
 
 function NextText(i) {
     if (datanext.length > i) {
-        document.getElementById("text_me").innerHTML = name_cam + ' - ' + datanext[i];
+        if(!isEmpty(datanext[i])){
+            document.getElementById("text_me").innerHTML = name_cam + ' - ' + datanext[i];
+        }        
         setTimeout(function () {
             NextText(++i);
         }, 1000 * 10);

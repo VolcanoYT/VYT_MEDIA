@@ -8,12 +8,12 @@ rm -rf $patch
 
 mkdir -p $tmp && cd $tmp || exit
 
-echo "Download Bootstrap (DEV)"
+echo "Download Bootstrap"
 mkdir -p $tmp/bootstrap && cd $tmp/bootstrap || exit
-wget https://github.com/twbs/bootstrap/archive/main.zip
-unzip -o main.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
+wget https://github.com/twbs/bootstrap/releases/download/v5.0.0-alpha3/bootstrap-5.0.0-alpha3-dist.zip
+unzip -o bootstrap-5.0.0-alpha3-dist.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
 rm -rf ${patch}bootstrap/ && mkdir -p ${patch}bootstrap/
-cp -r bootstrap-main/dist/* ${patch}bootstrap/
+cp -r bootstrap-5.0.0-alpha3-dist/* ${patch}bootstrap/
 
 cd $tmp || exit
 
