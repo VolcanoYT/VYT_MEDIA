@@ -8,12 +8,12 @@ rm -rf $patch
 
 mkdir -p $tmp && cd $tmp || exit
 
-echo "Download Bootstrap"
+echo "Download Bootstrap (DEV)"
 mkdir -p $tmp/bootstrap && cd $tmp/bootstrap || exit
-wget https://github.com/twbs/bootstrap/releases/download/v5.0.0-alpha3/bootstrap-5.0.0-alpha3-dist.zip
-unzip -o bootstrap-5.0.0-alpha3-dist.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
+wget https://github.com/twbs/bootstrap/archive/main.zip
+unzip -o main.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
 rm -rf ${patch}bootstrap/ && mkdir -p ${patch}bootstrap/
-cp -r bootstrap-5.0.0-alpha3-dist/* ${patch}bootstrap/
+cp -r bootstrap-main/dist/* ${patch}bootstrap/
 
 cd $tmp || exit
 
@@ -31,7 +31,7 @@ cp -r font-awesome-pro-$versi_font/* ${patch}fontawesome/
 cd $tmp || exit
 
 echo "Download VideoJS"
-versi_videojs=7.9.7
+versi_videojs=7.11.0
 mkdir -p $tmp/videojs && cd $tmp/videojs || exit
 wget https://github.com/videojs/video.js/releases/download/v$versi_videojs/video-js-$versi_videojs.zip
 unzip -o video-js-$versi_videojs.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
@@ -43,7 +43,7 @@ rm -rf ${patch}videojs/examples
 cd $tmp || exit
 
 echo "Download Cesium for 3D Map"
-versi_cesium=1.74
+versi_cesium=1.76
 mkdir -p $tmp/cesium && cd $tmp/cesium || exit
 wget https://github.com/CesiumGS/cesium/releases/download/$versi_cesium/Cesium-$versi_cesium.zip
 unzip -o Cesium-$versi_cesium.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
@@ -89,6 +89,7 @@ cp -r Leaflet.ExtraMarkers-master/dist/* ${patch}extramarkers/
 
 cd $tmp || exit
 
+<<COMMENT
 echo "Download Jquery-UI"
 mkdir -p $tmp/jquery-ui && cd $tmp/jquery-ui || exit
 versi_jsui=1.12.1
@@ -98,6 +99,7 @@ rm -rf ${patch}jquery-ui/ && mkdir -p ${patch}jquery-ui/
 cp -r jquery-ui-$versi_jsui/* ${patch}jquery-ui/
 
 cd $tmp || exit
+COMMENT
 
 npmjs(){
   nama=$1
@@ -142,29 +144,29 @@ npmjs jquery 3.5.1 dist
 npmjs jquery-ui-dist 1.12.1
 
 npmjs js-cookie 3.0.0-rc.1 dist
-npmjs socket.io-client 2.3.1 dist
-npmjs sweetalert2 10.3.7 dist
+npmjs socket.io-client 3.0.3 dist
+npmjs sweetalert2 10.11.1 dist
 npmjs moment 2.29.1 min
-npmjs moment-timezone 0.5.31 builds
+npmjs moment-timezone 0.5.32 builds
 npmjs toastify-js 1.9.3 src
 npmjs tinysort 3.2.7 dist
 npmjs lazysizes 5.2.2
 npmjs tempusdominus-bootstrap 5.37.0 build
-npmjs uplot 1.2.2 dist
-npmjs howler 2.2.0
+npmjs uplot 1.4.7 dist
+npmjs howler 2.2.1
 
-npmjs videojs-abloop 1.1.2 dist
+# npmjs videojs-abloop 1.1.2 dist
 # npmjs videojs-contrib-hls 5.15.0 dist
-npmjs videojs-flash 2.2.1 dist
-npmjs videojs-youtube 2.6.1 dist
-npmjs http-streaming 2.0.0-rc.2 dist @videojs
+# npmjs videojs-flash 2.2.1 dist
+# npmjs videojs-youtube 2.6.1 dist
+# npmjs http-streaming 2.0.0-rc.2 dist @videojs
 
-npmjs esri-leaflet 2.4.1 dist
+npmjs esri-leaflet 2.5.1 dist
 npmjs leaflet.heat 0.2.0 dist
 npmjs leaflet-easybutton 2.4.0 src
-npmjs leaflet.markercluster 1.4.1 dist
+npmjs leaflet.markercluster 1.4.4 dist
 npmjs animate.css 4.1.1
-npmjs interactjs 1.10.0 dist
+npmjs interactjs 1.10.1 dist
 
 cd $tmp || exit
 

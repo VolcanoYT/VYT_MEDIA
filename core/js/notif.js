@@ -1,7 +1,6 @@
 const applicationServerPublicKey = 'BKU1P3Xq-JJMxQI5T4H5kteSxri6RRnusQxsP-qrwIqWxEzaT5xMIxUkWUNB3wjGg_2SVMeN9W5vR2nHxkQYLjQ';
 const saveSubscription = async subscription => {
-    const SERVER_URL = 'https://ews.volcanoyt.com/sub'
-    const response = await fetch(SERVER_URL, {
+    const response = await fetch(URL_APP+'sub', {
         method: 'POST',
         headers: {
             'Accept': 'application/json',
@@ -12,8 +11,7 @@ const saveSubscription = async subscription => {
     return response.json()
 }
 const revSubscription = async subscription_id => {
-    const SERVER_URL = 'https://ews.volcanoyt.com/unsub?id=' + subscription_id
-    const response = await fetch(SERVER_URL, {
+    const response = await fetch(URL_APP+'unsub?id=' + subscription_id, {
         method: 'GET'
     })
     return response.json()

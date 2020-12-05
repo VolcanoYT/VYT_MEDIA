@@ -1,14 +1,21 @@
+$("body").append('<div class="card text-white bg-primary infomap"><div class="card-header">Latest Earthquake</div><div id="data_gempa">Wait...</div></div>');
+
 var map_loading = false;
 
 var ews_loading = false;
 var ews_link = null;
 
-var tmp_open;
+var tmp_open = false;
+var autoclose = true;
 
 var TemporaryEarthquake = [];
 
 var isfullscreen = getAllUrlParams().fullscreen;
-var isinfoscreen = getAllUrlParams().infoscreen;
+var isnoinfo = getAllUrlParams().noinfo;
+
+if (isnoinfo == "true") {
+    autoclose = false;
+}
 
 var auto_mode = getAllUrlParams().auto;
 var auto_twait = 0;
@@ -82,27 +89,36 @@ var krb = L.esri.featureLayer({
     ////https://services6.arcgis.com/WVOVRvVBhANSlrYg/arcgis/rest/services/Kawasan_Rawan_Bencana_Gunung_Api/FeatureServer/0/query
     //https://services7.arcgis.com/g7FCBALNv7UNIenl/arcgis/rest/services/KRB_GA_ID2/FeatureServer/0
     url: 'https://services6.arcgis.com/WVOVRvVBhANSlrYg/arcgis/rest/services/Kawasan_Rawan_Bencana_Gunung_Api/FeatureServer/0',
-}).bindPopup(function(layer) {
+}).bindPopup(function (layer) {
     switch (layer.feature.properties.INDGA) {
         case 1:
             var krb = 'Kawasan Rawan Bencana (KRB) I';
             break;
-    case 2:
-            var krb = 'Kawasan Rawan Bencana (KRB) II';                        
+        case 2:
+            var krb = 'Kawasan Rawan Bencana (KRB) II';
             break;
         default:
             var krb = 'Kawasan Rawan Bencana (KRB) III';
             break;
     }
-    return L.Util.template('<h3>'+krb+'</h3><hr/><p>{REMARK}</p>', layer.feature.properties);
+    return L.Util.template('<h3>' + krb + '</h3><hr/><p>{REMARK}</p>', layer.feature.properties);
 });
 
+var localfault = new L.LayerGroup;
+/*
+d3.json("https://bmkg-content-inatews.storage.googleapis.com/indo_faults_lines.geojson", function (a) {
+    localfault.addLayer(L.geoJSON(a, {
+        color: "orange",
+        weight: 1
+    }));
+});
+*/
 var get_zona = moment.tz(moment.tz.guess()).zoneAbbr();
 
 var map = new L.Map('map_2d', {
     attributionControl: true,
-    //G_Seismometer
-    layers: [googleSat, G_Earthquake, G_Earthquake_C, G_Camera,platetectonics, places]
+    //G_Seismometer,G_Camera
+    layers: [googleSat, G_Earthquake, G_Earthquake_C, platetectonics, places]
 }).fitWorld();
 map.setView([-1.62, 120.13], 5.4);
 map.locate({
@@ -136,15 +152,18 @@ var overlays = {
     // "Tsunami Station": G_Tsunami,
     "Camera Station": G_Camera,
     "Antipodes (90km)": G_Antipodes,
-    "TES": seismicportal
+    "Fault Indonesia": localfault,
+   // "TES": seismicportal
 };
 
 L.control.scale().addTo(map);
 L.control.layers(baseLayers, overlays).addTo(map);
 
+/*
 L.easyButton('<span class="star">&starf;</span>', function () {
     $('#ews_tab').modal('toggle');
 }).addTo(map);
+*/
 
 var last_map = [];
 
@@ -179,7 +198,7 @@ function clean_map(cleanid = "") {
                         G_Earthquake_C.removeLayer(item.circle);
                     }
 
-                    TemporaryEarthquake[index_cam].spawn  = cleanid.spawn;
+                    TemporaryEarthquake[index_cam].spawn = cleanid.spawn;
                     TemporaryEarthquake[index_cam].circle = cleanid.circle
                     TemporaryEarthquake[index_cam].marker = cleanid.marker;
 
@@ -198,7 +217,7 @@ function clean_map(cleanid = "") {
                     ewsio.emit('ewsbeta', {
                         subscribe: "" + item.item.network + "." + item.item.station + "",
                     });
-                     */                    
+                     */
                 }
             } else {
                 G_Seismometer.removeLayer(item.marker);
@@ -275,8 +294,12 @@ async function GetEarthquake() {
             if (data && data.meta) {
                 if (data.meta.code == 200) {
                     if (data.features) {
-                        data.features.forEach(async (item) => {
-                            add(item);
+                        data.features.forEach(async (item, index) => {
+                            if (index == 0) {
+                                add(item, true);
+                            } else {
+                                add(item);
+                            }
                         });
                         resolve(200);
                     } else {
@@ -360,6 +383,14 @@ function add(spawn, notif = false) {
         }
         */
 
+        var wait_close = 10;
+        if (magnitudetwo >= 5) {
+            wait_close = 40;
+            console.log('update yooooooosan');
+        } else if (magnitudetwo >= 3 && magnitudetwo <= 5) {
+            wait_close = 20;
+        }
+
         var deep_color = ColorDepth(depthtwo);
         var eq_color = getMagnitudeColor(magnitudetwo);
         if (statsid == "0") {
@@ -409,14 +440,30 @@ function add(spawn, notif = false) {
 
         if (notif) {
             try {
-                map.flyTo([latx, lotx], 8);
-                tmp_open = TemporaryEarthquake.length - 1;
-                //TemporaryEarthquake[tmp_open].marker.openPopup(); //force open?
+                if (autoclose) {
+                    map.flyTo([latx, lotx], 8);
+                    $('.infomap').show(3000);
+                    $('#data_gempa').html('\
+                        <div class="card-body">\
+                            ' + whereeq + '\
+                        </div>\
+                        <ul class="list-group list-group-flush">\
+                            <li class="list-group-item list-group-item-dark"><i class="fal fa-house-damage"></i> Magnitude ' + magnitudetwo + ' in ' + mt + '</li>\
+                            <li class="list-group-item list-group-item-dark"><i class="fab fa-audible"></i> Depth ' + depthtwo + 'km</li>\
+                            <li class="list-group-item list-group-item-dark"><i class="fal fa-clock"></i> <time data-now="' + timeutc + '"></time> / ' + mystatus + ' (' + cont + 'x)</li>\
+                            <li class="list-group-item list-group-item-dark"><i class="fas fa-server"></i> Source ' + provider + '</li>\
+                        </ul>\
+                    ');
+                    tmp_open = setTimeout(
+                        function () {
+                            $('.infomap').hide(5000);
+                        }, 1000 * wait_close);
+                }
             } catch (error) {
                 console.log(error);
             }
         }
-        
+
     }
 }
 
@@ -655,9 +702,11 @@ ewsio.on('connect', function () {
     console.log('connect');
     ews_loading = true;
 
-    ewsio.emit('ewsbeta', {
-        subscribe: "GE.JAGI",
-    });
+    if (!isEmpty(useurl)) {
+        ewsio.emit('ewsbeta', {
+            subscribe: "GE.JAGI",
+        });
+    }
 
 })
 ewsio.on('error', (error) => {
@@ -671,23 +720,10 @@ ewsio.on('info', function (x) {
 });
 
 map.on('zoomend', function () {
-    if (!isEmpty(tmp_open)) {
-        try {
-            setTimeout(function () {
-                //TemporaryEarthquake[tmp_open].marker.openPopup();
-                tmp_open = "";
-            }, 3000);
-        } catch (error) {
-            console.log(error);
-        }
-    }
+    console.log('zoomend');
 });
 
-if(isfullscreen == "true"){
+if (isfullscreen == "true") {
     $(".navbar").hide();
     $("#map_2d").css("margin-top", "0");
-}
-
-if(isinfoscreen == "true"){
-    console.log('demo tes');
 }

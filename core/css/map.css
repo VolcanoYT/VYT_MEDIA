@@ -329,3 +329,11 @@ body {
   width: 100%;
   height: 250px;
 }
+
+.infomap {
+    float: left;
+    position: fixed;
+    left: 4px;
+    bottom: 42px;
+    font-size: 1.5vw;
+}

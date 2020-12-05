@@ -907,8 +907,7 @@ IoPlayer.on('stream', function (e) {
 
                     if (camid == 124) {
                         sourcex = "Host with Frekom,Tagana DIY,Jumar Network";
-                    }
-                    
+                    }                    
 
                     //egg for merapi stream
                     if (isegg == "true") {
