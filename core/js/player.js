@@ -22,16 +22,16 @@ var datanext = ['', '', 'Cloud Stream by VolcanoYT'];
 
 var last_load = true;
 
-var camid      = parseInt(getAllUrlParams().cam);
-var hide_info  = getAllUrlParams().hide_info;
-var useurl     = getAllUrlParams().URL;
+var camid = parseInt(getAllUrlParams().cam);
+var hide_info = getAllUrlParams().hide_info;
+var useurl = getAllUrlParams().URL;
 var token_user = getAllUrlParams().token_user;
-var isobson    = getAllUrlParams().obs;
+var isobson = getAllUrlParams().obs;
 
-var istes    = getAllUrlParams().tes;
+var istes = getAllUrlParams().tes;
 var watchlog = getAllUrlParams().watchlog;
 
-var isegg   = getAllUrlParams().egg;
+var isegg = getAllUrlParams().egg;
 var nopower = getAllUrlParams().nopower;
 
 var consolere;
@@ -820,7 +820,7 @@ var IoPlayer = io(URL_APP + 'camera', {
     query: {
         cam: camid,
         token_user: token_user,
-        version: '1.0.8',
+        version: '1.1.0',
         referrer: document.referrer,
         iframe: inIframe(),
         url: URL_APP
@@ -837,7 +837,7 @@ IoPlayer.on('error', (error) => {
 });
 var reconnect_tmp = null;
 IoPlayer.on('disconnect', function () {
-    $("#error").html('<div class="alert alert-primary" role="alert"><h3>Camera Disconnected: ' + reason + '</h3></div>');
+    $("#error").html('<div class="alert alert-primary" role="alert"><h3>Camera Disconnected But Of Course I Still Love You.<br>' + reason + '</h3></div>');
     if (isreconnect == "true") {
         //this bug fix later
         if (reason.includes("Stream stop")) {
@@ -890,6 +890,8 @@ IoPlayer.on('stream', function (e) {
             }
         } else {
 
+            logger(e);
+
             noenter = true;
             StopStart('meow', false);
 
@@ -901,13 +903,9 @@ IoPlayer.on('stream', function (e) {
                     name_cam = e.data.info.name;
                     var sourcex = "Host by " + e.data.info.source;
 
-                    if (camid == 6) {
-                        sourcex = "Host with Frekom,Tagana DIY,Lintas Media Net";
+                    if (camid == 340) {
+                      //  sourcex = "CCTV VolcanoYT | Internet Frekom & Lintas Media Net";
                     }
-
-                    if (camid == 124) {
-                        sourcex = "Host with Frekom,Tagana DIY,Jumar Network";
-                    }                    
 
                     //egg for merapi stream
                     if (isegg == "true") {
@@ -920,7 +918,7 @@ IoPlayer.on('stream', function (e) {
                         datanext[9] = "Donasi volcanoyt.com/ds";
                     }
 
-                    if(nopower == "true"){
+                    if (nopower == "true") {
                         datanext[2] = "";
                     }
 
@@ -935,6 +933,9 @@ IoPlayer.on('stream', function (e) {
                 //exit camera
                 reason = e.data.message;
                 StopStart('dcio');
+            } else if (e.data.code == 309) {
+                //sleep mode, wait snapshot
+                icon_player("fas fa-robot fa-spin");
             } else if (e.data.code == 204) {
                 //loading
                 icon_player("fal fa-spinner fa-spin");
@@ -955,9 +956,6 @@ IoPlayer.on('stream', function (e) {
             } catch (error) {
                 logger('error send data');
             }
-
-            logger(e);
-
         }
     } else {
         logger('hmm no data?');
@@ -1231,9 +1229,9 @@ if (isobson == "true") {
 
 function NextText(i) {
     if (datanext.length > i) {
-        if(!isEmpty(datanext[i])){
+        if (!isEmpty(datanext[i])) {
             document.getElementById("text_me").innerHTML = name_cam + ' - ' + datanext[i];
-        }        
+        }
         setTimeout(function () {
             NextText(++i);
         }, 1000 * 10);

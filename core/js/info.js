@@ -131,13 +131,13 @@ function OnData(x) {
                 if (intsts == 3) {
                     //TODO: remove audio update if found new update
                     if (lang == 'id') {
-                        NotifMe("", "Pembaruan Gempa yang ke " + countup + " di lokasi " + whereeq + " dengan magnitudo " + mag + " pada kedalaman " + deept + " kilometer yang telah terjadi " + lefttime + " data dari bmkg", "", true, 'id', 0.5);
+                        NotifMe("", "Pembaruan Gempa yang ke " + countup + " di lokasi " + whereeq + " dengan magnitudo " + mag + " pada kedalaman " + deept + " kilometer yang telah terjadi " + lefttime + " data dari b m k g", "", true, 'id', 0.5);
                     } else {
                         NotifMe("", "update quake " + mag + " magnitude already  " + countup + " time updates so far " + whereeq + " with depth " + deept + " km occurs in " + lefttime + "", "", true, 'en', 0.5);
                     }
                 } else {
                     if (lang == 'id') {
-                        NotifMe("", "Telah terjadi gempa pada status " + EarthquakeStatus(intsts) + " di lokasi " + whereeq + " dengan magnitudo " + mag + " pada kedalaman " + deept + " kilometer yang telah terjadi " + lefttime + " data dari bmkg", "", true, 'id', 0.8);
+                        NotifMe("", "Telah terjadi gempa pada status " + EarthquakeStatus(intsts) + " di lokasi " + whereeq + " dengan magnitudo " + mag + " pada kedalaman " + deept + " kilometer yang telah terjadi " + lefttime + " data dari b m k g", "", true, 'id', 0.8);
                     } else {
                         NotifMe("", "new quake with magnitude " + mag + " status " + EarthquakeStatus(intsts) + " causing shaking near " + whereeq + " with depth " + deept + " km occurs in " + lefttime + "", "", true, 'en', 0.8);
                     }

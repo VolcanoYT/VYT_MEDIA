@@ -745,11 +745,6 @@ a {
     width: 16px;
 }
 
-.btn-lg {
-    font-size: 15px;
-    padding: 12px 16px;
-}
-
 .login-main-right .owl-theme .owl-controls .owl-page.active span,
 .login-main-right .owl-theme .owl-controls .owl-page span:hover {
     background: #ff516b;

@@ -67,7 +67,7 @@ if (isauto == "true") {
 
 var multiview = io(URL_APP + 'multiview', {
     query: {
-        version: '1.0.8',
+        version: '1.1.0',
         referrer: document.referrer
     },
     transports: ['websocket']

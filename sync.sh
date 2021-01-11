@@ -89,7 +89,7 @@ cp -r Leaflet.ExtraMarkers-master/dist/* ${patch}extramarkers/
 
 cd $tmp || exit
 
-<<COMMENT
+COMMENT
 echo "Download Jquery-UI"
 mkdir -p $tmp/jquery-ui && cd $tmp/jquery-ui || exit
 versi_jsui=1.12.1
@@ -99,7 +99,6 @@ rm -rf ${patch}jquery-ui/ && mkdir -p ${patch}jquery-ui/
 cp -r jquery-ui-$versi_jsui/* ${patch}jquery-ui/
 
 cd $tmp || exit
-COMMENT
 
 npmjs(){
   nama=$1
@@ -144,7 +143,7 @@ npmjs jquery 3.5.1 dist
 npmjs jquery-ui-dist 1.12.1
 
 npmjs js-cookie 3.0.0-rc.1 dist
-npmjs socket.io-client 3.0.3 dist
+npmjs socket.io-client 2.3.1 dist
 npmjs sweetalert2 10.11.1 dist
 npmjs moment 2.29.1 min
 npmjs moment-timezone 0.5.32 builds
@@ -164,7 +163,7 @@ npmjs howler 2.2.1
 npmjs esri-leaflet 2.5.1 dist
 npmjs leaflet.heat 0.2.0 dist
 npmjs leaflet-easybutton 2.4.0 src
-npmjs leaflet.markercluster 1.4.4 dist
+npmjs leaflet.markercluster 1.4.1 dist
 npmjs animate.css 4.1.1
 npmjs interactjs 1.10.1 dist
 

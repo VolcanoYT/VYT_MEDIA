@@ -5,13 +5,16 @@ var map_loading = false;
 var ews_loading = false;
 var ews_link = null;
 
-var tmp_open = false;
+var tmp_open;
+var tmp_home;
 var autoclose = true;
 
 var TemporaryEarthquake = [];
+var our_home = [-1.62, 120.13];
 
 var isfullscreen = getAllUrlParams().fullscreen;
 var isnoinfo = getAllUrlParams().noinfo;
+var audiois = getAllUrlParams().audio;
 
 if (isnoinfo == "true") {
     autoclose = false;
@@ -29,6 +32,8 @@ var G_Camera = L.layerGroup();
 var G_Seismometer = L.layerGroup();
 var G_Volcano = L.layerGroup();
 var G_Antipodes = L.heatLayer([]);
+
+var localfault = L.layerGroup();
 
 var BaseCopyright = "MapScr @ ";
 var cartodbdark = new L.TileLayer("https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png", {
@@ -104,23 +109,14 @@ var krb = L.esri.featureLayer({
     return L.Util.template('<h3>' + krb + '</h3><hr/><p>{REMARK}</p>', layer.feature.properties);
 });
 
-var localfault = new L.LayerGroup;
-/*
-d3.json("https://bmkg-content-inatews.storage.googleapis.com/indo_faults_lines.geojson", function (a) {
-    localfault.addLayer(L.geoJSON(a, {
-        color: "orange",
-        weight: 1
-    }));
-});
-*/
 var get_zona = moment.tz(moment.tz.guess()).zoneAbbr();
 
 var map = new L.Map('map_2d', {
     attributionControl: true,
     //G_Seismometer,G_Camera
-    layers: [googleSat, G_Earthquake, G_Earthquake_C, platetectonics, places]
+    layers: [googleSat, G_Earthquake, G_Earthquake_C, places, localfault, platetectonics]
 }).fitWorld();
-map.setView([-1.62, 120.13], 5.4);
+map.setView(our_home, 5.1);
 map.locate({
     setView: false,
     watch: true
@@ -142,18 +138,14 @@ var overlays = {
     "Earthquake": G_Earthquake,
     "Earthquake (Only Circle)": G_Earthquake_C,
     "Volcano": G_Volcano,
-
     "Places Name": places,
     "Plate Tectonics": platetectonics,
     "High Risk": highrisk,
     "Kawasan Rawan Bencana": krb.setWhere("MAG_CODE='MER'"),
-
     "Seismometer Station": G_Seismometer,
-    // "Tsunami Station": G_Tsunami,
     "Camera Station": G_Camera,
     "Antipodes (90km)": G_Antipodes,
-    "Fault Indonesia": localfault,
-   // "TES": seismicportal
+    "Fault Indonesia": localfault
 };
 
 L.control.scale().addTo(map);
@@ -344,22 +336,26 @@ function add(spawn, notif = false) {
         }
     });
 
-    if (noproblem) {
-        var latx = spawn.geometry.coordinates[1];
-        var lotx = spawn.geometry.coordinates[0];
-        var lokasi = '' + latx + ", " + lotx + '';
+    if (noproblem) {        
         var whereeq = spawn.properties.title;
-        var timeutc = spawn.properties.time;
-        var timelocal = moment.utc(timeutc, 'YYYY-MM-DD HH:mm:ss').local();
         var provider = spawn.properties.sources;
-        var mt = spawn.properties.magType;
-        var magnitudetwo = Number(spawn.properties.mag).toFixed(1);
-        var depthtwo = Number(spawn.geometry.coordinates[2]).toFixed(0);
+        var mt = spawn.properties.magType;        
         var tsunami = spawn.properties.tsunami;
         var statsid = spawn.properties.status;
         var cont = spawn.properties.count;
         var mystatus = EarthquakeStatus(statsid);
+
+        var magnitudetwo = Number(spawn.properties.mag).toFixed(1);
+        var depthtwo     = Number(spawn.geometry.coordinates[2]).toFixed(0);
+
+        var latx = spawn.geometry.coordinates[1];
+        var lotx = spawn.geometry.coordinates[0];
+        var lokasi = '' + latx + ", " + lotx + '';
         var cp = new L.LatLng(latx, lotx, (magnitudetwo + depthtwo / 100) * 1000);
+
+        var timeutc = spawn.properties.time;
+        var timelocal = moment.utc(timeutc, 'YYYY-MM-DD HH:mm:ss').local();
+        var lefttime = timelocal.local().fromNow();
 
         /*
         if (tsunami == "1") {
@@ -441,7 +437,7 @@ function add(spawn, notif = false) {
         if (notif) {
             try {
                 if (autoclose) {
-                    map.flyTo([latx, lotx], 8);
+                    map.flyTo([latx, lotx], 9);
                     $('.infomap').show(3000);
                     $('#data_gempa').html('\
                         <div class="card-body">\
@@ -454,17 +450,83 @@ function add(spawn, notif = false) {
                             <li class="list-group-item list-group-item-dark"><i class="fas fa-server"></i> Source ' + provider + '</li>\
                         </ul>\
                     ');
-                    tmp_open = setTimeout(
-                        function () {
-                            $('.infomap').hide(5000);
-                        }, 1000 * wait_close);
+
+                    // if found time clear
+                    if (tmp_open) {
+                        clearTimeout(tmp_open);
+                    }
+                    tmp_open = setTimeout(function () {
+                        $('.infomap').hide(5000);
+                        tmp_open = null; //remove it
+
+                        //back to house
+                        if (tmp_home) {
+                            clearTimeout(tmp_home);
+                        }
+                        tmp_home = setTimeout(function () {
+                            map.flyTo(our_home, 5.1);
+                            //TODO: show all info here
+                        }, 1000 * 10);
+
+                    }, 1000 * wait_close);
                 }
             } catch (error) {
                 console.log(error);
             }
+            //level warning for audio
+        if (magnitudetwo >= 2.0) {
+            if (audiois == "true") {
+                //hack
+                magnitudetwo = magnitudetwo.replace(".", ",");
+                depthtwo = depthtwo.replace(".", ",");
+                whereeq = spawn.properties.city + ' ' + spawn.properties.country;
+                if (provider == 'BMKG') {
+                    lefttime = timelocal.locale("id").local().fromNow();
+                }
+                if (statsid == 3) {
+                    if (provider == 'BMKG') {
+                        NotifMe("", "Pembaruan Gempa yang ke " + cont + " di lokasi " + whereeq + " dengan magnitudo " + magnitudetwo + " pada kedalaman " + depthtwo + " kilometer yang telah terjadi " + lefttime + " data dari b m k g", "", true, 'id');
+                    } else {
+                        NotifMe("", "update quake " + magnitudetwo + " magnitude already  " + cont + " time updates so far " + whereeq + " with depth " + depthtwo + " km occurs in " + lefttime + "", "", true, 'en');
+                    }
+                } else {
+                    if (provider == 'BMKG') {
+                        NotifMe("", "Telah terjadi gempa pada status " + mystatus + " di lokasi " + whereeq + " dengan magnitudo " + magnitudetwo + " pada kedalaman " + depthtwo + " kilometer yang telah terjadi " + lefttime + " data dari b m k g", "", true, 'id');
+                    } else {
+                        NotifMe("", "new quake with magnitude " + magnitudetwo + " status " + mystatus + " causing shaking near " + whereeq + " with depth " + depthtwo + " km occurs in " + lefttime + "", "", true, 'en');
+                    }
+                }
+            }
         }
+        }        
 
     }
+}
+
+var FaultsIDTemp = [];
+var FaultsIDTemp_Check = false;
+async function GetFaultsID() {
+    FaultsIDTemp_Check = true;
+    return await new Promise(resolve => {
+        $.ajax({
+            method: "GET",
+            dataType: "json",
+            url: 'https://bmkg-content-inatews.storage.googleapis.com/indo_faults_lines.geojson',
+        }).done(function (data) {
+            if (data) {
+                console.log(data);
+                L.geoJSON(data, {
+                    color: "orange",
+                    weight: 1
+                }).addTo(localfault);
+                resolve(200);
+            } else {
+                resolve("faults error");
+            }
+        }).fail(function (a) {
+            resolve("Earthquake: Failed to update!");
+        });
+    });
 }
 
 var CameraTemp = [];
@@ -621,6 +683,13 @@ setInterval(async () => {
             }
         }
 
+        // Faults
+        if (map.hasLayer(localfault)) {
+            if (!FaultsIDTemp_Check) {
+                var syncx = await GetFaultsID();
+            }
+        }
+
         //jika ada layar camera
         if (map.hasLayer(G_Camera)) {
             if (!CameraTemp_Check) {
@@ -690,7 +759,6 @@ var useurl = getAllUrlParams().URL;
 if (!isEmpty(useurl)) {
     URL_APP = useurl;
 }
-
 var ewsio = io(URL_APP + 'ews', {
     transports: ['websocket']
 });
@@ -709,8 +777,14 @@ ewsio.on('connect', function () {
     }
 
 })
-ewsio.on('error', (error) => {
-    console.log(error);
+ewsio.on('error', (t) => {
+    console.log("error", t);
+});
+ewsio.on('connect_error', (t) => {
+    console.log("connect_error", t);
+});
+ewsio.on('reconnect', (t) => {
+    console.log("reconnect", t);
 });
 ewsio.on('info', function (x) {
     console.log('newinfo: ', x);

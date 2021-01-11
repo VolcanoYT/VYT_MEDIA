@@ -132,18 +132,18 @@ function getMagnitudeColor(mw) {
  * Color based on depth base
  */
 function ColorDepth(depthtwo) {
-    var normalicon = "blue";
-    if (depthtwo > 70) {
-        normalicon = "green";
-    }
-    if (depthtwo > 150) {
-        normalicon = "yellow";
-    }
-    if (depthtwo > 300) {
+    var normalicon = "red";
+    if (depthtwo >= 50) {
         normalicon = "orange";
     }
-    if (depthtwo > 700) {
-        normalicon = "pink";
+    if (depthtwo >= 250) {
+        normalicon = "yellow";
+    }
+    if (depthtwo >= 500) {
+        normalicon = "green";
+    }
+    if (depthtwo >= 700) {
+        normalicon = "blue";
     }
     return normalicon;
 }
