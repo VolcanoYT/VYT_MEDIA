@@ -12,14 +12,14 @@ var isremotonly = getAllUrlParams().remotonly;
 
 var isadmin = getAllUrlParams().admin;
 
-var watchlog    = getAllUrlParams().watchlog;
+var watchlog = getAllUrlParams().watchlog;
 var isreconnect = getAllUrlParams().reconnect;
-var isnopower   = getAllUrlParams().nopower;
+var isnopower = getAllUrlParams().nopower;
 
 var can_draggable = false;
 var can_resizable = false;
 
-if(isadmin == 'true'){
+if (isadmin == 'true') {
     can_draggable = true;
     can_resizable = true;
 }
@@ -54,15 +54,6 @@ if (!isEmpty(setuser)) {
 
 if (isremotonly == "true") {
     $('#edit').hide();
-}
-
-if (isauto == "true") {
-    setTimeout(function () {
-        $('#join_room .proses').trigger('click');
-    }, 3000);
-} else {
-    //auto show
-    login();
 }
 
 var multiview = io(URL_APP + 'multiview', {
@@ -125,7 +116,7 @@ multiview.on('request', function (request) {
                 var edits = "display: none;";
                 var htmlbox = '' + name + ' (' + idurl + ')';
                 if (type == 1) {
-                    urlz = URL_API + 'spanel/player.php?cam=' + idurl + '&token_user=' + token_user + '&watchlog='+watchlog+'&reconnect='+isreconnect+'&autoplay=true&nopower='+isnopower+'&URL=' + seturl;
+                    urlz = URL_API + 'spanel/player.php?cam=' + idurl + '&token_user=' + token_user + '&watchlog=' + watchlog + '&reconnect=' + isreconnect + '&autoplay=true&nopower=' + isnopower + '&URL=' + seturl;
                     html = '<iframe src="' + urlz + '"></iframe>';
                 } else {
                     console.log('come soon');
@@ -265,9 +256,21 @@ function lock(lock = true) {
     $('.proses').attr("disabled", lock);
 }
 
+if (isauto == "true") {
+    setTimeout(function () {
+        $('#join_room .proses').trigger('click');
+    }, 3000);
+} else {
+    setTimeout(function () {
+        $('#join_room').modal('show');
+    }, 3000);
+}
+
 function login(join = null) {
     if (isEmpty(join)) {
-        $('#join_room').modal('show');
+        Toastify({
+            text: "No Config Join?'",
+        }).showToast();
     } else {
         if (isEmpty(join_tmp)) {
             lock();
@@ -516,14 +519,14 @@ $('#add_camera .proses').on('click', function (e) {
 
                     }
                 })
-            }else{
+            } else {
                 can_use = true;
             }
-        }else{
+        } else {
             can_use = true;
         }
 
-        if(can_use){
+        if (can_use) {
             multiview.emit('update', {
                 type: 'add',
                 data: {

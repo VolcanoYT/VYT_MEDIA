@@ -2,7 +2,7 @@
 if (location.protocol != 'https:') {
     location.replace('https:' + window.location.href.substring(window.location.protocol.length));
 }
-var URL_API="https://beta.volcanoyt.com/";
+var URL_API = "https://beta.volcanoyt.com/";
 var wtf = "Login";
 var url_cek = 'login';
 var autoclose = getAllUrlParams().autoclose;
@@ -52,53 +52,47 @@ $('#Wanttodo').change(function (e) {
     }
 });
 
-$("form").submit(function (e) {
-    // we stoped it
-    event.preventDefault();
-    if (wtf == "Login with Google Acount") {
-        return gogoogle();
+function onSubmit(tokeng) {
+    if (!isEmpty(tokeng)) {
+
+        if (wtf == "Login with Google Acount") {
+            return gogoogle();
+        }
+        if (wtf == "Login with Twitter Acount") {
+            return gotwitter();
+        }
+
+        var username = $('#username').val();
+        var password = $("#password").val();
+        var token = $("#token").val();
+        var email = $("#email").val();
+        var name = $("#name").val();
+
+
+        isVaild('Data is being checked...', 'info', false);
+        
+        $.ajax({
+            method: "GET",
+            dataType: "json",
+            data: {
+                username: username,
+                name: name,
+                password: password,
+                email: email,
+                token: token,
+                gtoken: tokeng
+            },
+            url: URL_API + "account/v4/" + url_cek + ".json"
+        }).done(function (data) {
+            Go(data);
+        }).fail(function (a) {
+            isVaild('There is a problem with server, try asking admin');
+        });
+
+    } else {
+        isVaild('You are not human?');
     }
-    if (wtf == "Login with Twitter Acount") {
-        return gotwitter();
-    }
-    var username = $('#username').val();
-    var password = $("#password").val();
-    var token = $("#token").val();
-    var email = $("#email").val();
-    var name = $("#name").val();
-
-
-    isVaild('Data is being checked...', 'info', false);
-
-    grecaptcha.ready(function () {
-        grecaptcha.execute('6Le6nrsUAAAAAGRHmbFP1FIUjUE2-hEJ4xIKJ0lc', {
-            action: 'login'
-        }).then(function (gcode) {
-            //console.log(token);            
-            if (!isEmpty(gcode)) {
-                $.ajax({
-                    method: "GET",
-                    dataType: "json",
-                    data: {
-                        username: username,
-                        name: name,
-                        password: password,
-                        email: email,
-                        token: token,
-                        gtoken: gcode
-                    },
-                    url: URL_API+"account/v4/" + url_cek + ".json"
-                }).done(function (data) {
-                    Go(data);
-                }).fail(function (a) {
-                    isVaild('There is a problem with server, try asking admin');
-                });
-            } else {
-                isVaild('You are not human or Google fails to think you are human :(');
-            }
-        });;
-    }); //if faild by google
-});
+};
 
 //https://stackoverflow.com/a/8142000
 //https://gist.github.com/mbajur/8325540
@@ -106,7 +100,7 @@ var errnyt = true;
 
 function gogoogle(r = true, a = true) {
     isVaild('Login Google...', 'info', false);
-    var newWindow = open(URL_API+'google/login.json?redirect=' + r + '&autologin=' + a + '', 'Google Login', 'width=500,height=800')
+    var newWindow = open(URL_API + 'google/login.json?redirect=' + r + '&autologin=' + a + '', 'Google Login', 'width=500,height=800')
     newWindow.focus();
     var pollTimer = window.setInterval(function () {
         if (newWindow.closed !== false) { // !== is required for compatibility with Opera
@@ -120,7 +114,7 @@ function gogoogle(r = true, a = true) {
 
 function gotwitter(r = true, a = true) {
     isVaild('Login Twitter...', 'info', false);
-    var newWindow = open(URL_API+'twitter/login.json?redirect=' + r + '&autologin=' + a + '', 'Twitter Login', 'width=500,height=800')
+    var newWindow = open(URL_API + 'twitter/login.json?redirect=' + r + '&autologin=' + a + '', 'Twitter Login', 'width=500,height=800')
     newWindow.focus();
     var pollTimer = window.setInterval(function () {
         if (newWindow.closed !== false) { // !== is required for compatibility with Opera
@@ -133,10 +127,10 @@ function gotwitter(r = true, a = true) {
 }
 
 function receiveMessage(event) {
-   
-   // TODO: multi api
-   // if (event.origin !== URL_API)
-   //     return;
+
+    // TODO: multi api
+    // if (event.origin !== URL_API)
+    //     return;
 
     if (event.data.api == "login") {
         errnyt = false;
@@ -154,10 +148,13 @@ function Go(data) {
             $("#loading").hide();
             try {
                 $('#token_private').val(data.token_private);
-                if (wtf == "Login" || wtf == "Login with Google Acount"  || wtf == "Login with Twitter Acount") {
+                if (wtf == "Login" || wtf == "Login with Google Acount" || wtf == "Login with Twitter Acount") {
                     if (autoclose == "true") {
                         $('#pesan').html('<div class="alert alert-info" role="alert">' + data.status + ', windows login will close automatically in 5 seconds</div>');
-                        window.opener.postMessage({"api":"login", "data":data}, "*");
+                        window.opener.postMessage({
+                            "api": "login",
+                            "data": data
+                        }, "*");
                         setTimeout(function () {
                             window.close();
                         }, 5000);

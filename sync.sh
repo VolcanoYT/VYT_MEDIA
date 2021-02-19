@@ -18,7 +18,7 @@ cp -r bootstrap-main/dist/* ${patch}bootstrap/
 cd $tmp || exit
 
 echo "Download Fontawesome"
-versi_font=5.15.1 #5.13.0
+versi_font=5.15.2
 mkdir -p $tmp/fontawesome && cd $tmp/fontawesome || exit
 # wget https://github.com/ngdanghau/fontawesome-pro/releases/download/$versi_font/fontawesome-pro-$versi_font.zip
 # wget https://archive.org/download/fontawesome-pro-$versi_font/fontawesome-pro-$versi_font.zip
@@ -31,7 +31,7 @@ cp -r font-awesome-pro-$versi_font/* ${patch}fontawesome/
 cd $tmp || exit
 
 echo "Download VideoJS"
-versi_videojs=7.11.0
+versi_videojs=7.11.5
 mkdir -p $tmp/videojs && cd $tmp/videojs || exit
 wget https://github.com/videojs/video.js/releases/download/v$versi_videojs/video-js-$versi_videojs.zip
 unzip -o video-js-$versi_videojs.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
@@ -43,7 +43,7 @@ rm -rf ${patch}videojs/examples
 cd $tmp || exit
 
 echo "Download Cesium for 3D Map"
-versi_cesium=1.76
+versi_cesium=1.78
 mkdir -p $tmp/cesium && cd $tmp/cesium || exit
 wget https://github.com/CesiumGS/cesium/releases/download/$versi_cesium/Cesium-$versi_cesium.zip
 unzip -o Cesium-$versi_cesium.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
@@ -89,7 +89,6 @@ cp -r Leaflet.ExtraMarkers-master/dist/* ${patch}extramarkers/
 
 cd $tmp || exit
 
-COMMENT
 echo "Download Jquery-UI"
 mkdir -p $tmp/jquery-ui && cd $tmp/jquery-ui || exit
 versi_jsui=1.12.1
@@ -144,14 +143,15 @@ npmjs jquery-ui-dist 1.12.1
 
 npmjs js-cookie 3.0.0-rc.1 dist
 npmjs socket.io-client 2.3.1 dist
-npmjs sweetalert2 10.11.1 dist
+npmjs socket.io-p2p 2.2.0
+npmjs sweetalert2 10.14.0 dist
 npmjs moment 2.29.1 min
 npmjs moment-timezone 0.5.32 builds
 npmjs toastify-js 1.9.3 src
 npmjs tinysort 3.2.7 dist
-npmjs lazysizes 5.2.2
+npmjs lazysizes 5.3.0
 npmjs tempusdominus-bootstrap 5.37.0 build
-npmjs uplot 1.4.7 dist
+npmjs uplot 1.6.4 dist
 npmjs howler 2.2.1
 
 # npmjs videojs-abloop 1.1.2 dist
@@ -160,12 +160,14 @@ npmjs howler 2.2.1
 # npmjs videojs-youtube 2.6.1 dist
 # npmjs http-streaming 2.0.0-rc.2 dist @videojs
 
-npmjs esri-leaflet 2.5.1 dist
-npmjs leaflet.heat 0.2.0 dist
+npmjs esri-leaflet 3.0.0 dist
+npmjs leaflet.heat 0.2.1 dist
 npmjs leaflet-easybutton 2.4.0 src
 npmjs leaflet.markercluster 1.4.1 dist
 npmjs animate.css 4.1.1
-npmjs interactjs 1.10.1 dist
+npmjs interactjs 1.10.2 dist
+npmjs peerjs 1.3.1 dist
+npmjs immutable 4.0.0-rc.12 dist
 
 cd $tmp || exit
 
