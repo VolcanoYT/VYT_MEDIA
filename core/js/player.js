@@ -1,5 +1,6 @@
 //logger('Browser: ', navigator.userAgent);
 //logger('Cookies: ', Cookies.get());
+
 // Player use io for proxy stream
 var IoPlayer;
 // Player Time Lapse use for playback
@@ -21,13 +22,26 @@ var source_cam = "Unknown?";
 var datanext = ['', '', 'Cloud Stream by VolcanoYT'];
 var last_load = true;
 
+var count_down = 0;
+
+// FPS Func
+var lastCalledTime;
+var fps;
+
+// Inner Windows
+var w;
+var h;
+
 var camid = parseInt(getAllUrlParams().cam);
 var hide_info = getAllUrlParams().hide_info;
 var useurl = getAllUrlParams().URL;
 var token_user = getAllUrlParams().token_user;
 var isobson = getAllUrlParams().obs;
-var istes = getAllUrlParams().tes;
-var watchlog = getAllUrlParams().watchlog;
+
+var istes = getAllUrlParams().tes; // raw console
+var watchlog = getAllUrlParams().watchlog; // gui console
+var debug_info = getAllUrlParams().debug; // debug info like fps,size,zoom
+
 var isegg = getAllUrlParams().egg;
 var nopower = getAllUrlParams().nopower;
 
@@ -36,33 +50,6 @@ var p2p_public = getAllUrlParams().p2p_public;
 var token_p2p = p2p_private;
 if (isEmpty(token_p2p)) {
     token_p2p = 'vyt_' + camid + '_' + getRandom(6);
-}
-
-var consolere;
-var cansedlog = false;
-if (watchlog == "true") {
-    consolere = {
-        channel: 'volcanoyt-cam-' + camid,
-        api: '//console.re/connector.js',
-        ready: function (c) {
-            var d = document,
-                s = d.createElement('script'),
-                l;
-            s.src = this.api;
-            s.id = 'consolerescript';
-            s.setAttribute('data-channel', this.channel);
-            s.onreadystatechange = s.onload = function () {
-                if (!l) {
-                    c();
-                }
-                l = true;
-            };
-            d.getElementsByTagName('head')[0].appendChild(s);
-        }
-    };
-    consolere.ready(function () {
-        cansedlog = true;
-    });
 }
 
 var isreconnect = getAllUrlParams().reconnect;
@@ -696,6 +683,7 @@ function reset() {
         x: 0,
         y: 0
     }
+    get_int_zoom = 0;
     resize();
     savedrag();
     savezoom();
@@ -715,8 +703,10 @@ $('#config_brightness').on('change', function (e) {
 });
 
 function resize(f = null, watermark = false) {
-    var w = window.innerWidth;
-    var h = window.innerHeight;
+
+    // get base windows size
+    w = window.innerWidth;
+    h = window.innerHeight;
 
     //clear it
     ctx_player.clear();
@@ -743,28 +733,31 @@ function resize(f = null, watermark = false) {
 
     if (isfliter) {
 
-
-        //pixel data
+        // GET Base Data
         var dt = ctx_player.getImageData(0, 0, w, h);
-        const data = dt.data;
-        for (var i = 0; i < data.length; i += 4) {
-            data[i] = 255 - data[i]; // red
-            data[i + 1] = 255 - data[i + 1]; // green
-            data[i + 2] = 255 - data[i + 2]; // blue
+
+        /*
+                //pixel data                
+                const data = dt.data;
+                for (var i = 0; i < data.length; i += 4) {
+                    data[i] = 255 - data[i]; // red
+                    data[i + 1] = 255 - data[i + 1]; // green
+                    data[i + 2] = 255 - data[i + 2]; // blue
+                }
+        */
+
+        if (config_exposure !== 1.0) {
+            JSManipulate.exposure.filter(dt, {
+                exposure: config_exposure,
+            });
+        }
+        if (config_brightness !== 0.0) {
+            JSManipulate.brightness.filter(dt, {
+                amount: config_brightness,
+            });
         }
 
         /*
-                if (config_exposure !== 1.0) {
-                    JSManipulate.exposure.filter(dt, {
-                        exposure: config_exposure,
-                    });
-                }
-                if (config_brightness !== 0.0) {
-                    JSManipulate.brightness.filter(dt, {
-                        amount: config_brightness,
-                    });
-                }
-                /*
                 JSManipulate.contrast.filter(dt, {
                     amount: 2,
                 });
@@ -773,29 +766,44 @@ function resize(f = null, watermark = false) {
                     bias: 0.77
                 });
         */
-
         //Now finally put the data back into the context, which will render
         ctx_player.putImageData(dt, 0, 0);
     }
 
-    //selalu paling bawah
-    if (watermark) {
-        ctx_player.font = '42px sans-serif';
-        ctx_player.fillStyle = '#444';
-        //ctx_player.textAlign = 'center';
-        // ctx_player.textBaseline = 'middle';
+    // selalu paling bawah
 
-        var c = 'VolcanoYT';
-        var metrics = ctx_player.measureText(c);
-        //var fontHeight = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent;
-        var actualHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-        ctx_player.fillText(c, (w - ctx_player.measureText(c).width) - 4, (h - ht) + 10);
+    // Base Font
+    ctx_player.fillStyle = '#444';
 
-        ctx_player.font = '12px sans-serif'; // (Watch " + online + ") 
-        c = "" + moment().tz(zona).format('DD/MM/YYYY HH:mm:ss');
-        ctx_player.fillText(c, (w - ctx_player.measureText(c).width) - 10, (h - ht) - -30);
+    //Show Debug
+    if (debug_info == "true") {
+        // GET FPS
+        if (!lastCalledTime) {
+            lastCalledTime = Date.now();
+            fps = 0;
+            return;
+        }
+        delta = (Date.now() - lastCalledTime) / 1000;
+        lastCalledTime = Date.now();
+        fps = (1 / delta).toFixed(1);
+
+        // Add All
+        addtext("FPS " + fps + " | Zoom " + get_int_zoom + " | Size " + w + "x" + h + " ");
     }
+
 }
+
+// add text
+var line = 10;
+
+function addtext(c, font = 42) {
+    ctx_player.font = font + 'px sans-serif';
+
+    var ho = h - ht;
+
+    ctx_player.fillText(c, 0, (ho - -font) - line);
+}
+
 window.addEventListener('resize', resize(), false);
 resize();
 
@@ -991,9 +999,30 @@ if (isEmpty(p2p_public)) {
     IoPlayer.on('error', (error) => {
         logger('Error IoPlayer: ', error);
     });
-    var reconnect_tmp = null;
+    //var reconnect_tmp = null;
     IoPlayer.on('disconnect', function () {
-        $("#error").html('<div class="alert alert-primary" role="alert"><h3>Camera Disconnected:<br>' + reason + '</h3></div>');
+        count_down++;
+        if (count_down >= 2) {
+            count_down = 0;
+            if (live) {
+                if (isreconnect !== "true") {
+                    StopStart('dcio');
+                    $("#error").html('<div class="alert alert-primary" role="alert"><h3>Your internet or server seems slow respon, please reload manually</div>');
+                } else {
+                    //keep loop
+                }
+            } else {
+                $("#error").html('<div class="alert alert-primary" role="alert"><h3>Looks like its disconnected, please reload manually</div>');
+            }
+        } else {
+            if (isEmpty(!reason)) {
+                $("#error").html('<div class="alert alert-primary" role="alert"><h3>Camera Disconnected (' + count_down + 'x):<br>' + reason + '</h3></div>');
+            } else {
+                //keep loop
+            }
+        }
+
+        /*
         if (isreconnect == "true") {
             //this bug fix later
             if (reason.includes("Stream stop")) {
@@ -1007,6 +1036,7 @@ if (isEmpty(p2p_public)) {
                 logger(reason, 'debug_tes');
             }
         }
+        */
         icon_player(reason_icon);
         StopStart('meow', false);
         live = false;
@@ -1025,7 +1055,7 @@ function getdata() {
         cam: camid,
         token_p2p: token_p2p,
         token_user: token_user,
-        version: '1.1.0',
+        version: IoPlayerVersion,
         referrer: document.referrer,
         iframe: inIframe(),
         url: URL_APP
@@ -1118,6 +1148,18 @@ function stream_data(e) {
             } else if (e.data.code == 600) {
                 //info online
                 online = e.data.online;
+            } else if (e.data.code == 555) {
+                //System Chat
+                // http://localhost:3000/camera/control.json?user=Yuki&id_user=YT123&cmd=!cam%20chat%20344%20hello
+                // {message: "hello", nick: "Yuki", id: "YT123", code: 555}
+                try {
+                    Toastify({
+                        text: e.data.nick + ' : ' + e.data.message,
+                        duration: 9000
+                    }).showToast();
+                } catch (error) {
+
+                }
             } else {
                 $("#error").html('<div class="alert alert-primary" role="alert"><h3>' + e.data.message + '</h3></div>');
                 icon_player("fal fa-exclamation-triangle");
@@ -1418,16 +1460,26 @@ function NextText(i) {
 
 function logger(data, title = "DEBUG: ", warning = 1) {
     if (warning == 0) return;
+
+    // Send to raw console
+    if (istes == 'true')
+        console.log(title, data);
+
+    //Send to GUI
     if (watchlog == "true") {
         try {
-            if (cansedlog)
-                console.re.log(title, data);
+            //var homeTown = document.getElementById("console_gui_input").value;
+            //document.getElementById("console_gui_input").value += homeTown;
+            if (typeof data == 'object') {
+                data += (JSON && JSON.stringify ? JSON.stringify(data, undefined, 2) : data) + '<br>';
+            }
+            $('#console_gui_input').append(title + ": " + data + '<br>');
         } catch (error) {
 
         }
     }
-    if (istes == 'true')
-        console.log(title, data);
+
+    //TODO: Send Logger to Server?
 }
 
 var last_icon = "";

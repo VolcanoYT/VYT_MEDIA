@@ -58,7 +58,7 @@ if (isremotonly == "true") {
 
 var multiview = io(URL_APP + 'multiview', {
     query: {
-        version: '1.1.0',
+        version: IoPlayerVersion,
         referrer: document.referrer
     },
     transports: ['websocket']
@@ -116,7 +116,7 @@ multiview.on('request', function (request) {
                 var edits = "display: none;";
                 var htmlbox = '' + name + ' (' + idurl + ')';
                 if (type == 1) {
-                    urlz = URL_API + 'spanel/player.php?cam=' + idurl + '&token_user=' + token_user + '&watchlog=' + watchlog + '&reconnect=' + isreconnect + '&autoplay=true&nopower=' + isnopower + '&URL=' + seturl;
+                    urlz = URL_API + 'spanel/player.php?cam=' + idurl + '&token_user=' + token_user + '&watchlog=' + watchlog + '&reconnect=true&autoplay=true&nopower=' + isnopower + '&URL=' + seturl;
                     html = '<iframe src="' + urlz + '"></iframe>';
                 } else {
                     console.log('come soon');
