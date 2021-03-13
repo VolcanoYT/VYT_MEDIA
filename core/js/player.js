@@ -45,13 +45,6 @@ var debug_info = getAllUrlParams().debug; // debug info like fps,size,zoom
 var isegg = getAllUrlParams().egg;
 var nopower = getAllUrlParams().nopower;
 
-var p2p_private = getAllUrlParams().p2p_private;
-var p2p_public = getAllUrlParams().p2p_public;
-var token_p2p = p2p_private;
-if (isEmpty(token_p2p)) {
-    token_p2p = 'vyt_' + camid + '_' + getRandom(6);
-}
-
 var isreconnect = getAllUrlParams().reconnect;
 
 var tmpg = false;
@@ -823,237 +816,72 @@ function inIframe() {
     }
 }
 
-// P2P System
-var clientConnections = Immutable.Map({});
-var p2p_online = 0;
-var perrid = token_p2p;
-if (!isEmpty(p2p_private)) {
-    perrid = p2p_private;
-}
-var peer = new Peer(perrid);
-peer.on('open', function (id) {
-    console.log(`Connection to signaller establised, assigning id: ${id}`);
-    //auto connect if found public token
-    if (!isEmpty(p2p_public)) {
-        setTimeout(function () {
-            join(p2p_public)
-        }, 3000);
-    }
-});
-peer.on('connection', function (c) {
-    console.log(`${c.peer} attempting to establish connection.`);
-    c.on('open', () => {
-        console.log(`Connection to ${c.peer} established.`);
-        clientConnections = clientConnections.set(
-            c.peer,
-            c,
-        );
-        const data = {
-            sender: 'SYSTEM',
-            message: `${c.peer} joined.`,
-        };
-        updatePeerList();
-        updateMessageBoard(data.sender, data.message);
-        broadcast({
-            ...data,
-            token_p2p: generatePeerList(),
-        });
-        p2p_online++;
-    });
-    c.on('data', (data) => {
-        //console.log('Recvied data:\n', data);
-        updateMessageBoard(data.sender, data.message);
-        broadcast({
-            ...data,
-            token_p2p: generatePeerList(),
-        });
-    });
-    c.on('close', () => {
-        console.log(`Connection to ${c.peer} is closed.`);
-        clientConnections = clientConnections.delete(
-            c.peer.toString(),
-        );
-        const data = {
-            sender: 'SYSTEM',
-            message: `${c.peer} left.`,
-        };
-        updatePeerList();
-        updateMessageBoard(data.sender, data.message);
-        broadcast({
-            ...data,
-            token_p2p: generatePeerList(),
-        });
-        p2p_online--;
-    });
-});
-peer.on('disconnected', function () {
-    console.log('(P2P SERVER) Connection lost');
-});
-peer.on('error', function (err) {
-    console.log('(P2P SERVER) ERROR', err);
-});
-
-var conn = null;
-
-function join(cnprivate) {
-
-    // Close old connection
-    if (conn) {
-        conn.close();
-        conn = null;
-    }
-
-    conn = peer.connect(cnprivate);
-    conn.on('open', function () {
-        console.log(`Connection to ${conn.peer} established.`);
-        StopStart('dcio');
-    });
-    conn.on('data', function (data) {
-        //console.log('Recvied data:\n', data);
-        updateMessageBoard(data.sender, data.message);
-        updatePeerList(data.token_p2p);
-    });
-    conn.on('close', function () {
-        console.log(`Connection to ${conn.peer} is closed.`);
-    });
-    conn.on('error', function (err) {
-        console.log('(Connection) ERROR', err);
-    });
-    conn.on('disconnected', function () {
-        console.log(' Connection lost');
-    });
-}
-
-function generatePeerList() {
-    return clientConnections
-        .map((connection) => connection.peer)
-        .toList()
-        .push(`${token_p2p} (HOST)`)
-        .join(', ');
-}
-
-function send(msg, s = 'IMAGE') {
-    const data = {
-        sender: s,
-        message: msg,
-    };
-
-    //send to us?
-    if (conn) {
-        console.log('SSS' + JSON.stringify(data));
-        conn.send(data);
-    }
-
-    // send to all?
-    if (!clientConnections.isEmpty()) {
-        broadcast({
-            ...data,
-            token_p2p: generatePeerList(),
-        });
-    }
-}
-
-function broadcast(data) {
-    clientConnections.forEach((connection) =>
-        connection.send(data),
-    );
-}
-
-function reconnect() {
-    console.log('Reconnecting to signaller.');
-    setTimeout(function () {
-        peer.reconnect();
-    }, 5000);
-}
-
-function updatePeerList(peerList) {
-    var cc = peerList ?
-        peerList :
-        generatePeerList();
-
-    //console.log(cc);
-}
-
-function updateMessageBoard(id, message) {
-    if (id == "IMAGE") {
-        stream_data(message);
-    } else {
-        console.log(`[${id}]: ${message}\n`);
-    }
-}
-
 function getRandom(length) {
     return Math.floor(Math.pow(10, length - 1) + Math.random() * 9 * Math.pow(10, length - 1));
 }
 
-// If No Key P2P_Public just Use Normal System
-if (isEmpty(p2p_public)) {
-    IoPlayer = io(URL_APP + 'camera', {
-        query: getdata(),
-        transports: ['websocket']
-    });
-    IoPlayer.on('connect', function (e) {
-        icon_player("fad fa-wifi-2");
-        noenter = true;
-    });
-    IoPlayer.on('error', (error) => {
-        logger('Error IoPlayer: ', error);
-    });
-    //var reconnect_tmp = null;
-    IoPlayer.on('disconnect', function () {
-        count_down++;
-        if (count_down >= 2) {
-            count_down = 0;
-            if (live) {
-                if (isreconnect !== "true") {
-                    StopStart('dcio');
-                    $("#error").html('<div class="alert alert-primary" role="alert"><h3>Your internet or server seems slow respon, please reload manually</div>');
-                } else {
-                    //keep loop
-                }
-            } else {
-                $("#error").html('<div class="alert alert-primary" role="alert"><h3>Looks like its disconnected, please reload manually</div>');
-            }
-        } else {
-            if (isEmpty(!reason)) {
-                $("#error").html('<div class="alert alert-primary" role="alert"><h3>Camera Disconnected (' + count_down + 'x):<br>' + reason + '</h3></div>');
+IoPlayer = io(URL_APP + 'camera', {
+    query: getdata(),
+    transports: ['websocket']
+});
+IoPlayer.on('connect', function (e) {
+    icon_player("fad fa-wifi-2");
+    noenter = true;
+});
+IoPlayer.on('error', (error) => {
+    logger('Error IoPlayer: ', error);
+});
+//var reconnect_tmp = null;
+IoPlayer.on('disconnect', function () {
+    count_down++;
+    if (count_down >= 2) {
+        count_down = 0;
+        if (live) {
+            if (isreconnect !== "true") {
+                StopStart('dcio');
+                $("#error").html('<div class="alert alert-primary" role="alert"><h3>Your internet or server seems slow respon, please reload manually</div>');
             } else {
                 //keep loop
             }
+        } else {
+            $("#error").html('<div class="alert alert-primary" role="alert"><h3>Looks like its disconnected, please reload manually</div>');
         }
+    } else {
+        if (isEmpty(!reason)) {
+            $("#error").html('<div class="alert alert-primary" role="alert"><h3>Camera Disconnected (' + count_down + 'x):<br>' + reason + '</h3></div>');
+        } else {
+            //keep loop
+        }
+    }
 
-        /*
-        if (isreconnect == "true") {
-            //this bug fix later
-            if (reason.includes("Stream stop")) {
-                if (reconnect_tmp) {
-                    clearTimeout(reconnect_tmp);
-                }
-                reconnect_tmp = setTimeout(function () {
-                    StopStart('cnio');
-                }, 5000);
-            } else {
-                logger(reason, 'debug_tes');
+    /*
+    if (isreconnect == "true") {
+        //this bug fix later
+        if (reason.includes("Stream stop")) {
+            if (reconnect_tmp) {
+                clearTimeout(reconnect_tmp);
             }
+            reconnect_tmp = setTimeout(function () {
+                StopStart('cnio');
+            }, 5000);
+        } else {
+            logger(reason, 'debug_tes');
         }
-        */
-        icon_player(reason_icon);
-        StopStart('meow', false);
-        live = false;
-        noenter = true;
-    });
-    IoPlayer.on('stream', function (e) {
-        stream_data(e);
-        if (p2p_online > 0) {
-            send(e);
-        }
-    });
-};
+    }
+    */
+    icon_player(reason_icon);
+    StopStart('meow', false);
+    live = false;
+    noenter = true;
+});
+IoPlayer.on('stream', function (e) {
+    stream_data(e);
+});
 
 function getdata() {
     return {
         cam: camid,
-        token_p2p: token_p2p,
+        token_p2p: "",
         token_user: token_user,
         version: IoPlayerVersion,
         referrer: document.referrer,
