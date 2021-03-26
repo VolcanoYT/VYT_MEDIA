@@ -22,6 +22,9 @@ var source_cam = "Unknown?";
 var datanext = ['', '', 'Cloud Stream by VolcanoYT'];
 var last_load = true;
 
+var isfliter = false;
+var allow_drag = false;
+
 var count_down = 0;
 
 // FPS Func
@@ -29,8 +32,8 @@ var lastCalledTime;
 var fps;
 
 // Inner Windows
-var w;
-var h;
+var w = window.innerWidth;
+var h = window.innerHeight;
 
 var camid = parseInt(getAllUrlParams().cam);
 var hide_info = getAllUrlParams().hide_info;
@@ -359,7 +362,7 @@ var PlayBack;
         } catch (error) {
             logger('faild set?', error);
         }
-    },
+    }, 
     add: async function (url) {
         return new Promise((resolve, reject) => {
 
@@ -603,9 +606,10 @@ var mouseDown = false;
 // add event listeners to handle screen drag
 fullscreen_player.addEventListener("mousedown", function (evt) {
     mouseDown = true;
-    get_drag_position.x = evt.clientX - get_zoom_position.x;
-    get_drag_position.y = evt.clientY - get_zoom_position.y;
-    //savedrag();
+    if (allow_drag) {
+        get_drag_position.x = evt.clientX - get_zoom_position.x;
+        get_drag_position.y = evt.clientY - get_zoom_position.y;
+    }
 });
 fullscreen_player.addEventListener("mouseup", function (evt) {
     mouseDown = false;
@@ -618,11 +622,12 @@ fullscreen_player.addEventListener("mouseout", function (evt) {
 });
 fullscreen_player.addEventListener("mousemove", function (evt) {
     if (mouseDown) {
-        //logger(evt);
-        get_zoom_position.x = evt.clientX - get_drag_position.x;
-        get_zoom_position.y = evt.clientY - get_drag_position.y;
-        resize();
-        savedrag();
+        if (allow_drag) {
+            get_zoom_position.x = evt.clientX - get_drag_position.x;
+            get_zoom_position.y = evt.clientY - get_drag_position.y;
+            OnImg();
+            savedrag();
+        }
     }
 });
 
@@ -636,14 +641,14 @@ function savedrag() {
 function zoomit() {
     scale *= scaleMultiplier;
     get_int_zoom++;
-    resize();
+    OnImg();
     savezoom();
 };
 
 function zoomout() {
     scale /= scaleMultiplier;
     get_int_zoom--;
-    resize();
+    OnImg();
     savezoom();
 };
 
@@ -659,7 +664,7 @@ if (!isEmpty(load_zoom)) {
     logger(load_zoom);
     scale = load_zoom.scale;
     get_int_zoom = load_zoom.get_int_zoom;
-    resize();
+    OnImg();
 }
 
 var load_drag = tryParse(Cookies.get('drag_cam_' + camid));
@@ -667,7 +672,7 @@ if (!isEmpty(load_drag)) {
     logger(load_drag);
     get_drag_position = load_drag.get_drag_position;
     get_zoom_position = load_drag.get_zoom_position;
-    resize();
+    OnImg();
 }
 
 function reset() {
@@ -677,27 +682,24 @@ function reset() {
         y: 0
     }
     get_int_zoom = 0;
-    resize();
+    OnImg();
     savedrag();
     savezoom();
 };
 
-var config_exposure = 1.0;
-var config_brightness = 0.0;
-var isfliter = false;
+// GUI
 $('#config_setimg').on('change', function () {
     isfliter = this.checked;
 });
-$('#config_exposure').on('change', function (e) {
-    config_exposure = parseFloat(e.target.value);
-});
-$('#config_brightness').on('change', function (e) {
-    config_brightness = parseFloat(e.target.value);
+$('#config_allowdrag').on('change', function () {
+    allow_drag = this.checked;
 });
 
-function resize(f = null, watermark = false) {
+// Update Resize
+window.addEventListener('resize', OnImg(), false);
 
-    // get base windows size
+function OnImg(f = null) {
+
     w = window.innerWidth;
     h = window.innerHeight;
 
@@ -737,7 +739,6 @@ function resize(f = null, watermark = false) {
                     data[i + 1] = 255 - data[i + 1]; // green
                     data[i + 2] = 255 - data[i + 2]; // blue
                 }
-        */
 
         if (config_exposure !== 1.0) {
             JSManipulate.exposure.filter(dt, {
@@ -750,7 +751,6 @@ function resize(f = null, watermark = false) {
             });
         }
 
-        /*
                 JSManipulate.contrast.filter(dt, {
                     amount: 2,
                 });
@@ -759,7 +759,9 @@ function resize(f = null, watermark = false) {
                     bias: 0.77
                 });
         */
+
         //Now finally put the data back into the context, which will render
+        //ctx_player.clear();
         ctx_player.putImageData(dt, 0, 0);
     }
 
@@ -797,13 +799,10 @@ function addtext(c, font = 42) {
     ctx_player.fillText(c, 0, (ho - -font) - line);
 }
 
-window.addEventListener('resize', resize(), false);
-resize();
-
-function draw_image(imgdata, watermark = false) {
+function draw_image(imgdata) {
     var image = new Image();
     image.onload = function () {
-        resize(image, watermark);
+        OnImg(image);
     };
     image.src = imgdata;
 }
@@ -893,7 +892,7 @@ function getdata() {
 function stream_data(e) {
     if (e) {
         if (e.image) {
-            draw_image('data:image/webp;base64,' + base64ArrayBuffer(e.buffer), tmpg);
+            draw_image('data:image/webp;base64,' + base64ArrayBuffer(e.buffer));
 
             //TODO: get base time take?
             var dt = moment().tz(zona).format('DD/MM/YYYY HH:mm:ss');
@@ -1320,3 +1319,17 @@ function icon_player(t = 'fal fa-spinner fa-spin') {
         }
     }
 }
+
+// if all ready
+$(document).ready(function () {
+
+    // get filters
+    Object.values(JSManipulate).forEach((val, index) => {
+        if (!isEmpty(val.valueRanges.amount)) {
+            $("#putimgset").append('<div class="row"><label class="form-label" for="config_' + index + '">' + val.name + '</label><input id="config_' + index + '" type="range" class="form-range" min="' + val.valueRanges.amount.min + '" max="' + val.valueRanges.amount.max + '" step="0.01" value="' + val.defaultValues.amount + '"></div>');
+        } else {
+            console.log('debug ', val);
+        }
+    });
+
+});

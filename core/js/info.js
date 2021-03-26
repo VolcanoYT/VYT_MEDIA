@@ -172,7 +172,7 @@ function OnData(x) {
             info_satu = 'Message (Audio) from ' + datap.user;
             if (datap.message.includes('setid')) {
                 NotifMe("", (datap.message).replace("setid", ""), "", true, 'id', 0.8);
-            }else{
+            } else {
                 NotifMe("", datap.message, "", true, 'en', 0.8);
             }
         }
@@ -282,3 +282,24 @@ function cek(list, vv, limit = 10) {
             }
         }, 1000 * 15);
 }
+
+var last_welcome;
+function Welcome() {
+    var h = (new Date()).getHours();
+    var news = "2";
+    if (h >= 4 && h < 10) {
+        news = "Selamat Pagi";
+    } else if (h >= 10 && h < 15) {
+        news = "Selamat Siang";
+    } else if (h >= 15 && h < 18) {
+        news = "Selamat Sore";
+    } else if (h >= 18 || h < 4) {
+        news = "Selamat Malam";
+    };
+    if (news !== last_welcome) {
+        news = last_welcome;
+        console.log(news);
+    }
+}
+
+window.setInterval(Welcome, 5000);
