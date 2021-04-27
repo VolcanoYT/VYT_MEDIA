@@ -1,20 +1,21 @@
-//logger('Browser: ', navigator.userAgent);
-//logger('Cookies: ', Cookies.get());
-
 // Player use io for proxy stream
 var IoPlayer;
 // Player Time Lapse use for playback
 var PrPlayer;
 // Player for recod
 var RpPlayer;
+// Player for HLS Live
+//var PlayerHLS;
 
 var live = false;
+var live_hls = false;
+
 var type = "live";
 var noenter = true;
 var reason = "";
 var reason_icon = "fad fa-wifi-slash";
 var div_ld = "#loading";
-var div_live = "#player_new";
+var div_live = "#html5_player";
 var div_tl_raw = "player_timelapse_raw";
 var div_tl_vd = "#player_timelapse_video";
 var name_cam = "Unknown?";
@@ -70,9 +71,9 @@ var get_zoom_position = {
 };
 var get_int_zoom = 0;
 
-var canvas_player = document.getElementById("player_new");
+var canvas_player = document.getElementById("html5_player");
 var fullscreen_player = document.getElementById("full1");
-var ctx_player = canvas_player.getContext("2d");
+var ctx_player;
 
 var last_frame = null;
 
@@ -95,6 +96,8 @@ if (!isEmpty(useurl)) {
     }
     */
 }
+
+var URL_HLS = URL_APP + 'live/' + camid + '/hls.m3u8';
 
 // API Fullscreen by https://stackoverflow.com/questions/7130397/how-do-i-make-a-div-full-screen
 $('.full').on('click', function () {
@@ -362,7 +365,7 @@ var PlayBack;
         } catch (error) {
             logger('faild set?', error);
         }
-    }, 
+    },
     add: async function (url) {
         return new Promise((resolve, reject) => {
 
@@ -703,6 +706,10 @@ function OnImg(f = null) {
     w = window.innerWidth;
     h = window.innerHeight;
 
+    if (!ctx_player) {
+        return;
+    }
+
     //clear it
     ctx_player.clear();
     //ctx_player.clearRect(0, 0, ctx_player.width, ctx_player.height);
@@ -783,7 +790,7 @@ function OnImg(f = null) {
         fps = (1 / delta).toFixed(1);
 
         // Add All
-        addtext("FPS " + fps + " | Zoom " + get_int_zoom + " | Size " + w + "x" + h + " ");
+        addtext("FPS " + fps + " | Zoom " + get_int_zoom + " | Size " + w + "x" + h + " | Total " + formatBytes(total_bit) + " (" + formatBytes(last_bit) + ") | Frame " + totalframe + " | Format " + last_format + " ");
     }
 
 }
@@ -792,10 +799,13 @@ function OnImg(f = null) {
 var line = 10;
 
 function addtext(c, font = 42) {
+
+    if (!ctx_player) {
+        return;
+    }
+
     ctx_player.font = font + 'px sans-serif';
-
     var ho = h - ht;
-
     ctx_player.fillText(c, 0, (ho - -font) - line);
 }
 
@@ -832,6 +842,9 @@ IoPlayer.on('error', (error) => {
 });
 //var reconnect_tmp = null;
 IoPlayer.on('disconnect', function () {
+
+    //clear player?
+
     count_down++;
     if (count_down >= 2) {
         count_down = 0;
@@ -868,11 +881,13 @@ IoPlayer.on('disconnect', function () {
         }
     }
     */
+
     icon_player(reason_icon);
     StopStart('meow', false);
     live = false;
     noenter = true;
 });
+
 IoPlayer.on('stream', function (e) {
     stream_data(e);
 });
@@ -889,10 +904,64 @@ function getdata() {
     };
 }
 
+var playerx;
+var last_format = "";
+var total_bit = 0;
+var last_bit = 0;
+var totalframe = 0;
+
 function stream_data(e) {
     if (e) {
+
+        if (debug_info == "2") {
+            console.log(e);
+        }
+
         if (e.image) {
-            draw_image('data:image/webp;base64,' + base64ArrayBuffer(e.buffer));
+
+            //check format
+            if (last_format !== e.format) {
+
+                $('#html5_player').show();
+                $('#hls_player').hide();
+
+                last_format = e.format;
+                console.log('format pindah ke ' + last_format);
+
+                ctx_player = null;
+                // PlayerJSMpeg = null;
+
+                var newCvs = canvas_player.cloneNode(false);
+                canvas_player.parentNode.replaceChild(newCvs, canvas_player);
+                canvas_player = newCvs;
+
+                ctx_player = canvas_player.getContext("2d");
+                /*
+                                if (e.format == "image2pipe" || e.format == "image2") {
+                                    ctx_player = canvas_player.getContext("2d");
+                                } else {
+                                    ctx_player = canvas_player.getContext('webgl') || canvas_player.getContext("experimental-webgl");
+                                }
+                */
+            }
+
+            if (e.format == "image2pipe" || e.format == "image2") {
+                draw_image('data:image/webp;base64,' + base64ArrayBuffer(e.buffer));
+            } else {
+                /*
+                if (!PlayerJSMpeg) {
+                    PlayerJSMpeg = new JSMpeg.Player("pipe", {
+                        canvas: canvas_player,
+                        disableGl: true
+                    });
+                }
+                PlayerJSMpeg.write(e.buffer);
+                */
+            }
+
+            last_bit = new Uint8Array(e.buffer).length;
+            total_bit = total_bit + last_bit;
+            totalframe++;
 
             //TODO: get base time take?
             var dt = moment().tz(zona).format('DD/MM/YYYY HH:mm:ss');
@@ -975,6 +1044,14 @@ function stream_data(e) {
             } else if (e.data.code == 600) {
                 //info online
                 online = e.data.online;
+            } else if (e.data.code == 666) {
+
+                // HLS Player
+                /*
+                if (!PlayerHLS) {                    
+                }
+                */
+
             } else if (e.data.code == 555) {
                 //System Chat
                 // http://localhost:3000/camera/control.json?user=Yuki&id_user=YT123&cmd=!cam%20chat%20344%20hello
@@ -1007,57 +1084,52 @@ function stream_data(e) {
     }
 }
 
-function base64ArrayBuffer(arrayBuffer) {
-    var base64 = ''
-    var encodings = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+/*
+// Player HLS Stream
+var HLS_STOP;
+PlayerHLS = videojs('hls_player', {
+    techOrder: ['html5'],
+    retryOnError: true,
+    autoplay: true,
+    liveui: true,
+    sources: [{
+        src: URL_HLS,
+        type: 'application/x-mpegURL'
+    }]
+});
 
-    var bytes = new Uint8Array(arrayBuffer)
-    var byteLength = bytes.byteLength
-    var byteRemainder = byteLength % 3
-    var mainLength = byteLength - byteRemainder
+PlayerHLS.on('waiting', function (e) {
+    console.log('waiting_Player_HLS', e);
+    $('#html5_player').show();
+    $('#hls_player').hide();
+    HLS_STOP = setTimeout(function () {
+        console.log('Restart Player....')
+        PlayerHLS.reset();
+        PlayerHLS.src(URL_HLS);
+    }, 1000 * 30);
+});
 
-    var a, b, c, d
-    var chunk
+//, 'ready','canplay', 'canplaythrough'
+PlayerHLS.on(['play', 'playing'], function (e) {
+    console.log('play_Player_HLS', e);
+    $('#html5_player').hide();
+    $('#hls_player').show();
+    clearTimeout(HLS_STOP);
+});
 
-    // Main loop deals with bytes in chunks of 3
-    for (var i = 0; i < mainLength; i = i + 3) {
-        // Combine the three bytes into a single integer
-        chunk = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2]
+/*
+PlayerHLS.on(['durationchange', 'loadedmetadata', 'loadeddata', 'loadstart', 'durationchange', 'ended', 'pause', , 'suspend', 'abort', 'interruptbegin', 'interruptend', 'stalled', 'resize', 'seeked', 'seeking'], function (e) {
+    console.log('Info_Player_HLS', e);
+});
+PlayerHLS.liveTracker.on('liveedgechange', (e) => {
+    console.log('liveTracker_Player_HLS', e);
+});
 
-        // Use bitmasks to extract 6-bit segments from the triplet
-        a = (chunk & 16515072) >> 18 // 16515072 = (2^6 - 1) << 18
-        b = (chunk & 258048) >> 12 // 258048   = (2^6 - 1) << 12
-        c = (chunk & 4032) >> 6 // 4032     = (2^6 - 1) << 6
-        d = chunk & 63 // 63       = 2^6 - 1
 
-        // Convert the raw binary segments to the appropriate ASCII encoding
-        base64 += encodings[a] + encodings[b] + encodings[c] + encodings[d]
-    }
-
-    // Deal with the remaining bytes and padding
-    if (byteRemainder == 1) {
-        chunk = bytes[mainLength]
-
-        a = (chunk & 252) >> 2 // 252 = (2^6 - 1) << 2
-
-        // Set the 4 least significant bits to zero
-        b = (chunk & 3) << 4 // 3   = 2^2 - 1
-
-        base64 += encodings[a] + encodings[b] + '=='
-    } else if (byteRemainder == 2) {
-        chunk = (bytes[mainLength] << 8) | bytes[mainLength + 1]
-
-        a = (chunk & 64512) >> 10 // 64512 = (2^6 - 1) << 10
-        b = (chunk & 1008) >> 4 // 1008  = (2^6 - 1) << 4
-
-        // Set the 2 least significant bits to zero
-        c = (chunk & 15) << 2 // 15    = 2^4 - 1
-
-        base64 += encodings[a] + encodings[b] + encodings[c] + '='
-    }
-
-    return base64
-}
+PlayerHLS.on(['error'], function (e) {
+    console.log('Error_Player_HLS', e);
+});
+*/
 
 //API Select Time
 $.fn.datetimepicker.Constructor.Default = $.extend({}, $.fn.datetimepicker.Constructor.Default, {
@@ -1320,10 +1392,24 @@ function icon_player(t = 'fal fa-spinner fa-spin') {
     }
 }
 
+// Keep Live?
+/*
+setInterval(function () {
+    try {
+        if (PlayerHLS) {
+            //PlayerHLS.liveTracker.seekToLiveEdge();
+            PlayerHLS.currentTime(9999999999999999999999999999999999999);
+        }
+    } catch (error) {
+        console.log('error keep live', error);
+    }
+}, 1000 * 15);
+*/
+
 // if all ready
 $(document).ready(function () {
 
-    // get filters
+    // Get filters JSManipulate
     Object.values(JSManipulate).forEach((val, index) => {
         if (!isEmpty(val.valueRanges.amount)) {
             $("#putimgset").append('<div class="row"><label class="form-label" for="config_' + index + '">' + val.name + '</label><input id="config_' + index + '" type="range" class="form-range" min="' + val.valueRanges.amount.min + '" max="' + val.valueRanges.amount.max + '" step="0.01" value="' + val.defaultValues.amount + '"></div>');
@@ -1333,3 +1419,67 @@ $(document).ready(function () {
     });
 
 });
+
+function formatBytes(bytes, decimals = 2) {
+    if (bytes === 0) return '0 Bytes';
+
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+function base64ArrayBuffer(arrayBuffer) {
+    var base64 = ''
+    var encodings = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+
+    var bytes = new Uint8Array(arrayBuffer)
+    var byteLength = bytes.byteLength
+    var byteRemainder = byteLength % 3
+    var mainLength = byteLength - byteRemainder
+
+    var a, b, c, d
+    var chunk
+
+    // Main loop deals with bytes in chunks of 3
+    for (var i = 0; i < mainLength; i = i + 3) {
+        // Combine the three bytes into a single integer
+        chunk = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2]
+
+        // Use bitmasks to extract 6-bit segments from the triplet
+        a = (chunk & 16515072) >> 18 // 16515072 = (2^6 - 1) << 18
+        b = (chunk & 258048) >> 12 // 258048   = (2^6 - 1) << 12
+        c = (chunk & 4032) >> 6 // 4032     = (2^6 - 1) << 6
+        d = chunk & 63 // 63       = 2^6 - 1
+
+        // Convert the raw binary segments to the appropriate ASCII encoding
+        base64 += encodings[a] + encodings[b] + encodings[c] + encodings[d]
+    }
+
+    // Deal with the remaining bytes and padding
+    if (byteRemainder == 1) {
+        chunk = bytes[mainLength]
+
+        a = (chunk & 252) >> 2 // 252 = (2^6 - 1) << 2
+
+        // Set the 4 least significant bits to zero
+        b = (chunk & 3) << 4 // 3   = 2^2 - 1
+
+        base64 += encodings[a] + encodings[b] + '=='
+    } else if (byteRemainder == 2) {
+        chunk = (bytes[mainLength] << 8) | bytes[mainLength + 1]
+
+        a = (chunk & 64512) >> 10 // 64512 = (2^6 - 1) << 10
+        b = (chunk & 1008) >> 4 // 1008  = (2^6 - 1) << 4
+
+        // Set the 2 least significant bits to zero
+        c = (chunk & 15) << 2 // 15    = 2^4 - 1
+
+        base64 += encodings[a] + encodings[b] + encodings[c] + '='
+    }
+
+    return base64
+}
