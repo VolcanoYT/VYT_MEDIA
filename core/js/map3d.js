@@ -1,14 +1,21 @@
 window.CESIUM_BASE_URL = 'https://cdn.volcanoyt.com/core/t/Cesium/';
-Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJjNzlhNGNlYy0zMjM1LTRmNGMtYmNjNy0yMzA1ZjA1ZDc4Y2UiLCJpZCI6MTk2NDEsInNjb3BlcyI6WyJhc3IiLCJnYyJdLCJpYXQiOjE1NzU5NTA2MDZ9.uhcwif9N5JHaQmLl22pzkf1bh8EhsngQTXLFnY4CKz4';
+
 var keymapbox = "pk.eyJ1IjoidGVtYmxvciIsImEiOiI5MjdjOTMxNTJiZmFlZmU1ZGI0ZjAwNTZlNjEyOWEwNyJ9.a1_DS6D2ipZAP1AS2OyAHQ";
+
 var eqwatch = [];
+
 var indo = Cesium.Rectangle.fromDegrees(90.7322, -13.0693, 147.8029, 14.3197);
+
+Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJjNzlhNGNlYy0zMjM1LTRmNGMtYmNjNy0yMzA1ZjA1ZDc4Y2UiLCJpZCI6MTk2NDEsInNjb3BlcyI6WyJhc3IiLCJnYyJdLCJpYXQiOjE1NzU5NTA2MDZ9.uhcwif9N5JHaQmLl22pzkf1bh8EhsngQTXLFnY4CKz4';
 Cesium.Camera.DEFAULT_VIEW_RECTANGLE = indo;
 Cesium.Camera.DEFAULT_VIEW_FACTOR = 0;
+
 var loaded = false;
 var autororate = false;
+
 var toolbar = document.getElementById('toolbar');
-var viewer = new Cesium.Viewer('map', {
+
+var viewer = new Cesium.Viewer('map_3d', {
     animation: false,
     baseLayerPicker: false,
     navigationHelpButton: true,
@@ -25,8 +32,14 @@ var viewer = new Cesium.Viewer('map', {
     timeline: false
 });
 
-var timku = viewer.entities;
+/*
+Sandcastle.addToggleButton("HDR", true, function (checked) {
+    //viewer.scene.highDynamicRange = checked;
+    console.log(checked);
+});
+*/
 
+var timku = viewer.entities;
 //Create Entity "folders" to allow us to turn on/off entities as a group.
 var vcc = timku.add(new Cesium.Entity());
 var eqq = timku.add(new Cesium.Entity());
@@ -96,6 +109,7 @@ var viewModel = {
 };
 var baseLayers = viewModel.baseLayers;
 Cesium.knockout.track(viewModel);
+
 function setupLayers() {
     addBaseLayerOption(
         'Google',
@@ -145,6 +159,7 @@ function setupLayers() {
             url: "https://a.tiles.mapbox.com/v4/temblor.d2byhogx/{z}/{x}/{y}.jpg?access_token=" + keymapbox
         }), 1, false);
 }
+
 function addBaseLayerOption(name, imageryProvider) {
     var layer;
     if (typeof imageryProvider === 'undefined') {
@@ -157,6 +172,7 @@ function addBaseLayerOption(name, imageryProvider) {
     layer.name = name;
     baseLayers.push(layer);
 }
+
 function addAdditionalLayerOption(name, imageryProvider, alpha, show) {
     var layer = imageryLayers.addImageryProvider(imageryProvider);
     layer.alpha = Cesium.defaultValue(alpha, 0.5);
@@ -164,6 +180,7 @@ function addAdditionalLayerOption(name, imageryProvider, alpha, show) {
     layer.name = name;
     Cesium.knockout.track(layer, ['alpha', 'show', 'name']);
 }
+
 function updateLayerList() {
     var numLayers = imageryLayers.length;
     viewModel.layers.splice(0, viewModel.layers.length);
@@ -171,9 +188,9 @@ function updateLayerList() {
         viewModel.layers.push(imageryLayers.get(i));
     }
 }
-var toolbar = document.getElementById('toolbar');
 Cesium.knockout.applyBindings(viewModel, toolbar);
 Cesium.knockout.getObservable(viewModel, 'selectedLayer').subscribe(function (baseLayer) {
+
     // Handle changes to the drop-down base layer selector.
     try {
         var activeLayerIndex = 0;
@@ -193,16 +210,21 @@ Cesium.knockout.getObservable(viewModel, 'selectedLayer').subscribe(function (ba
         baseLayer.alpha = alpha;
         updateLayerList();
     } catch (error) {
-
+        console.log(error);
     }
 });
+
 function checkLoad() {
     setupLayers();
     updateLayerList();
+
     document.getElementById("loadingOverlay").style.display = "none";
-    document.getElementById("map").style.display = "block";
+    document.getElementById("map_3d").style.display = "block";
+
+    console.log('loading done...');
     loaded = true;
 }
+
 var lastNow = Date.now();
 viewer.clock.onTick.addEventListener(function (clock) {
     try {
@@ -219,6 +241,7 @@ viewer.clock.onTick.addEventListener(function (clock) {
 
     }
 });
+
 function pineq(spawn) {
     var ecid = spawn.id;
     var noproblem = true;
@@ -275,6 +298,7 @@ function pineq(spawn) {
         });
     }
 }
+
 function drawImage(id = '6', key = 'red') {
     var c = document.createElement("canvas");
     c.width = 35;
@@ -288,6 +312,7 @@ function drawImage(id = '6', key = 'red') {
     ctx.stroke();
     return c;
 }
+
 function getstatus(data) {
     if (data == "0") {
         return "Automatic";
@@ -301,6 +326,7 @@ function getstatus(data) {
         return "Unknown";
     }
 }
+
 function getcolordeep(depthtwo) {
     var normalicon = "blue";
     if (depthtwo > 70) {
@@ -317,6 +343,7 @@ function getcolordeep(depthtwo) {
     }
     return normalicon;
 }
+
 function GetApi() {
     $.ajax({
         method: "GET",
@@ -325,7 +352,7 @@ function GetApi() {
             update: localDate,
             hour: 24
         },
-        url: URL_API+"earthquake/geo.json",
+        url: URL_API + "earthquake/geo.json",
     }).done(function (data) {
         if (data && data.meta) {
             if (data.meta.code == 200) {
@@ -333,9 +360,11 @@ function GetApi() {
                     for (let b in data.features) {
                         pineq(data.features[b]);
                     }
+
                     if (!loaded) {
                         checkLoad();
                     }
+
                 } else {
                     NotifMe("Earthquake: Data not available right now.");
                 }
@@ -353,3 +382,4 @@ function GetApi() {
 setInterval(function () {
     GetApi();
 }, 60000);
+GetApi();

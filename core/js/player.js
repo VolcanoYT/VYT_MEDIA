@@ -830,8 +830,7 @@ function getRandom(length) {
 }
 
 IoPlayer = io(URL_APP + 'camera', {
-    query: getdata(),
-    transports: ['websocket']
+    query: getdata()
 });
 IoPlayer.on('connect', function (e) {
     icon_player("fad fa-wifi-2");

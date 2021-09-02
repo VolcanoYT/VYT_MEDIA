@@ -1,26 +1,18 @@
-$("body").append('<div class="card text-white bg-primary infomap"><div class="card-header">Latest Earthquake</div><div id="data_gempa">Wait...</div></div>');
+var isfullscreen   = getAllUrlParams().fullscreen;
+var greenscreen    = getAllUrlParams().greenscreen || "false";
+var audiois        = getAllUrlParams().audio || "true";
+var doingfocus     = getAllUrlParams().focus || "true";
+//var auto_mode    = getAllUrlParams().auto;
 
 var map_loading = false;
-
 var ews_loading = false;
 var ews_link = null;
-
 var tmp_open;
 var tmp_home;
-var autoclose = true;
-
+var tmp_hide;
 var TemporaryEarthquake = [];
 var our_home = [-1.62, 120.13];
 
-var isfullscreen = getAllUrlParams().fullscreen;
-var isnoinfo = getAllUrlParams().noinfo;
-var audiois = getAllUrlParams().audio;
-
-if (isnoinfo == "true") {
-    autoclose = false;
-}
-
-var auto_mode = getAllUrlParams().auto;
 var auto_twait = 0;
 var auto_gwait = 60;
 
@@ -168,7 +160,15 @@ function clean_map(cleanid = "") {
     if (!isEmpty(cleanid)) {
         last_map = "";
     }
-    if (JSON.stringify(last_map) !== JSON.stringify(isloc)) {
+    var lg = JSON.stringify(last_map);
+    var lx = JSON.stringify(isloc);
+    if (lg !== lx) {
+
+        if (!isEmpty(cleanid)) {
+            console.log('DEBUG: last_map ' + lg + ' | local_now ' + lx + ' ');
+        }
+
+        // Update last_map
         last_map = isloc;
 
         //add layer jika tersedia
@@ -229,7 +229,6 @@ function clean_map(cleanid = "") {
                 G_Camera.removeLayer(item.marker);
             }
         });
-        console.log('map berubah?');
     }
 
     // Clean by Time
@@ -336,17 +335,17 @@ function add(spawn, notif = false) {
         }
     });
 
-    if (noproblem) {        
+    if (noproblem) {
         var whereeq = spawn.properties.title;
         var provider = spawn.properties.sources;
-        var mt = spawn.properties.magType;        
+        var mt = spawn.properties.magType;
         var tsunami = spawn.properties.tsunami;
         var statsid = spawn.properties.status;
         var cont = spawn.properties.count;
         var mystatus = EarthquakeStatus(statsid);
 
         var magnitudetwo = Number(spawn.properties.mag).toFixed(1);
-        var depthtwo     = Number(spawn.geometry.coordinates[2]).toFixed(0);
+        var depthtwo = Number(spawn.geometry.coordinates[2]).toFixed(0);
 
         var latx = spawn.geometry.coordinates[1];
         var lotx = spawn.geometry.coordinates[0];
@@ -435,8 +434,15 @@ function add(spawn, notif = false) {
         }
 
         if (notif) {
+
+            // Auto Foces
             try {
-                if (autoclose) {
+                if (doingfocus == "true") {
+
+                    if(greenscreen == "true"){
+                        document.getElementById("map_2d").style.visibility = "";                        
+                    }
+
                     map.flyTo([latx, lotx], 9);
                     $('.infomap').show(3000);
                     $('#data_gempa').html('\
@@ -464,8 +470,24 @@ function add(spawn, notif = false) {
                             clearTimeout(tmp_home);
                         }
                         tmp_home = setTimeout(function () {
+
                             map.flyTo(our_home, 5.1);
-                            //TODO: show all info here
+                            
+                            if (tmp_hide) {
+                                clearTimeout(tmp_hide);
+                            }
+                            tmp_hide = setTimeout(function () {
+                                //TODO: show all info here    
+                                if(greenscreen == "true"){
+                                    document.getElementById("map_2d").style.visibility = "hidden";
+                                    $("body").css("background-color", "transparent");
+                                    $("html").css("background-color", "transparent");
+                                    $(".icon_notif").css("display", "none");
+                                    $("#arc-widget-container").remove();// no effect?
+                                }
+    
+                            }, 1000 * 5);
+
                         }, 1000 * 10);
 
                     }, 1000 * wait_close);
@@ -473,32 +495,33 @@ function add(spawn, notif = false) {
             } catch (error) {
                 console.log(error);
             }
-            //level warning for audio
-        if (magnitudetwo >= 2.0) {
-            if (audiois == "true") {
-                //hack
-                magnitudetwo = magnitudetwo.replace(".", ",");
-                depthtwo = depthtwo.replace(".", ",");
-                whereeq = spawn.properties.city + ' ' + spawn.properties.country;
-                if (provider == 'BMKG') {
-                    lefttime = timelocal.locale("id").local().fromNow();
-                }
-                if (statsid == 3) {
+
+            // Audio Notif, if source BMKG use Indonesia audio auto
+            if (magnitudetwo >= 2.0) {
+                if (audiois == "true") {
+                    //hack
+                    magnitudetwo = magnitudetwo.replace(".", ",");
+                    depthtwo = depthtwo.replace(".", ",");
+                    whereeq = spawn.properties.city + ' ' + spawn.properties.country;
                     if (provider == 'BMKG') {
-                        NotifMe("", "Pembaruan Gempa yang ke " + cont + " di lokasi " + whereeq + " dengan magnitudo " + magnitudetwo + " pada kedalaman " + depthtwo + " kilometer yang telah terjadi " + lefttime + " data dari b m k g", "", true, 'id');
-                    } else {
-                        NotifMe("", "update quake " + magnitudetwo + " magnitude already  " + cont + " time updates so far " + whereeq + " with depth " + depthtwo + " km occurs in " + lefttime + "", "", true, 'en');
+                        lefttime = timelocal.locale("id").local().fromNow();
                     }
-                } else {
-                    if (provider == 'BMKG') {
-                        NotifMe("", "Telah terjadi gempa pada status " + mystatus + " di lokasi " + whereeq + " dengan magnitudo " + magnitudetwo + " pada kedalaman " + depthtwo + " kilometer yang telah terjadi " + lefttime + " data dari b m k g", "", true, 'id');
+                    if (statsid == 3) {
+                        if (provider == 'BMKG') {
+                            NotifMe("", "Pembaruan Gempa yang ke " + cont + " di lokasi " + whereeq + " dengan magnitudo " + magnitudetwo + " pada kedalaman " + depthtwo + " kilometer yang telah terjadi " + lefttime + " data dari b m k g", "", true, 'id');
+                        } else {
+                            NotifMe("", "update quake " + magnitudetwo + " magnitude already  " + cont + " time updates so far " + whereeq + " with depth " + depthtwo + " km occurs in " + lefttime + "", "", true, 'en');
+                        }
                     } else {
-                        NotifMe("", "new quake with magnitude " + magnitudetwo + " status " + mystatus + " causing shaking near " + whereeq + " with depth " + depthtwo + " km occurs in " + lefttime + "", "", true, 'en');
+                        if (provider == 'BMKG') {
+                            NotifMe("", "Telah terjadi gempa pada status " + mystatus + " di lokasi " + whereeq + " dengan magnitudo " + magnitudetwo + " pada kedalaman " + depthtwo + " kilometer yang telah terjadi " + lefttime + " data dari b m k g", "", true, 'id');
+                        } else {
+                            NotifMe("", "new quake with magnitude " + magnitudetwo + " status " + mystatus + " causing shaking near " + whereeq + " with depth " + depthtwo + " km occurs in " + lefttime + "", "", true, 'en');
+                        }
                     }
                 }
             }
         }
-        }        
 
     }
 }
@@ -714,6 +737,17 @@ setInterval(async () => {
 
 }, 1000 * 1);
 
+// if map zoom?
+map.on('zoomend', function (e) {
+    //console.log('zoomend',e);
+});
+
+// if fullscreen verb
+if (isfullscreen == "true") {
+    $(".navbar").hide();
+    $("#map_2d").css("margin-top", "0");
+}
+
 /*
 ews_link = new ReconnectingWebSocket("wss://seedlink.volcanoyt.com");
 ews_link.onopen = function (e) {
@@ -751,10 +785,9 @@ function EWS_Proses(data) {
     sub.html('' + full_nama + ' | PGA ' + data.pga + '');
 }
 */
-
-//API Socket
+/*
+// API EWS
 var useurl = getAllUrlParams().URL;
-
 //URL Proxy Player for localhost or multi node
 if (!isEmpty(useurl)) {
     URL_APP = useurl;
@@ -769,7 +802,6 @@ ewsio.on('disconnect', function () {
 ewsio.on('connect', function () {
     console.log('connect');
     ews_loading = true;
-
     if (!isEmpty(useurl)) {
         ewsio.emit('ewsbeta', {
             subscribe: "GE.JAGI",
@@ -792,12 +824,4 @@ ewsio.on('info', function (x) {
         add(x.data, true);
     }
 });
-
-map.on('zoomend', function () {
-    console.log('zoomend');
-});
-
-if (isfullscreen == "true") {
-    $(".navbar").hide();
-    $("#map_2d").css("margin-top", "0");
-}
+*/

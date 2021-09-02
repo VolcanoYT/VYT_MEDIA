@@ -18,7 +18,7 @@ cp -r bootstrap-main/dist/* ${patch}bootstrap/
 cd $tmp || exit
 
 echo "Download Fontawesome"
-versi_font=5.15.2
+versi_font=5.15.4
 mkdir -p $tmp/fontawesome && cd $tmp/fontawesome || exit
 # wget https://github.com/ngdanghau/fontawesome-pro/releases/download/$versi_font/fontawesome-pro-$versi_font.zip
 # wget https://archive.org/download/fontawesome-pro-$versi_font/fontawesome-pro-$versi_font.zip
@@ -31,7 +31,7 @@ cp -r font-awesome-pro-$versi_font/* ${patch}fontawesome/
 cd $tmp || exit
 
 echo "Download VideoJS"
-versi_videojs=7.12.1
+versi_videojs=7.15.2
 mkdir -p $tmp/videojs && cd $tmp/videojs || exit
 wget https://github.com/videojs/video.js/releases/download/v$versi_videojs/video-js-$versi_videojs.zip
 unzip -o video-js-$versi_videojs.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
@@ -43,7 +43,7 @@ rm -rf ${patch}videojs/examples
 cd $tmp || exit
 
 echo "Download Cesium for 3D Map"
-versi_cesium=1.80
+versi_cesium=1.84
 mkdir -p $tmp/cesium && cd $tmp/cesium || exit
 wget https://github.com/CesiumGS/cesium/releases/download/$versi_cesium/Cesium-$versi_cesium.zip
 unzip -o Cesium-$versi_cesium.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
@@ -59,7 +59,6 @@ wget https://github.com/Leaflet/Leaflet/archive/v$versi_leaflet.zip
 unzip -o v$versi_leaflet.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
 rm -rf ${patch}leaflet/ && mkdir -p ${patch}leaflet/
 cp -r Leaflet-${versi_leaflet}/dist/* ${patch}leaflet/
-
 cd $tmp || exit
 
 echo "Download DataTables for Tabel (DEV)"
@@ -86,7 +85,6 @@ wget https://github.com/coryasilva/Leaflet.ExtraMarkers/archive/master.zip
 unzip -o master.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
 rm -rf ${patch}extramarkers/ && mkdir -p ${patch}extramarkers/
 cp -r Leaflet.ExtraMarkers-master/dist/* ${patch}extramarkers/
-
 cd $tmp || exit
 
 echo "Download Jquery-UI"
@@ -138,21 +136,22 @@ npmjs(){
 
 #TODO: why no just use http://browserify.org/? and keep last update
 # dom-to-image html2canvas FileSaver
-npmjs jquery 3.5.1 dist
+npmjs jquery 3.6.0 dist
 npmjs jquery-ui-dist 1.12.1
 
-npmjs js-cookie 3.0.0-rc.1 dist
-npmjs socket.io-client 2.3.1 dist
-npmjs socket.io-p2p 2.2.0
-npmjs sweetalert2 10.14.0 dist
+npmjs js-cookie 3.0.0-beta.4 dist
+npmjs socket.io-client 4.1.3 dist
+#npmjs socket.io-p2p 2.2.0
+npmjs sweetalert2 11.0.18 dist
+npmjs theme-dark 5.0.2 . @sweetalert2
 npmjs moment 2.29.1 min
-npmjs moment-timezone 0.5.32 builds
-npmjs toastify-js 1.9.3 src
+npmjs moment-timezone 0.5.33 builds
+npmjs toastify-js 1.11.0 src
 npmjs tinysort 3.2.7 dist
-npmjs lazysizes 5.3.0
+npmjs lazysizes 5.3.2
 npmjs tempusdominus-bootstrap 5.37.0 build
-npmjs uplot 1.6.4 dist
-npmjs howler 2.2.1
+npmjs uplot 1.6.13 dist
+npmjs howler 2.2.3
 
 # npmjs videojs-abloop 1.1.2 dist
 # npmjs videojs-contrib-hls 5.15.0 dist
@@ -160,24 +159,24 @@ npmjs howler 2.2.1
 # npmjs videojs-youtube 2.6.1 dist
 # npmjs http-streaming 2.0.0-rc.2 dist @videojs
 
-npmjs esri-leaflet 3.0.0 dist
-npmjs leaflet.heat 0.2.1 dist
+npmjs esri-leaflet 3.0.2 dist
+npmjs leaflet.heat 0.2.0 dist
 npmjs leaflet-easybutton 2.4.0 src
-npmjs leaflet.markercluster 1.4.1 dist
+npmjs leaflet.markercluster 1.5.0 dist
 npmjs animate.css 4.1.1
-npmjs interactjs 1.10.2 dist
-npmjs peerjs 1.3.1 dist
-npmjs immutable 4.0.0-rc.12 dist
+npmjs interactjs 1.10.11 dist
+# npmjs peerjs 1.3.2 dist
+npmjs immutable 4.0.0-rc.14 dist
 
 cd $tmp || exit
 
 echo "Download CDN...."
 mkdir cdn && cd cdn || exit
 
-wget https://markknol.github.io/console-log-viewer/console-log-viewer.js
-wget https://raw.githubusercontent.com/joewalnes/smoothie/master/smoothie.js
+# wget https://markknol.github.io/console-log-viewer/console-log-viewer.js
+# wget https://raw.githubusercontent.com/joewalnes/smoothie/master/smoothie.js
 wget https://github.com/dorukeker/gyronorm.js/raw/master/dist/gyronorm.complete.min.js
-wget https://github.com/joewalnes/reconnecting-websocket/raw/master/reconnecting-websocket.min.js
+# wget https://github.com/joewalnes/reconnecting-websocket/raw/master/reconnecting-websocket.min.js
 wget https://github.com/localForage/localForage/raw/master/dist/localforage.min.js
 # wget https://s.ytimg.com/yts/jsbin/www-widgetapi-vflh3Z-Yc/www-widgetapi.js -O youtube.js
 
