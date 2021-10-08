@@ -1,6 +1,6 @@
 const applicationServerPublicKey = 'BKU1P3Xq-JJMxQI5T4H5kteSxri6RRnusQxsP-qrwIqWxEzaT5xMIxUkWUNB3wjGg_2SVMeN9W5vR2nHxkQYLjQ';
 const saveSubscription = async subscription => {
-    const response = await fetch(URL_APP+'sub', {
+    const response = await fetch(URL_APP + 'sub', {
         method: 'POST',
         headers: {
             'Accept': 'application/json',
@@ -11,7 +11,7 @@ const saveSubscription = async subscription => {
     return response.json()
 }
 const revSubscription = async subscription_id => {
-    const response = await fetch(URL_APP+'unsub?id=' + subscription_id, {
+    const response = await fetch(URL_APP + 'unsub?id=' + subscription_id, {
         method: 'GET'
     })
     return response.json()
@@ -52,15 +52,17 @@ const AskNotif = async (txt = 'Subscribe') => {
     if (txt == "UnSubscribe") {
         txtp = "Already, want to cancel subscribe?";
     }
-    await Swal.queue([{
+    await Swal.fire({
         title: 'Disaster Notification (BETA)',
-        confirmButtonText: txt,
         text: txtp,
+        showCancelButton: true,
+        confirmButtonText: txt,
         showLoaderOnConfirm: true,
         preConfirm: async () => {
-            return await requestNotificationPermission(txt).then(response => Swal.insertQueueStep(response))
-        }
-    }])
+            return await requestNotificationPermission(txt).then(response => Swal.fire(response))
+        },
+        allowOutsideClick: () => !Swal.isLoading()
+    })
 }
 var subp;
 if ('serviceWorker' in navigator) {
@@ -71,6 +73,7 @@ if ('serviceWorker' in navigator) {
         console.log('ServiceWorker registration failed:', e);
     });
 }
+
 function Ask() {
     try {
         subp.pushManager.getSubscription().then(function (subscription) {
@@ -90,13 +93,14 @@ function Ask() {
         })
     }
 }
+
 function subscribe() {
     return new Promise(resolve => {
         const applicationServerKey = urlB64ToUint8Array(applicationServerPublicKey);
         subp.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: applicationServerKey
-        })
+                userVisibleOnly: true,
+                applicationServerKey: applicationServerKey
+            })
             .then(async function (subscription) {
                 if (subscription) {
                     var data = await saveSubscription(subscription);
@@ -121,6 +125,7 @@ function subscribe() {
 
     });
 }
+
 function unsubscribe() {
     return new Promise(resolve => {
 
@@ -156,14 +161,15 @@ function unsubscribe() {
                 });
 
             }).catch(function (e) {
-                console.log(e);
-                resolve({
-                    type: 'error',
-                    title: 'Error while pushManager'
-                })
-            });
+            console.log(e);
+            resolve({
+                type: 'error',
+                title: 'Error while pushManager'
+            })
+        });
     });
 }
+
 function urlB64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
     const base64 = (base64String + padding)

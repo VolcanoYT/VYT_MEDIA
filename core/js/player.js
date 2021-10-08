@@ -1,15 +1,13 @@
-// Player use io for proxy stream
+// Player for Proxy IO aka JPG
 var IoPlayer;
-// Player Time Lapse use for playback
+// Player for timelapse raw version
 var PrPlayer;
-// Player for recod
+// Player for record
 var RpPlayer;
-// Player for HLS Live
-//var PlayerHLS;
-
+// Player for HLS (soon for public)
+var PlayerHLS;
+// ETC
 var live = false;
-var live_hls = false;
-
 var type = "live";
 var noenter = true;
 var reason = "";
@@ -20,46 +18,45 @@ var div_tl_raw = "player_timelapse_raw";
 var div_tl_vd = "#player_timelapse_video";
 var name_cam = "Unknown?";
 var source_cam = "Unknown?";
-var datanext = ['', '', 'Cloud Stream by VolcanoYT'];
-var last_load = true;
 
+var last_load = true;
 var isfliter = false;
 var allow_drag = false;
-
 var count_down = 0;
-
 // FPS Func
 var lastCalledTime;
 var fps;
-
 // Inner Windows
 var w = window.innerWidth;
 var h = window.innerHeight;
-
-var camid = parseInt(getAllUrlParams().cam);
-var hide_info = getAllUrlParams().hide_info;
-var useurl = getAllUrlParams().URL;
-var token_user = getAllUrlParams().token_user;
-var isobson = getAllUrlParams().obs;
-
-var istes = getAllUrlParams().tes; // raw console
-var watchlog = getAllUrlParams().watchlog; // gui console
-var debug_info = getAllUrlParams().debug; // debug info like fps,size,zoom
-
+// JUDUL
+var hide_info = getAllUrlParams().hide_info; // HIDE INFO
+var isaddtime = getAllUrlParams().time || "false";
+var ctname = getAllUrlParams().name;
+// FUNC CALL
+var camid = parseInt(getAllUrlParams().cam); // ID CAMERA
+var IO_API = getAllUrlParams().URL; // IO API
+var token_user = getAllUrlParams().token_user; // TOKEN USER
+var isobson = getAllUrlParams().obs; // USE OBS?
+var isreconnect = getAllUrlParams().reconnect; // RECONNECT AUTO
+var isplayer = getAllUrlParams().format || "HLS"; // FORMAT (JPG,HLS,?)
+var isdirect = getAllUrlParams().direct || "false"; // Direct link with TOKEN USER
+var ismute = getAllUrlParams().mute || "true";
+var isres = getAllUrlParams().res || "720";
+// CONSOLE
+var istes = getAllUrlParams().tes; // RAW
+var watchlog = getAllUrlParams().watchlog; // GUI
+var debug_info = getAllUrlParams().debug; // DEBUG INFO (FPS,BIT)
+// FOR FUN
 var isegg = getAllUrlParams().egg;
-var nopower = getAllUrlParams().nopower;
-
-var isreconnect = getAllUrlParams().reconnect;
-
-var tmpg = false;
-var nologo = getAllUrlParams().nologo;
-if (nologo == 'true') {
-    //  tmpg = false;
-}
-if (hide_info == 'true') {
-    $('.judul').hide();
-    //  tmpg = false; judul
-}
+//var nopower = getAllUrlParams().nopower; // NO INFO CLOUD
+var fake_url = getAllUrlParams().fake;
+var isbackup = getAllUrlParams().backup;
+// HLS FUNC
+var hls_error = 0;
+var hls_playing = "Wait";
+var hls_stop = false;
+var hls_need_reload = false;
 
 var get_drag_position = {
     x: 0,
@@ -84,96 +81,36 @@ var interval = 60;
 var online = 1;
 var zona = "Asia/Makassar";
 
-//URL Proxy Player for localhost or multi node
-if (!isEmpty(useurl)) {
-    logger('Io Player Proxy ', useurl);
-    URL_APP = useurl;
-} else {
-    /*
-    if ([324, 307, 306, 304, 291, 261, 258, 239, 175, 148, 147, 125, 93, 6].includes(camid)) {
-        logger('Singapura Server Tes Mode');
-        URL_APP = "https://sevsg.volcanoyt.com/";
-    }
-    */
+// URL Proxy Player for localhost or multi node
+if (!isEmpty(IO_API)) {
+    Send_Info('Io Player API: ' + IO_API);
+    URL_APP = IO_API;
 }
 
+// API
 var URL_HLS = URL_APP + 'live/' + camid + '/hls.m3u8';
+var URL_IMG = URL_CDN + "timelapse/" + camid + "/raw.jpg";
 
-// API Fullscreen by https://stackoverflow.com/questions/7130397/how-do-i-make-a-div-full-screen
-$('.full').on('click', function () {
-    if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        } else if (document.mozCancelFullScreen) {
-            document.mozCancelFullScreen();
-        } else if (document.webkitExitFullscreen) {
-            document.webkitExitFullscreen();
-        } else if (document.msExitFullscreen) {
-            document.msExitFullscreen();
-        }
-    } else {
-        element = $('#' + $(this).attr("name")).get(0);
-        if (element.requestFullscreen) {
-            element.requestFullscreen();
-        } else if (element.mozRequestFullScreen) {
-            element.mozRequestFullScreen();
-        } else if (element.webkitRequestFullscreen) {
-            element.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
-        } else if (element.msRequestFullscreen) {
-            element.msRequestFullscreen();
-        }
-    }
-});
+// SNAPSHOT
+var tmp_wait = 1;
+var snp_reload = 1;
+var snp_stop = false;
 
-// Tombol Download
-$('.download').on('click', function (ex) {
-    $('.download').children().removeClass('fal fa-camera-retro').addClass('fal fa-sync fa-spin');
-    $('.download').prop('disabled', true);
-
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', canvas_player.toDataURL("image/webp"), true);
-    xhr.responseType = 'blob';
-    xhr.onload = function (e) {
-        //logger(xhr.getAllResponseHeaders())
-        $('.download').children().removeClass('fal fa-sync fa-spin').addClass('fal fa-camera-retro');
-        $('.download').prop('disabled', false);
-        if (this.status == 200) {
-            var myBlob = this.response;
-            var filetime = Math.floor(Date.now() / 1000); //'tes';//xhr.getResponseHeader('Last-Modified');
-            saveAs(myBlob, name_cam + '-volcanoyt-' + filetime + '.webp');
-        }
-    };
-    xhr.send();
-
-});
-
-// API Save As
-function saveAs(blob, fileName) {
-    var url = window.URL.createObjectURL(blob);
-
-    var anchorElem = document.createElement("a");
-    anchorElem.style = "display: none";
-    anchorElem.href = url;
-    anchorElem.download = fileName;
-
-    document.body.appendChild(anchorElem);
-    anchorElem.click();
-
-    document.body.removeChild(anchorElem);
-
-    // On Edge, revokeObjectURL should be called only after
-    // a.click() has completed, atleast on EdgeHTML 15.15048
-    setTimeout(function () {
-        window.URL.revokeObjectURL(url);
-    }, 1000);
+if (hide_info == 'true') {
+    $('.judul').hide();
 }
+var add_time = "";
+if (isaddtime == "true") {
+    add_time = '<timex id="settime">' + moment().tz(zona).format('YYYY/MM/DD HH:mm:ss') + '</timex>';
+}
+var next_title = [add_time, '', ''];
 
 //API Start
 function StopStart(id = '', manual = false) {
     try {
-        logger('type ' + type + ' - ' + manual + ' - id ' + id + ' ');
+        Send_Info('type ' + type + ' - ' + manual + ' - id ' + id + ' ');
         if (id == 'vid2') {
-            logger('No suppot player video');
+            Send_Info('No suppot player video');
         } else if (id == 'manual') {
             if (type == "live") {
                 if (live) {
@@ -191,7 +128,7 @@ function StopStart(id = '', manual = false) {
                 PrPlayer.main();
                 swbt(!PrPlayer.pause);
             } else {
-                logger('belum support11 ', id);
+                Send_Info('belum support11 ', id);
             }
         } else if (id == 'meow') {
             swbt(manual);
@@ -204,16 +141,16 @@ function StopStart(id = '', manual = false) {
             swbt();
             type = "live";
         } else {
-            logger('belum support ', id);
+            Send_Info('belum support ', id);
         }
     } catch (error) {
-        logger(error);
+        Send_Info(error);
     }
 }
 
 //API Exit Player FF
 function exitff() {
-    logger("exit ", type);
+    Send_Info("exit ", type);
     if (type == 'raw_ff') {
         $('.goplayback').hide();
         PrPlayer.clear();
@@ -260,7 +197,7 @@ document.addEventListener('keydown', (event) => {
                 break;
         }
     } catch (error) {
-        logger(error);
+        Send_Info(error);
     }
 });
 
@@ -363,7 +300,7 @@ var PlayBack;
             draw_image(this.frame[index].src);
             this.index = index;
         } catch (error) {
-            logger('faild set?', error);
+            Send_Info('faild set?', error);
         }
     },
     add: async function (url) {
@@ -433,7 +370,7 @@ var PlayBack;
                                 src: getsc.src
                             });
                         } else {
-                            logger(getsc);
+                            Send_Info(getsc);
                         }
                         sef.fireEvent("proses", ((c / (data_temp.length - 1)) * 100).toFixed(2));
                         c++;
@@ -487,35 +424,35 @@ function createCanvasRecorder() {
                     mimeType: mtp,
                 });
             } catch (error) {
-                logger(error);
+                Send_Info(error);
                 try {
                     mtp = 'video/webm;codecs=h264';
                     recorder = new MediaRecorder(stream, {
                         mimeType: mtp,
                     });
                 } catch (error) {
-                    logger(error);
+                    Send_Info(error);
                     try {
                         mtp = 'video/webm';
                         recorder = new MediaRecorder(stream, {
                             mimeType: mtp,
                         });
                     } catch (error) {
-                        logger(error);
+                        Send_Info(error);
                         try {
                             mtp = 'video/webm,codecs=vp9';
                             recorder = new MediaRecorder(stream, {
                                 mimeType: mtp,
                             });
                         } catch (error) {
-                            logger(error);
+                            Send_Info(error);
                             try {
                                 mtp = 'video/vp8';
                                 recorder = new MediaRecorder(stream, {
                                     mimeType: mtp,
                                 });
                             } catch (error) {
-                                logger(error);
+                                Send_Info(error);
                                 try {
                                     mtp = 'video/webm;codecs=vp8,opus';
                                     //for mozilla (https://github.com/w3c/mediacapture-record/issues/194#issue-561863354)
@@ -523,7 +460,7 @@ function createCanvasRecorder() {
                                         mimeType: mtp,
                                     });
                                 } catch (error) {
-                                    logger(error);
+                                    Send_Info(error);
                                 }
                             }
                         }
@@ -532,7 +469,7 @@ function createCanvasRecorder() {
             }
 
             if (recorder) {
-                logger(recorder);
+                Send_Info(recorder);
                 recorder.ondataavailable = event => {
                     event.data.size && chunks.push(event.data);
                 };
@@ -551,7 +488,7 @@ function createCanvasRecorder() {
                     }
                 };
             } else {
-                logger('no suppot');
+                Send_Info('no suppot');
             }
 
             last_time = moment();
@@ -571,7 +508,7 @@ function createCanvasRecorder() {
             if (recorder) {
                 recorder.start();
             } else {
-                logger('not yet');
+                Send_Info('not yet');
             }
 
             var filename = `Recording ${new Date().toISOString().slice(0, 10)} at ${new Date().toTimeString().slice(0, 8).replace(/:/g, ".")}.mkv`;
@@ -664,7 +601,7 @@ function savezoom() {
 
 var load_zoom = tryParse(Cookies.get('zoom_cam_' + camid));
 if (!isEmpty(load_zoom)) {
-    logger(load_zoom);
+    Send_Info(load_zoom);
     scale = load_zoom.scale;
     get_int_zoom = load_zoom.get_int_zoom;
     OnImg();
@@ -672,7 +609,7 @@ if (!isEmpty(load_zoom)) {
 
 var load_drag = tryParse(Cookies.get('drag_cam_' + camid));
 if (!isEmpty(load_drag)) {
-    logger(load_drag);
+    Send_Info(load_drag);
     get_drag_position = load_drag.get_drag_position;
     get_zoom_position = load_drag.get_zoom_position;
     OnImg();
@@ -799,108 +736,432 @@ function OnImg(f = null) {
 var line = 10;
 
 function addtext(c, font = 42) {
-
     if (!ctx_player) {
         return;
     }
-
     ctx_player.font = font + 'px sans-serif';
     var ho = h - ht;
     ctx_player.fillText(c, 0, (ho - -font) - line);
 }
 
-function draw_image(imgdata) {
-    var image = new Image();
-    image.onload = function () {
-        OnImg(image);
-    };
-    image.src = imgdata;
-}
-
-function inIframe() {
+function AutoConfig(d) {
     try {
-        return window.self !== window.top;
-    } catch (e) {
-        return true;
+        interval = d.interval;
+        zona = d.time.timezone;
+        if(!isEmpty(ctname)){
+            name_cam = decodeURIComponent(ctname);
+        }else{
+            name_cam = d.name;
+        }        
+        next_title[1] = d.source;
+    } catch (error) {
+        console.log(error);
     }
 }
 
-function getRandom(length) {
-    return Math.floor(Math.pow(10, length - 1) + Math.random() * 9 * Math.pow(10, length - 1));
+// API Direct (NEED TOKEN FOR BETA TESTING)
+var dt;
+
+function Direct(need = false) {
+    if (!isEmpty(camid)) {
+        if (!isEmpty(token_user)) {
+            GetJson(URL_API + "camera/view.json?id=" + camid + "&ceklive=" + need + "&token_user=" + token_user)
+                .then(e => {
+
+                    if (!isEmpty(e)) {
+                        dt = e.data;
+                    }
+                    if (isEmpty(dt)) {
+                        return Send_Info('No Config?', true)
+                    }
+
+                    console.log(dt);
+                    AutoConfig(dt);
+
+                    // TYPE FORMAT
+                    if (dt.type == 3) {
+                        console.log('youtube.....');
+                    }
+
+                    if (isbackup == "true") {
+                        if (dt.backup_type == 2) {
+                            dt.type = 2;
+                            dt.url = dt.backup_url;
+                        }
+                    }
+
+                    if (!need) {
+                        if (!isEmpty(fake_url)) {
+                            dt.url = fake_url;
+                        }
+                    }
+
+                    HLS_Player(dt.url);
+
+                })
+                .catch(error => {
+                    Send_Info("Stream still not available or error load", true);
+                });
+        } else {
+            Send_Info('Not allowed', true);
+        }
+    } else {
+        Send_Info('No camera id found', true);
+    }
 }
 
-IoPlayer = io(URL_APP + 'camera', {
-    query: getdata()
-});
-IoPlayer.on('connect', function (e) {
-    icon_player("fad fa-wifi-2");
-    noenter = true;
-});
-IoPlayer.on('error', (error) => {
-    logger('Error IoPlayer: ', error);
-});
-//var reconnect_tmp = null;
-IoPlayer.on('disconnect', function () {
+function HLS_Player(url = "", type = "application/x-mpegURL") {
 
-    //clear player?
+    if (!isEmpty(url)) {
+        if (!isEmpty(type)) {
+            try {
 
-    count_down++;
-    if (count_down >= 2) {
-        count_down = 0;
-        if (live) {
-            if (isreconnect !== "true") {
-                StopStart('dcio');
-                $("#error").html('<div class="alert alert-primary" role="alert"><h3>Your internet or server seems slow respon, please reload manually</div>');
+                Send_Info('Start play...', true);
+
+                // NEW OPEN
+                if (videojs.getAllPlayers().length == 0) {
+
+                    PlayerHLS = videojs('hls_player', {
+                        liveui: true,
+                        sources: [{
+                            type: type,
+                            src: url
+                        }]
+                    });
+
+                    PlayerHLS.qualityMenu({
+                        defaultResolution: isres + 'p'
+                    });
+
+                    PlayerHLS.on('ready', function (e) {
+                        if (ismute == "true") {
+                            PlayerHLS.muted(true);
+                        }
+                        PlayerHLS.play();
+                        Send_Info();
+                    });
+                    PlayerHLS.on(['play', 'playing', 'durationchange', 'loadedmetadata', 'loadeddata', 'loadstart', 'durationchange', 'canplay', 'canplaythrough', 'waiting', 'ended', 'pause', 'error', 'suspend', 'abort', 'interruptbegin', 'interruptend', 'stalled', 'seeked', 'seeking'], function (e) { //resize
+
+                        hls_playing = e.type;
+
+                        // API ERROR CHECK
+                        try {
+
+                            var view_error = PlayerHLS.error();
+                            if (view_error) {
+
+                                Send_Info(view_error.message, true);
+
+                                if (view_error.message.includes("disabled")) {
+
+                                    is_hls_bad();
+
+                                } else if (view_error.message.includes("not supported")) {
+
+                                    is_hls_bad();
+
+                                } else if (view_error.message.includes("corruption")) {
+                                    // JUST SKIP
+                                    is_hls_bad(false);
+                                } else {
+                                    // JUST SKIP
+                                }
+
+                            } else {
+                                // JUST SKIP
+                                is_hls_bad(false);
+                            }
+
+                        } catch (error) {
+                            Send_Info(error);
+                        }
+
+                    });
+
+                } else {
+                    // NEW URL
+                    PlayerHLS.src({
+                        src: url,
+                        type: type
+                    });
+                    if (ismute == "true") {
+                        PlayerHLS.muted(true);
+                    }
+                    PlayerHLS.play();
+                }
+
+                /*
+                PlayerHLS.reloadSourceOnError({
+                    getSource: function (r) {
+                    },
+                    errorInterval: 6
+                });
+                */
+
+            } catch (error) {
+                Send_Info(error);
+            }
+        } else {
+            Send_Info('No type...', true);
+        }
+    } else {
+        Send_Info('No found url', true);
+    }
+}
+
+function is_hls_bad(i = true) {
+    if (i) {
+        icon_player("fal fa-camera");
+        hls_playing = 'disabled';
+        hls_need_reload = true;
+        snp_stop = false;
+        $('#html5_player').show();
+        $('#hls_player').hide();
+    } else {
+        icon_player("fal fa-satellite-dish");
+        //hls_playing = 'disabled';
+        hls_need_reload = false;
+        snp_stop = true;
+        $('#html5_player').hide();
+        $('#hls_player').show();
+        hls_error = 0;
+    }
+}
+
+// LOOP
+var wait_reload = 30;
+var tmp_wait_reload = 0;
+var check_live = 3600;
+var tmp_check_live = 0;
+setInterval(function () {
+
+    // Time
+    var dt = moment().tz(zona).format('DD/MM/YYYY HH:mm:ss');
+    if (document.getElementById("settime")) {
+        document.getElementById("settime").innerHTML = dt;
+    }
+
+    if (isdirect !== "true")
+        return null
+
+    // IF PLAYER BROKEN
+    /*
+    if (hls_playing == "disabled")
+        return null;
+*/
+    // STATS PLAYER
+    if (hls_playing == "pause" || hls_playing == "durationchange") {
+        // IF PAUSE
+    } else if (hls_playing == "play" || hls_playing == "playing" || hls_playing == "canplaythrough") {
+        // IF NORMAL
+        Send_Info();
+        is_hls_bad(false);
+    } else {
+        // IF ERROR IS UNKNOWN
+        if (!hls_need_reload) {
+            Send_Info("Camera: " + hls_playing + " (" + hls_error + ") ", true);
+            if (hls_error > 10) {
+                hls_error = 0;
+                Send_Info('maybe link down?', true);
+                is_hls_bad();
+            } else {
+                hls_error++;
+            }
+        }
+    }
+
+    // CHECK Expire Time
+    if (dt) {
+
+        // TYPE FORMAT
+        if (dt.type == 3) {
+            // YOUTUBE
+            var tm = dt.expire1_time_yt - Math.floor(Date.now() / 1000);
+            //title('Youtube: ' + tm);
+            if (dt.tm > 0) {
+                is_hls_bad();
+            }
+        }
+
+    }
+
+    // CHECK AUDIO
+    try {
+        var ismutep = "fas fa-volume";
+        if (PlayerHLS.muted()) {
+            ismutep = "fas fa-volume-mute";
+        }
+        if (document.getElementById("icon_audio")) {
+            $("#icon_audio").attr('class', ismutep);
+        }
+    } catch (error) {
+
+    }
+
+    // CHECK NEW URL
+    if (hls_need_reload) {
+        if (tmp_wait_reload > wait_reload) {
+            tmp_wait_reload = 0;
+            Send_Info('Doing check...', true);
+            Direct(true);
+        } else {
+            tmp_wait_reload++;
+            Send_Info('Check new link in ' + (wait_reload - tmp_wait_reload) + ' sec', true);
+        }
+    }
+
+    // KEEP LOW LC
+    if (tmp_check_live > check_live) {
+        tmp_check_live = 0;
+        try {
+            Direct();
+            //PlayerHLS.liveTracker.seekToLiveEdge();
+        } catch (error) {
+
+        }
+    } else {
+        tmp_check_live++;
+    }
+
+    Snapshot();
+
+}, 1000 * 1);
+
+async function Snapshot() {
+
+    if (isdirect !== "true")
+        return null
+
+    if (snp_stop)
+        return null
+
+    try {
+        var aw;
+        if (tmp_wait >= snp_reload) {
+            tmp_wait = 0;
+            aw = await Addimg(URL_IMG);
+        } else {
+            tmp_wait++;
+        }
+        if (aw) {
+            //cek last error
+            if (aw.code !== 200) {
+                SendLog("Error load img");
+            } else {
+                stream_data({
+                    image: true,
+                    format: 'image2',
+                    buffer: aw.data
+                });
+            }
+        }
+
+    } catch (e) {
+        console.log('Error update img: ', e);
+    }
+}
+
+
+function title(msg) {
+    document.getElementById("text_me").innerHTML = msg;
+}
+
+var last_icon = "";
+
+function icon_player(t = 'fal fa-spinner fa-spin') {
+    if (last_icon !== t) {
+        if (document.getElementById("icon_player")) {
+            last_icon = t;
+            $("#icon_player").attr('class', t);
+        }
+    }
+}
+
+if (isdirect == "true") {
+
+    Direct();
+
+} else {
+
+    $('#hls_player').hide();
+
+    // API IO PROXY
+
+    IoPlayer = io(URL_APP + 'camera', {
+        query: getdata()
+    });
+    IoPlayer.on('connect', function (e) {
+        icon_player("fad fa-wifi-2");
+        noenter = true;
+    });
+    IoPlayer.on('error', (error) => {
+        Send_Info(error);
+    });
+    //var reconnect_tmp = null;
+    IoPlayer.on('disconnect', function () {
+
+        //clear player?
+
+        count_down++;
+        if (count_down >= 2) {
+            count_down = 0;
+            if (live) {
+                if (isreconnect !== "true") {
+                    StopStart('dcio');
+                    Send_Info('Your internet or server seems slow respon, please reload manually', true);
+                } else {
+                    //keep loop
+                }
+            } else {
+                Send_Info('Looks like its disconnected, please reload manually', true);
+            }
+        } else {
+            if (isEmpty(!reason)) {
+                Send_Info('Camera Disconnected (' + count_down + 'x):<br>' + reason + '', true);
             } else {
                 //keep loop
             }
-        } else {
-            $("#error").html('<div class="alert alert-primary" role="alert"><h3>Looks like its disconnected, please reload manually</div>');
         }
-    } else {
-        if (isEmpty(!reason)) {
-            $("#error").html('<div class="alert alert-primary" role="alert"><h3>Camera Disconnected (' + count_down + 'x):<br>' + reason + '</h3></div>');
-        } else {
-            //keep loop
-        }
-    }
 
-    /*
-    if (isreconnect == "true") {
-        //this bug fix later
-        if (reason.includes("Stream stop")) {
-            if (reconnect_tmp) {
-                clearTimeout(reconnect_tmp);
+        /*
+        if (isreconnect == "true") {
+            //this bug fix later
+            if (reason.includes("Stream stop")) {
+                if (reconnect_tmp) {
+                    clearTimeout(reconnect_tmp);
+                }
+                reconnect_tmp = setTimeout(function () {
+                    StopStart('cnio');
+                }, 5000);
+            } else {
+                Send_Info(reason, 'debug_tes');
             }
-            reconnect_tmp = setTimeout(function () {
-                StopStart('cnio');
-            }, 5000);
-        } else {
-            logger(reason, 'debug_tes');
         }
+        */
+
+        icon_player(reason_icon);
+        StopStart('meow', false);
+        live = false;
+        noenter = true;
+    });
+
+    IoPlayer.on('stream', function (e) {
+        stream_data(e);
+    });
+
+    function getdata() {
+        return {
+            cam: camid,
+            token_p2p: "",
+            token_user: token_user,
+            direct: isdirect,
+            format: isplayer,
+            version: IoPlayerVersion,
+            referrer: document.referrer,
+            iframe: inIframe(),
+            url: URL_APP
+        };
     }
-    */
-
-    icon_player(reason_icon);
-    StopStart('meow', false);
-    live = false;
-    noenter = true;
-});
-
-IoPlayer.on('stream', function (e) {
-    stream_data(e);
-});
-
-function getdata() {
-    return {
-        cam: camid,
-        token_p2p: "",
-        token_user: token_user,
-        version: IoPlayerVersion,
-        referrer: document.referrer,
-        iframe: inIframe(),
-        url: URL_APP
-    };
 }
 
 var playerx;
@@ -921,8 +1182,8 @@ function stream_data(e) {
             //check format
             if (last_format !== e.format) {
 
-                $('#html5_player').show();
-                $('#hls_player').hide();
+                // $('#html5_player').show();
+                // $('#hls_player').hide();
 
                 last_format = e.format;
                 console.log('format pindah ke ' + last_format);
@@ -962,72 +1223,39 @@ function stream_data(e) {
             total_bit = total_bit + last_bit;
             totalframe++;
 
-            //TODO: get base time take?
-            var dt = moment().tz(zona).format('DD/MM/YYYY HH:mm:ss');
-            if (document.getElementById("settime")) {
-                document.getElementById("settime").innerHTML = dt;
-            }
-
             if (e.live) {
                 icon_player("fal fa-satellite-dish");
             } else {
                 icon_player("fal fa-camera");
             }
 
-            logger(e, 'Image Data', 0);
+            // Send_Info(e, 'Image Data', 0);
 
             //re ping?
             if (noenter) {
                 noenter = false;
                 live = true;
                 StopStart('meow', true);
-                $("#error").html('');
+                Send_Info();
             }
 
             //just last ping?
             if (last_load) {
                 last_load = false;
-                NextText(0);
             }
         } else {
 
-            logger(e);
+            // Send_Info(e);
 
             noenter = true;
             StopStart('meow', false);
 
             if (e.data.code == 601) {
-                //info camera
+                //info camera                
                 try {
-                    interval = e.data.info.interval;
-                    zona = e.data.info.time.timezone;
-                    name_cam = e.data.info.name;
-                    var sourcex = "Host by " + e.data.info.source;
-
-                    if (camid == 340) {
-                        //  sourcex = "CCTV VolcanoYT | Internet Frekom & Lintas Media Net";
-                    }
-
-                    //egg for merapi stream
-                    if (isegg == "true") {
-                        datanext[3] = "Saat ini masih Level 3 (Siaga)";
-                        datanext[4] = "Data Seismograf disediakan oleh BPPTKG";
-                        datanext[5] = "Laporan Magma-Var (cek pin chat) dari PVMBG";
-                        datanext[6] = "Sebelum chat, silakan baca deskripsi dulu.";
-                        datanext[7] = "Jangan lupa like dan subscribe👍";
-                        datanext[8] = "Join Telegram t.me/VolcanoYT";
-                        datanext[9] = "Donasi volcanoyt.com/ds";
-                    }
-
-                    if (nopower == "true") {
-                        datanext[2] = "";
-                    }
-
-                    datanext[0] = '<timex id="settime">' + moment().tz(zona).format('YYYY/MM/DD HH:mm:ss') + '</timex>';
-                    datanext[1] = sourcex;
-
+                    AutoConfig(e.data.info);
                 } catch (error) {
-                    logger(error);
+                    Send_Info(error);
                 }
                 icon_player("fal fa-file-invoice");
             } else if (e.data.code == 0) {
@@ -1055,6 +1283,7 @@ function stream_data(e) {
                 //System Chat
                 // http://localhost:3000/camera/control.json?user=Yuki&id_user=YT123&cmd=!cam%20chat%20344%20hello
                 // {message: "hello", nick: "Yuki", id: "YT123", code: 555}
+                /*
                 try {
                     Toastify({
                         text: e.data.nick + ' : ' + e.data.message,
@@ -1063,8 +1292,9 @@ function stream_data(e) {
                 } catch (error) {
 
                 }
+                */
             } else {
-                $("#error").html('<div class="alert alert-primary" role="alert"><h3>' + e.data.message + '</h3></div>');
+                Send_Info('' + e.data.message + '', true);
                 icon_player("fal fa-exclamation-triangle");
             }
 
@@ -1075,83 +1305,13 @@ function stream_data(e) {
                     "data": e.data
                 }, "*");
             } catch (error) {
-                logger('error send data');
+                Send_Info('error send data');
             }
         }
     } else {
-        logger('hmm no data?');
+        Send_Info('hmm no data?');
     }
 }
-
-/*
-// Player HLS Stream
-var HLS_STOP;
-PlayerHLS = videojs('hls_player', {
-    techOrder: ['html5'],
-    retryOnError: true,
-    autoplay: true,
-    liveui: true,
-    sources: [{
-        src: URL_HLS,
-        type: 'application/x-mpegURL'
-    }]
-});
-
-PlayerHLS.on('waiting', function (e) {
-    console.log('waiting_Player_HLS', e);
-    $('#html5_player').show();
-    $('#hls_player').hide();
-    HLS_STOP = setTimeout(function () {
-        console.log('Restart Player....')
-        PlayerHLS.reset();
-        PlayerHLS.src(URL_HLS);
-    }, 1000 * 30);
-});
-
-//, 'ready','canplay', 'canplaythrough'
-PlayerHLS.on(['play', 'playing'], function (e) {
-    console.log('play_Player_HLS', e);
-    $('#html5_player').hide();
-    $('#hls_player').show();
-    clearTimeout(HLS_STOP);
-});
-
-/*
-PlayerHLS.on(['durationchange', 'loadedmetadata', 'loadeddata', 'loadstart', 'durationchange', 'ended', 'pause', , 'suspend', 'abort', 'interruptbegin', 'interruptend', 'stalled', 'resize', 'seeked', 'seeking'], function (e) {
-    console.log('Info_Player_HLS', e);
-});
-PlayerHLS.liveTracker.on('liveedgechange', (e) => {
-    console.log('liveTracker_Player_HLS', e);
-});
-
-
-PlayerHLS.on(['error'], function (e) {
-    console.log('Error_Player_HLS', e);
-});
-*/
-
-//API Select Time
-$.fn.datetimepicker.Constructor.Default = $.extend({}, $.fn.datetimepicker.Constructor.Default, {
-    icons: {
-        time: 'fal fa-clock',
-        date: 'fal fa-calendar-check',
-        up: 'fal fa-arrow-up',
-        down: 'fal fa-arrow-down',
-        previous: 'fal fa-chevron-left',
-        next: 'fal fa-chevron-right',
-        today: 'fal fa-calendar-check-o',
-        clear: 'fal fa-trash',
-        close: 'fal fa-times-circle'
-    }
-});
-$('#set_start').datetimepicker({
-    format: 'YYYY-MM-DD HH:mm',
-    defaultDate: moment().add(-1, 'hours').format('YYYY-MM-DD HH:mm'),
-});
-$('#set_end').datetimepicker({
-    format: 'YYYY-MM-DD HH:mm',
-    defaultDate: moment().format('YYYY-MM-DD HH:mm'),
-});
 
 // API Auto Menu
 var ct = null;
@@ -1185,7 +1345,7 @@ $('#proses').on('click', function (e) {
     var tweet = $('#tweet').val();
     var whattype = $('#what_use').val();
 
-    logger('' + set_start + ' - ' + set_end + ' - ' + title + ' - ' + whattype);
+    Send_Info('' + set_start + ' - ' + set_end + ' - ' + title + ' - ' + whattype);
 
     if (whattype == '1') {
         $('#getinfo').hide();
@@ -1254,7 +1414,7 @@ $('#proses').on('click', function (e) {
 
                 type = 'raw_ff';
 
-                logger(tes);
+                Send_Info(tes);
                 $('#getinfo').show();
                 // $('#loadff').hide();
                 $('#cloban').show();
@@ -1269,7 +1429,7 @@ $('#proses').on('click', function (e) {
             });
 
         }).fail(function (a) {
-            logger(a);
+            Send_Info(a);
             $('#getinfo').show();
             // $('#loadff').hide();
             $('#cloban').show();
@@ -1278,7 +1438,7 @@ $('#proses').on('click', function (e) {
         type = 'rec';
         RpPlayer.start();
     } else {
-        logger('come soon');
+        Send_Info('come soon');
     }
 
 
@@ -1286,7 +1446,7 @@ $('#proses').on('click', function (e) {
 
 $('#what_use').change(function (e) {
     wtf = $(this).val();
-    logger(wtf);
+    Send_Info(wtf);
     if (wtf == "1") {
         // Create Timelapse (from server)
         $('#proses').html('Create');
@@ -1309,29 +1469,28 @@ $('#what_use').change(function (e) {
         $('#set_start').parent().parent().hide();
         $('#set_end').parent().parent().hide();
     } else {
-        logger(wtf);
+        Send_Info(wtf);
     }
 });
 
-//for obs stream
-var no_first_time = false;
+// OBS API
 if (isobson == "true") {
     try {
-        logger('OBS Debug: ', window.obsstudio.pluginVersion);
+        Send_Info('OBS Debug: ', window.obsstudio.pluginVersion);
         window.addEventListener('obsSceneChanged', function (event) {
-            logger('obsSceneChanged: ', event);
+            Send_Info('obsSceneChanged: ', event);
         });
         window.obsstudio.getStatus(function (status) {
-            logger('Status OBS: ', status);
+            Send_Info('Status OBS: ', status);
         });
         window.obsstudio.getCurrentScene(function (scene) {
-            logger('OBS Secene: ', scene);
+            Send_Info('OBS Secene: ', scene);
         })
         window.obsstudio.onVisibilityChange = function (visibility) {
-            logger('OBS Visibility? ', visibility);
+            Send_Info('OBS Visibility? ', visibility);
         };
         window.obsstudio.onActiveChange = function (active) {
-            logger('OBS Active? ', active);
+            Send_Info('OBS Active? ', active);
             if (active) {
                 StopStart('cnio');
             } else {
@@ -1339,73 +1498,86 @@ if (isobson == "true") {
             }
         };
     } catch (error) {
-        logger(error);
+        Send_Info(error);
     }
 }
 
 function NextText(i) {
-    if (datanext.length > i) {
-        if (!isEmpty(datanext[i])) {
-            document.getElementById("text_me").innerHTML = name_cam + ' - ' + datanext[i];
+    if (next_title.length > i) {
+        if (!isEmpty(next_title[i])) {
+            document.getElementById("text_me").innerHTML = name_cam + ' - ' + next_title[i];
         }
         setTimeout(function () {
             NextText(++i);
         }, 1000 * 10);
-    } else if (datanext.length == i) {
+    } else if (next_title.length == i) {
         NextText(0);
     }
 }
+NextText(0);
 
-function logger(data, title = "DEBUG: ", warning = 1) {
-    if (warning == 0) return;
+function Send_Info(msg = "", gui = false, gui2 = false, type = 0, log = true) {
 
-    // Send to raw console
-    if (istes == 'true')
-        console.log(title, data);
-
-    //Send to GUI
-    if (watchlog == "true") {
-        try {
-            //var homeTown = document.getElementById("console_gui_input").value;
-            //document.getElementById("console_gui_input").value += homeTown;
-            if (typeof data == 'object') {
-                data += (JSON && JSON.stringify ? JSON.stringify(data, undefined, 2) : data) + '<br>';
+    // IF BLANK
+    if (isEmpty(msg)) {
+        // Hide ERROR
+        $("#error").html('');
+    } else {
+        // RAW LOG
+        if (log) {
+            console.log(msg)
+        }
+        // LOG GUI NOTIF
+        if (gui) {
+            try {
+                $("#error").html('<div class="alert alert-primary" role="alert"><h3>' + msg + '</h3></div>');
+            } catch (error) {
+                //skip
             }
-            $('#console_gui_input').append(title + ": " + data + '<br>');
-        } catch (error) {
-
         }
-    }
-
-    //TODO: Send Logger to Server?
-}
-
-var last_icon = "";
-
-function icon_player(t = 'fal fa-spinner fa-spin') {
-    if (last_icon !== t) {
-        if (document.getElementById("icon_player")) {
-            last_icon = t;
-            $("#icon_player").attr('class', t);
+        // LOG CONSOLE GUI
+        if (gui2) {
+            try {
+                //var homeTown = document.getElementById("console_gui_input").value;
+                //document.getElementById("console_gui_input").value += homeTown;
+                if (typeof msg == 'object') {
+                    msg += (JSON && JSON.stringify ? JSON.stringify(msg, undefined, 2) : msg) + '<br>';
+                }
+                $('#console_gui_input').append(msg);
+            } catch (error) {
+                //skip
+            }
         }
+        // TODO: TO SERVER
     }
 }
 
-// Keep Live?
 /*
-setInterval(function () {
-    try {
-        if (PlayerHLS) {
-            //PlayerHLS.liveTracker.seekToLiveEdge();
-            PlayerHLS.currentTime(9999999999999999999999999999999999999);
-        }
-    } catch (error) {
-        console.log('error keep live', error);
+$.fn.datetimepicker.Constructor.Default = $.extend({}, $.fn.datetimepicker.Constructor.Default, {
+    icons: {
+        time: 'fal fa-clock',
+        date: 'fal fa-calendar-check',
+        up: 'fal fa-arrow-up',
+        down: 'fal fa-arrow-down',
+        previous: 'fal fa-chevron-left',
+        next: 'fal fa-chevron-right',
+        today: 'fal fa-calendar-check-o',
+        clear: 'fal fa-trash',
+        close: 'fal fa-times-circle'
     }
-}, 1000 * 15);
+});
 */
 
-// if all ready
+$('#set_start').datetimepicker({
+    format: 'YYYY-MM-DD HH:mm',
+    defaultDate: moment().add(-1, 'hours').format('YYYY-MM-DD HH:mm'),
+});
+$('#set_end').datetimepicker({
+    format: 'YYYY-MM-DD HH:mm',
+    defaultDate: moment().format('YYYY-MM-DD HH:mm'),
+});
+
+// IF ALL READY
 $(document).ready(function () {
 
     // Get filters JSManipulate
@@ -1413,7 +1585,7 @@ $(document).ready(function () {
         if (!isEmpty(val.valueRanges.amount)) {
             $("#putimgset").append('<div class="row"><label class="form-label" for="config_' + index + '">' + val.name + '</label><input id="config_' + index + '" type="range" class="form-range" min="' + val.valueRanges.amount.min + '" max="' + val.valueRanges.amount.max + '" step="0.01" value="' + val.defaultValues.amount + '"></div>');
         } else {
-            console.log('debug ', val);
+            // console.log('debug ', val);
         }
     });
 
@@ -1481,4 +1653,88 @@ function base64ArrayBuffer(arrayBuffer) {
     }
 
     return base64
+}
+
+// API Fullscreen by https://stackoverflow.com/questions/7130397/how-do-i-make-a-div-full-screen
+$('.full').on('click', function () {
+    if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+            document.mozCancelFullScreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+    } else {
+        element = $('#' + $(this).attr("name")).get(0);
+        if (element.requestFullscreen) {
+            element.requestFullscreen();
+        } else if (element.mozRequestFullScreen) {
+            element.mozRequestFullScreen();
+        } else if (element.webkitRequestFullscreen) {
+            element.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+        } else if (element.msRequestFullscreen) {
+            element.msRequestFullscreen();
+        }
+    }
+});
+
+// Tombol Download
+$('.download').on('click', function (ex) {
+    $('.download').children().removeClass('fal fa-camera-retro').addClass('fal fa-sync fa-spin');
+    $('.download').prop('disabled', true);
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', canvas_player.toDataURL("image/webp"), true);
+    xhr.responseType = 'blob';
+    xhr.onload = function (e) {
+        $('.download').children().removeClass('fal fa-sync fa-spin').addClass('fal fa-camera-retro');
+        $('.download').prop('disabled', false);
+        if (this.status == 200) {
+            var myBlob = this.response;
+            var filetime = Math.floor(Date.now() / 1000); //'tes';//xhr.getResponseHeader('Last-Modified');
+            saveAs(myBlob, name_cam + '-volcanoyt-' + filetime + '.webp');
+        }
+    };
+    xhr.send();
+
+});
+
+// API Save As
+function saveAs(blob, fileName) {
+    var url = window.URL.createObjectURL(blob);
+
+    var anchorElem = document.createElement("a");
+    anchorElem.style = "display: none";
+    anchorElem.href = url;
+    anchorElem.download = fileName;
+
+    document.body.appendChild(anchorElem);
+    anchorElem.click();
+
+    document.body.removeChild(anchorElem);
+
+    // On Edge, revokeObjectURL should be called only after
+    // a.click() has completed, atleast on EdgeHTML 15.15048
+    setTimeout(function () {
+        window.URL.revokeObjectURL(url);
+    }, 1000);
+}
+
+function draw_image(imgdata) {
+    var image = new Image();
+    image.onload = function () {
+        OnImg(image);
+    };
+    image.src = imgdata;
+}
+
+function inIframe() {
+    try {
+        return window.self !== window.top;
+    } catch (e) {
+        return true;
+    }
 }

@@ -20,10 +20,35 @@ img {
     position: fixed;
     bottom: 4px;
     right: 10px;
-    font-size: 50px;
+    font-size: 37px;
     color: #ffffff;
+    /* letter-spacing: 4.73px; */
+    z-index: 999;
+    /* border-style: dashed; */
+    background-color: rgb(0 0 0 / 76%);
+}
+
+#atas {
+    position: fixed;
+    top: 4px;
+    left: 3px;
+    font-size: 32px;
+    color: #fff;
     letter-spacing: 4.73px;
     z-index: 999;
-    border-style: dashed;
-    background-color: rgb(0 0 0 / 63%);
+    /* border-style: hidden; */
+    background-color: rgb(0 0 0/76%);
+}
+#gg,
+#video,
+video {
+    object-fit: fill;
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    z-index: 1;
 }

@@ -449,11 +449,15 @@ function UpdateIMGDIV(urlimg, idimg) {
 setInterval(updateTime, 1000);
 setInterval(reloadimg, 1000 * 1); //TODO: Support 100ms aka 2Fps or 30Fps
 
-function Addimg(urlimg, idimg, adddiv = false, namadiv = '#CCTV0', tag = 'mySlides', iscache = true, timeout = 10) {
+function Addimg(urlimg, idimg = "", adddiv = false, namadiv = '#CCTV0', tag = 'mySlides', iscache = true, timeout = 10) {
     return new Promise((resolve, reject) => {
+
         var timerStart = Date.now();
         var hasil = new Array();
-        hasil.id = idimg;
+
+        if (!isEmpty(idimg))
+            hasil.id = idimg;
+
         hasil.url = urlimg;
 
         jQuery.ajax({
@@ -462,7 +466,11 @@ function Addimg(urlimg, idimg, adddiv = false, namadiv = '#CCTV0', tag = 'mySlid
             timeout: 1000 * timeout,
             xhr: function () {
                 var xhr = new XMLHttpRequest();
-                xhr.responseType = 'blob'
+                if(isEmpty(idimg)){
+                    xhr.responseType = 'arraybuffer';
+                }else{
+                    xhr.responseType = 'blob';
+                }
                 return xhr;
             },
             success: function (data, status, xhr) {
@@ -474,19 +482,24 @@ function Addimg(urlimg, idimg, adddiv = false, namadiv = '#CCTV0', tag = 'mySlid
                         }
                     }
 
-                    var img = document.getElementById(idimg.replace("#", ""));
                     var filetime = xhr.getResponseHeader('Last-Modified');
-
-                    hasil.update = filetime;
+                    hasil.update = filetime;                    
                     hasil.code = 200;
                     hasil.time = Date.now() - timerStart;
 
-                    var url = window.URL || window.webkitURL;
-                    img.src = url.createObjectURL(data);
-                    hasil.scr = img.src;
+                    if(!isEmpty(idimg)){
+                        var url = window.URL || window.webkitURL;
+                        var img = document.getElementById(idimg.replace("#", ""));
+                        img.src = url.createObjectURL(data);
+                        hasil.scr = img.src;
+                    }else{
+                        hasil.data = data;
+                    }
+
                     resolve(hasil);
                 } catch (error) {
                     hasil.code = 402;
+                    hasil.error = error;
                     resolve(hasil);
                 }
             },
@@ -598,4 +611,8 @@ function isValidUrl(string) {
     }
 
     return true;
+}
+
+function getRandom(length) {
+    return Math.floor(Math.pow(10, length - 1) + Math.random() * 9 * Math.pow(10, length - 1));
 }

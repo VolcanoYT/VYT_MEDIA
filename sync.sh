@@ -31,7 +31,7 @@ cp -r font-awesome-pro-$versi_font/* ${patch}fontawesome/
 cd $tmp || exit
 
 echo "Download VideoJS"
-versi_videojs=7.15.2
+versi_videojs=7.15.5
 mkdir -p $tmp/videojs && cd $tmp/videojs || exit
 wget https://github.com/videojs/video.js/releases/download/v$versi_videojs/video-js-$versi_videojs.zip
 unzip -o video-js-$versi_videojs.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
@@ -42,15 +42,15 @@ rm -rf ${patch}videojs/examples
 
 cd $tmp || exit
 
-echo "Download Cesium for 3D Map"
-versi_cesium=1.84
-mkdir -p $tmp/cesium && cd $tmp/cesium || exit
-wget https://github.com/CesiumGS/cesium/releases/download/$versi_cesium/Cesium-$versi_cesium.zip
-unzip -o Cesium-$versi_cesium.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
-rm -rf ${patch}Cesium/ && mkdir -p ${patch}Cesium/
-cp -r Build/Cesium/* ${patch}Cesium/
+# echo "Download Cesium for 3D Map"
+# versi_cesium=1.84
+# mkdir -p $tmp/cesium && cd $tmp/cesium || exit
+# wget https://github.com/CesiumGS/cesium/releases/download/$versi_cesium/Cesium-$versi_cesium.zip
+# unzip -o Cesium-$versi_cesium.zip | awk 'BEGIN {ORS=" "} {if(NR%10==0)print "."}'
+# rm -rf ${patch}Cesium/ && mkdir -p ${patch}Cesium/
+# cp -r Build/Cesium/* ${patch}Cesium/
 
-cd $tmp || exit
+# cd $tmp || exit
 
 echo "Download Leaflet for 2D Map"
 mkdir -p $tmp/leaflet && cd $tmp/leaflet || exit
@@ -136,21 +136,23 @@ npmjs(){
 
 #TODO: why no just use http://browserify.org/? and keep last update
 # dom-to-image html2canvas FileSaver
+npmjs core 2.10.1 dist @popperjs
 npmjs jquery 3.6.0 dist
 npmjs jquery-ui-dist 1.12.1
 
 npmjs js-cookie 3.0.0-beta.4 dist
-npmjs socket.io-client 4.1.3 dist
+npmjs socket.io-client 4.2.0 dist
 #npmjs socket.io-p2p 2.2.0
-npmjs sweetalert2 11.0.18 dist
+npmjs sweetalert2 11.1.6 dist
 npmjs theme-dark 5.0.2 . @sweetalert2
 npmjs moment 2.29.1 min
 npmjs moment-timezone 0.5.33 builds
-npmjs toastify-js 1.11.0 src
+npmjs toastify-js 1.11.1 src
 npmjs tinysort 3.2.7 dist
 npmjs lazysizes 5.3.2
+npmjs tempus-dominus 6.0.0-alpha1.0.13 dist @eonasdan
 npmjs tempusdominus-bootstrap 5.37.0 build
-npmjs uplot 1.6.13 dist
+npmjs uplot 1.6.16 dist
 npmjs howler 2.2.3
 
 # npmjs videojs-abloop 1.1.2 dist
@@ -166,7 +168,7 @@ npmjs leaflet.markercluster 1.5.0 dist
 npmjs animate.css 4.1.1
 npmjs interactjs 1.10.11 dist
 # npmjs peerjs 1.3.2 dist
-npmjs immutable 4.0.0-rc.14 dist
+npmjs immutable 4.0.0-rc.15 dist
 
 cd $tmp || exit
 

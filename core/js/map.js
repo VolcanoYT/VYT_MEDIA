@@ -1,9 +1,9 @@
-var isfullscreen   = getAllUrlParams().fullscreen;
-var greenscreen    = getAllUrlParams().greenscreen || "false";
-var audiois        = getAllUrlParams().audio || "true";
-var doingfocus     = getAllUrlParams().focus || "true";
-//var auto_mode    = getAllUrlParams().auto;
-
+var isfullscreen = getAllUrlParams().fullscreen;
+var greenscreen = getAllUrlParams().greenscreen || "false";
+var audiois = getAllUrlParams().audio || "true";
+var doingfocus = getAllUrlParams().focus || "false";
+var ismap = getAllUrlParams().map;
+var zoomis = parseInt(getAllUrlParams().zoom) || 5.1;
 var map_loading = false;
 var ews_loading = false;
 var ews_link = null;
@@ -12,6 +12,15 @@ var tmp_home;
 var tmp_hide;
 var TemporaryEarthquake = [];
 var our_home = [-1.62, 120.13];
+
+if (!isEmpty(ismap)) {
+    try {
+        var array = ismap.split(',');
+        our_home = [parseFloat(array[0]), parseFloat(array[1])];
+    } catch (error) {
+        console.log(error);
+    }
+}
 
 var auto_twait = 0;
 var auto_gwait = 60;
@@ -108,7 +117,7 @@ var map = new L.Map('map_2d', {
     //G_Seismometer,G_Camera
     layers: [googleSat, G_Earthquake, G_Earthquake_C, places, localfault, platetectonics]
 }).fitWorld();
-map.setView(our_home, 5.1);
+map.setView(our_home, zoomis);
 map.locate({
     setView: false,
     watch: true
@@ -439,8 +448,8 @@ function add(spawn, notif = false) {
             try {
                 if (doingfocus == "true") {
 
-                    if(greenscreen == "true"){
-                        document.getElementById("map_2d").style.visibility = "";                        
+                    if (greenscreen == "true") {
+                        document.getElementById("map_2d").style.visibility = "";
                     }
 
                     map.flyTo([latx, lotx], 9);
@@ -471,21 +480,21 @@ function add(spawn, notif = false) {
                         }
                         tmp_home = setTimeout(function () {
 
-                            map.flyTo(our_home, 5.1);
-                            
+                            map.flyTo(our_home, zoomis);
+
                             if (tmp_hide) {
                                 clearTimeout(tmp_hide);
                             }
                             tmp_hide = setTimeout(function () {
                                 //TODO: show all info here    
-                                if(greenscreen == "true"){
+                                if (greenscreen == "true") {
                                     document.getElementById("map_2d").style.visibility = "hidden";
                                     $("body").css("background-color", "transparent");
                                     $("html").css("background-color", "transparent");
                                     $(".icon_notif").css("display", "none");
-                                    $("#arc-widget-container").remove();// no effect?
+                                    $("#arc-widget-container").remove(); // no effect?
                                 }
-    
+
                             }, 1000 * 5);
 
                         }, 1000 * 10);
@@ -497,30 +506,37 @@ function add(spawn, notif = false) {
             }
 
             // Audio Notif, if source BMKG use Indonesia audio auto
-            if (magnitudetwo >= 2.0) {
+            if (magnitudetwo >= 2.5) {
                 if (audiois == "true") {
                     //hack
                     magnitudetwo = magnitudetwo.replace(".", ",");
                     depthtwo = depthtwo.replace(".", ",");
                     whereeq = spawn.properties.city + ' ' + spawn.properties.country;
+                    /*
                     if (provider == 'BMKG') {
                         lefttime = timelocal.locale("id").local().fromNow();
                     }
+                    */
                     if (statsid == 3) {
+                        /*
                         if (provider == 'BMKG') {
                             NotifMe("", "Pembaruan Gempa yang ke " + cont + " di lokasi " + whereeq + " dengan magnitudo " + magnitudetwo + " pada kedalaman " + depthtwo + " kilometer yang telah terjadi " + lefttime + " data dari b m k g", "", true, 'id');
-                        } else {
-                            NotifMe("", "update quake " + magnitudetwo + " magnitude already  " + cont + " time updates so far " + whereeq + " with depth " + depthtwo + " km occurs in " + lefttime + "", "", true, 'en');
+                        } else {                            
                         }
+                        */
+                        NotifMe("", "update quake " + magnitudetwo + " magnitude already  " + cont + " time updates so far " + whereeq + " with depth " + depthtwo + " km occurs in " + lefttime + "", "", true, 'en');
                     } else {
+                        /*
                         if (provider == 'BMKG') {
                             NotifMe("", "Telah terjadi gempa pada status " + mystatus + " di lokasi " + whereeq + " dengan magnitudo " + magnitudetwo + " pada kedalaman " + depthtwo + " kilometer yang telah terjadi " + lefttime + " data dari b m k g", "", true, 'id');
-                        } else {
-                            NotifMe("", "new quake with magnitude " + magnitudetwo + " status " + mystatus + " causing shaking near " + whereeq + " with depth " + depthtwo + " km occurs in " + lefttime + "", "", true, 'en');
+                        } else {                            
                         }
+                        */
+                        NotifMe("", "new quake with magnitude " + magnitudetwo + " status " + mystatus + " causing shaking near " + whereeq + " with depth " + depthtwo + " km occurs in " + lefttime + "", "", true, 'en');
                     }
                 }
             }
+
         }
 
     }
