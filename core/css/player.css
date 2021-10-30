@@ -36,17 +36,6 @@ video {
     transform: translate(-50%, -90%);
 }
 
-#error {
-    position: fixed;
-    width: 500px;
-    height: 200px;
-    top: 50%;
-    left: 50%;
-    margin-top: -100px;
-    margin-left: -250px;
-    z-index: 2;
-}
-
 #full1 {
     z-index: 999999;
 }

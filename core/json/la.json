@@ -1,0 +1,62 @@
+[
+  {
+    "url": "https://www.ign.es/web/resources/volcanologia/DATOS/2021/###MM###/PA01/imagenes_sismica/DIA/PA01_2021-###MM###-###DD###_F1.jpg",
+    "name": "STA TBT (La Palma) (24 hour)"
+  },
+  {
+    "url": "https://www.ign.es/web/resources/volcanologia/DATOS/2021/###MM###/PA01/imagenes_sismica/HORA/PA01_2021-###MM###-###DD###_###HH1###-###HH###_F1.jpg",
+    "name": "STA TBT (1 hour)"
+  },
+  {
+    "url": "https://www.ign.es/web/resources/volcanologia/DATOS/2021/###MM###/PA01/imagenes_sismica/DIA_SP/PA01_2021-###MM###-###DD###_sp_F1.jpg",
+    "name": "STA TBT (24 hour)"
+  },
+  {
+    "url": "https://www.ign.es/web/resources/volcanologia/DATOS/2021/###MM###/PA01/imagenes_sismica/HORA_SP/PA01_2021-###MM###-###DD###_###HH1###-###HH###_sp_F1.jpg",
+    "name": "STA TBT (1 hour)"
+  },
+  {
+    "url": "http://www.ign.es/web/resources/volcanologia/SIS/jpg/PA_SIS_rsam_CENR_07_s.jpg",
+    "name": "RSAM (La Palma)"
+  },
+  {
+    "url": "http://www.ign.es/web/resources/volcanologia/GPS/jpg/PA_GPS_LP04_90d.png",
+    "name": "GPS LP4 90 day"
+  },
+  {
+    "url": "http://www.ign.es/web/resources/volcanologia/GPS/jpg/PA_GPS_LP03_90d.png",
+    "name": "GPS LP3 90 day"
+  },
+  {
+    "url": "https://cdn.volcanoyt.com/timelapse/390/raw.jpg",
+    "name": "La Palma (C4)"
+  },
+  {
+    "url": "https://cdn.volcanoyt.com/timelapse/391/raw.jpg",
+    "name": "La Palma (C5)"
+  },
+  {
+    "url": "https://cdn.volcanoyt.com/timelapse/395/raw.jpg",
+    "name": "La Palma (C8)"
+  },
+  {
+    "url": "https://cdn.volcanoyt.com/timelapse/396/raw.jpg",
+    "name": "La Palma (C9)"
+  },
+  {
+    "url": "https://cdn.volcanoyt.com/timelapse/403/raw.jpg",
+    "name": "La Palma (C###MM###)"
+  },
+  {
+    "url": "https://cdn.volcanoyt.com/timelapse/404/raw.jpg",
+    "name": "La Palma (C11)"
+  },
+  {
+    "url": "https://cdn.volcanoyt.com/timelapse/406/raw.jpg",
+    "name": "La Palma (C13)"
+  },
+  {
+    "url": "https://cdn.volcanoyt.com/timelapse/407/raw.jpg",
+    "name": "La Palma (C14)"
+  }
+]

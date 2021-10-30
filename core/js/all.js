@@ -10,7 +10,6 @@ try {
         });
     });
 } catch (e) {
-    console.log(e);
     usemp3 = true;
 }
 

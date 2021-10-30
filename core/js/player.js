@@ -2,62 +2,15 @@
 var IoPlayer;
 // Player for timelapse raw version
 var PrPlayer;
-// Player for record
+// Player for Record
 var RpPlayer;
 // Player for HLS (soon for public)
 var PlayerHLS;
-// ETC
-var live = false;
-var type = "live";
-var noenter = true;
-var reason = "";
-var reason_icon = "fad fa-wifi-slash";
-var div_ld = "#loading";
-var div_live = "#html5_player";
-var div_tl_raw = "player_timelapse_raw";
-var div_tl_vd = "#player_timelapse_video";
-var name_cam = "Unknown?";
-var source_cam = "Unknown?";
 
-var last_load = true;
-var isfliter = false;
-var allow_drag = false;
-var count_down = 0;
-// FPS Func
-var lastCalledTime;
-var fps;
-// Inner Windows
+// CONFIG
 var w = window.innerWidth;
 var h = window.innerHeight;
-// JUDUL
-var hide_info = getAllUrlParams().hide_info; // HIDE INFO
-var isaddtime = getAllUrlParams().time || "false";
-var ctname = getAllUrlParams().name;
-// FUNC CALL
-var camid = parseInt(getAllUrlParams().cam); // ID CAMERA
-var IO_API = getAllUrlParams().URL; // IO API
-var token_user = getAllUrlParams().token_user; // TOKEN USER
-var isobson = getAllUrlParams().obs; // USE OBS?
-var isreconnect = getAllUrlParams().reconnect; // RECONNECT AUTO
-var isplayer = getAllUrlParams().format || "HLS"; // FORMAT (JPG,HLS,?)
-var isdirect = getAllUrlParams().direct || "false"; // Direct link with TOKEN USER
-var ismute = getAllUrlParams().mute || "true";
-var isres = getAllUrlParams().res || "720";
-// CONSOLE
-var istes = getAllUrlParams().tes; // RAW
-var watchlog = getAllUrlParams().watchlog; // GUI
-var debug_info = getAllUrlParams().debug; // DEBUG INFO (FPS,BIT)
-// FOR FUN
-var isegg = getAllUrlParams().egg;
-//var nopower = getAllUrlParams().nopower; // NO INFO CLOUD
-var fake_url = getAllUrlParams().fake;
-var isbackup = getAllUrlParams().backup;
-// HLS FUNC
-var hls_error = 0;
-var hls_playing = "Wait";
-var hls_stop = false;
-var hls_need_reload = false;
-
+var allow_drag = false;
 var get_drag_position = {
     x: 0,
     y: 0
@@ -68,34 +21,91 @@ var get_zoom_position = {
 };
 var get_int_zoom = 0;
 
-var canvas_player = document.getElementById("html5_player");
-var fullscreen_player = document.getElementById("full1");
-var ctx_player;
+// OBS Mode
+var OBSMode = false;
+var OBS_ON = true;
 
-var last_frame = null;
-
-var wt = 110;
-var ht = 40;
-var interval = 60;
-
-var online = 1;
-var zona = "Asia/Makassar";
-
-// URL Proxy Player for localhost or multi node
-if (!isEmpty(IO_API)) {
-    Send_Info('Io Player API: ' + IO_API);
-    URL_APP = IO_API;
-}
+// CAMERA
+var camid = parseInt(getAllUrlParams().cam); // ID CAMERA
+var cambk = parseInt(getAllUrlParams().cam_bk); // ID CAMERA
+var ismute = getAllUrlParams().mute || "true";
 
 // API
 var URL_HLS = URL_APP + 'live/' + camid + '/hls.m3u8';
 var URL_IMG = URL_CDN + "timelapse/" + camid + "/raw.jpg";
 
-// SNAPSHOT
-var tmp_wait = 1;
-var snp_reload = 1;
-var snp_stop = false;
+// API
+var IO_API = getAllUrlParams().URL;
+if (!isEmpty(IO_API)) {
+    Send_Info('Io Player API: ' + IO_API);
+    URL_APP = IO_API;
+}
 
+// PLAYER STUFF
+var offline = false;
+var pause = false;
+var isaudio = false;
+var isplayer = getAllUrlParams().format || "jpg"; // FORMAT (JPG,HLS,?)
+var isdirect = getAllUrlParams().direct || "false"; // Direct link with TOKEN USER
+var player_format = 0; // 0 = Proxy (JPG), 1 Proxy (HLS), 2 Direct Link (HLS)
+if (isdirect == "true") {
+    player_format = 2;
+}
+// HLS
+var hls_playing = "Wait";
+var hls_stop = false;
+var hls_pause = false;
+var hls_need_reload = false;
+var hls_bad_wait = 5;
+var hls_temp_bad_wait = 0;
+// SNAPSHOT (OFFLINE)
+var snp_tmp_wait = 0;
+var snp_reload = 0;
+// SNAPSHOT (ONLINE)
+var last_frame = null;
+var proxy_offline = 0;
+
+// ETC
+var type = "live";
+var noenter = true;
+var reason = "";
+var reason_icon = "fad fa-wifi-slash";
+var div_ld = "#loading";
+var div_live = "#html5_player";
+var div_tl_raw = "player_timelapse_raw";
+var div_tl_vd = "#player_timelapse_video";
+var name_cam = "Unknown?";
+var source_cam = "Unknown?";
+var last_load = true;
+var isfliter = false;
+var lastCalledTime;
+var fps;
+var hide_info = getAllUrlParams().hide_info; // HIDE INFO
+var isaddtime = getAllUrlParams().time || "false";
+var ctname = getAllUrlParams().name;
+var token_user = getAllUrlParams().token_user; // TOKEN USER
+var isobson = getAllUrlParams().obs; // USE OBS?
+var isreconnect = getAllUrlParams().reconnect; // RECONNECT AUTO
+var isres = getAllUrlParams().res || "720";
+var istes = getAllUrlParams().tes; // RAW
+var watchlog = getAllUrlParams().log; // GUI
+var debug_info = getAllUrlParams().debug; // DEBUG INFO (FPS,BIT)
+var isegg = getAllUrlParams().egg;
+//var nopower = getAllUrlParams().nopower; // NO INFO CLOUD
+var fake_url = getAllUrlParams().fake;
+var isbackup = getAllUrlParams().backup;
+var canvas_player = document.getElementById("html5_player");
+var fullscreen_player = document.getElementById("full1");
+var ctx_player;
+var wt = 110;
+var ht = 40;
+var interval = 60;
+var online = 1;
+var zona = "Asia/Makassar";
+var try_link = 3;
+var tmp_try_link = 0;
+var idcam_last = camid;
+var last_info = "";
 if (hide_info == 'true') {
     $('.judul').hide();
 }
@@ -105,43 +115,189 @@ if (isaddtime == "true") {
 }
 var next_title = [add_time, '', ''];
 
-//API Start
-function StopStart(id = '', manual = false) {
-    try {
-        Send_Info('type ' + type + ' - ' + manual + ' - id ' + id + ' ');
-        if (id == 'vid2') {
-            Send_Info('No suppot player video');
-        } else if (id == 'manual') {
-            if (type == "live") {
-                if (live) {
-                    IoPlayer.disconnect();
-                    swbt(false);
-                } else {
-                    IoPlayer.connect();
-                    swbt(true);
+// API PLAYER
+if (player_format == 2) {
+    Direct();
+} else {
+    ProxyVD();
+}
 
-                }
-            } else if (type == 'rec') {
-                RpPlayer.stop();
-                type = 'live';
-            } else if (type == 'raw_ff') {
-                PrPlayer.main();
-                swbt(!PrPlayer.pause);
-            } else {
-                Send_Info('belum support11 ', id);
-            }
-        } else if (id == 'meow') {
-            swbt(manual);
-        } else if (id == 'dcio') {
-            IoPlayer.disconnect();
-            swbt(false);
-            type = "live";
-        } else if (id == 'cnio') {
-            IoPlayer.connect();
-            swbt();
-            type = "live";
+// Proxy (HLS & JPG)
+function ProxyVD() {
+    $('#hls_player').hide();
+    console.log('enter');
+    IoPlayer = io(URL_APP + 'camera', {
+        query: getdata()
+    });
+    IoPlayer.on('connect', function (e) {
+        Send_Info({
+            status: "IO: CONNECT",
+            data: e
+        });
+    });
+    IoPlayer.on('error', (error) => {
+        Send_Info({
+            status: "IO: ERROR",
+            data: error
+        });
+    });
+    IoPlayer.on('disconnect', function (e) {
+
+        icon_player(reason_icon);
+        /*
+                Send_Info({
+                    status: "IO: DC",
+                    data: e
+                }, true);
+        */
+        proxy_offline++;
+        if (proxy_offline >= 2) {
+            proxy_offline = 0;
+            Send_Info('Your internet or server seems slow respon, please reload manually', true);
         } else {
-            Send_Info('belum support ', id);
+            if (isEmpty(!reason)) {
+                Send_Info('Camera Disconnected (' + proxy_offline + 'x):<br>' + reason + '', true);
+            }
+        }
+
+        //StopStart('meow', false);
+        //offline = true;
+        //noenter = true;
+
+    });
+    IoPlayer.on('stream', function (e) {
+        ProxyData(e);
+    });
+}
+
+// Direct (HLS LIVE AND SNAPSHOT OFFLINE, NEED TOKEN)
+var dt;
+
+function Direct(need = false) {
+    if (!isEmpty(camid)) {
+        if (!isEmpty(token_user)) {
+            GetJson(URL_API + "camera/view.json?id=" + camid + "&ceklive=" + need + "&token_user=" + token_user)
+                .then(e => {
+
+                    var need_live = true;
+                    var need_img = false;
+
+                    if (!isEmpty(e)) {
+                        dt = e.data;
+                    }
+                    if (isEmpty(dt)) {
+                        return Send_Info('No Config?', true)
+                    }
+
+                    AutoConfig(dt);
+
+                    // TYPE FORMAT
+                    // YOUTUBE
+                    if (dt.type == 3) {
+                        // SKIP
+                    }
+
+                    if (isbackup == "true") {
+                        if (dt.backup_type == 2) {
+                            dt.type = 2;
+                            dt.url = dt.backup_url;
+                        }
+                    }
+
+                    // IMAGE
+                    if (need_img) {
+                        if (dt.type == 1) {
+                            need_live = false;
+                            ProxyVD();
+                        }
+                    }
+
+                    if (!need) {
+                        if (!isEmpty(fake_url)) {
+                            dt.url = fake_url;
+                        }
+                    }
+
+                    if (need_live) {
+                        HLS_Player(dt.url);
+                    }
+
+                })
+                .catch(error => {
+                    Send_Info("Stream still not available or error load", true);
+                });
+        } else {
+            Send_Info('Not allowed', true);
+        }
+    } else {
+        Send_Info('No camera id found', true);
+    }
+}
+
+/*
+API Start
+ * 0 = no pause
+ * 1 = pause
+ * 2 = stop
+ * 3 = start
+*/
+function Play(manual = false, metode = 0) {
+    try {
+        if (!manual) {
+            if (player_format == 2) {
+                if (PlayerHLS.paused()) {
+                    hls_pause = false;
+                    Send_Info('PLAY HLS: PLAY MANUAL');
+                    PlayerHLS.play();
+                } else {
+                    hls_pause = true;
+                    Send_Info('PLAY HLS: PAUSE MANUAL');
+                    PlayerHLS.pause();
+                }
+            } else {
+                Send_Info('PLAY: MANUAL NO SUPPORT > ' + player_format);
+            }
+        } else {
+            if (player_format == 2) {
+
+                if (hls_pause)
+                    return Send_Info("AUTO PLAY NOT WORK IF MANUAL ON");
+
+                if (metode == 1) {
+                    if (!PlayerHLS.paused()) {
+                        Send_Info('PLAY HLS: AUTO PAUSE');
+                        PlayerHLS.pause();
+                    }
+                } else if (metode == 0) {
+                    if (PlayerHLS.paused()) {
+                        Send_Info('PLAY HLS: AUTO PLAY');
+                        PlayerHLS.play();
+                    }
+                } else {
+                    Send_Info('PLAY HLS: METODE NO SUPPORT > ' + metode);
+                }
+
+            } else if (player_format == 0) {
+
+
+                if (metode == 3) {
+                    if (!IoPlayer.connected) {
+                        IoPlayer.connect();
+                    }
+                    Send_Info('PLAY PROXY: PLAY IT');
+                } else if (metode == 2) {
+                    if (IoPlayer.connected) {
+                        IoPlayer.disconnect();
+                    }
+                    Send_Info('PLAY PROXY: STOP PLAY');
+                } else {
+                    Send_Info('PLAY PROXY: METODE NO SUPPORT > ' + metode);
+                }
+
+
+            } else {
+                Send_Info('PLAY: AUTO NO SUPPORT > ' + player_format);
+            }
         }
     } catch (error) {
         Send_Info(error);
@@ -155,18 +311,8 @@ function exitff() {
         $('.goplayback').hide();
         PrPlayer.clear();
     }
-    StopStart('cnio');
+    //StopStart('cnio');
     $('#exitbt').hide();
-}
-
-function swbt(live = true) {
-    if (live) {
-        $("#iconplay").attr('class', 'fal fa-pause');
-        //$(div_live).show();
-    } else {
-        $("#iconplay").attr('class', 'fal fa-play');
-        //$(div_live).hide();
-    }
 }
 
 //Api Control FF
@@ -539,36 +685,44 @@ function createCanvasRecorder() {
 RpPlayer = createCanvasRecorder();
 
 //API IoPlayer
-var scale = 1.0;
+var scale = 1;
 var scaleMultiplier = 0.8;
 var mouseDown = false;
 
 // add event listeners to handle screen drag
 fullscreen_player.addEventListener("mousedown", function (evt) {
+    //console.log("mousedown");
     mouseDown = true;
+
     if (allow_drag) {
         get_drag_position.x = evt.clientX - get_zoom_position.x;
         get_drag_position.y = evt.clientY - get_zoom_position.y;
     }
+
 });
 fullscreen_player.addEventListener("mouseup", function (evt) {
     mouseDown = false;
+   // console.log("mouseup");
 });
 fullscreen_player.addEventListener("mouseover", function (evt) {
     mouseDown = false;
+   // console.log("mouseover");
 });
 fullscreen_player.addEventListener("mouseout", function (evt) {
     mouseDown = false;
+   // console.log("mouseout");
 });
 fullscreen_player.addEventListener("mousemove", function (evt) {
+
+   // console.log("mousemove");
+
     if (mouseDown) {
         if (allow_drag) {
             get_zoom_position.x = evt.clientX - get_drag_position.x;
             get_zoom_position.y = evt.clientY - get_drag_position.y;
-            OnImg();
-            savedrag();
         }
     }
+    
 });
 
 function savedrag() {
@@ -579,24 +733,31 @@ function savedrag() {
 }
 
 function zoomit() {
-    scale *= scaleMultiplier;
+    scale /= scaleMultiplier;
     get_int_zoom++;
-    OnImg();
-    savezoom();
+    ConfigPlayer();
 };
 
 function zoomout() {
-    scale /= scaleMultiplier;
+    scale *= scaleMultiplier;
     get_int_zoom--;
-    OnImg();
-    savezoom();
+    ConfigPlayer();
 };
 
-function savezoom() {
+function ConfigPlayer() {
+    //OnImg();
+    //savedrag();
+    //OnImg();
+    var gtes = 1.000 + scale;
+    $('.video-js .vjs-tech').css('transform', 'scale(' + gtes + ', ' + gtes + ')');
+
+
+    /*
     Cookies.set('zoom_cam_' + camid, JSON.stringify({
         scale: scale,
         get_int_zoom: get_int_zoom
     }));
+    */
 }
 
 var load_zoom = tryParse(Cookies.get('zoom_cam_' + camid));
@@ -622,9 +783,7 @@ function reset() {
         y: 0
     }
     get_int_zoom = 0;
-    OnImg();
-    savedrag();
-    savezoom();
+    ConfigPlayer();
 };
 
 // GUI
@@ -745,68 +904,18 @@ function addtext(c, font = 42) {
 }
 
 function AutoConfig(d) {
+    Send_Info(d);
     try {
         interval = d.interval;
         zona = d.time.timezone;
-        if(!isEmpty(ctname)){
+        if (!isEmpty(ctname)) {
             name_cam = decodeURIComponent(ctname);
-        }else{
+        } else {
             name_cam = d.name;
-        }        
+        }
         next_title[1] = d.source;
     } catch (error) {
-        console.log(error);
-    }
-}
-
-// API Direct (NEED TOKEN FOR BETA TESTING)
-var dt;
-
-function Direct(need = false) {
-    if (!isEmpty(camid)) {
-        if (!isEmpty(token_user)) {
-            GetJson(URL_API + "camera/view.json?id=" + camid + "&ceklive=" + need + "&token_user=" + token_user)
-                .then(e => {
-
-                    if (!isEmpty(e)) {
-                        dt = e.data;
-                    }
-                    if (isEmpty(dt)) {
-                        return Send_Info('No Config?', true)
-                    }
-
-                    console.log(dt);
-                    AutoConfig(dt);
-
-                    // TYPE FORMAT
-                    if (dt.type == 3) {
-                        console.log('youtube.....');
-                    }
-
-                    if (isbackup == "true") {
-                        if (dt.backup_type == 2) {
-                            dt.type = 2;
-                            dt.url = dt.backup_url;
-                        }
-                    }
-
-                    if (!need) {
-                        if (!isEmpty(fake_url)) {
-                            dt.url = fake_url;
-                        }
-                    }
-
-                    HLS_Player(dt.url);
-
-                })
-                .catch(error => {
-                    Send_Info("Stream still not available or error load", true);
-                });
-        } else {
-            Send_Info('Not allowed', true);
-        }
-    } else {
-        Send_Info('No camera id found', true);
+        Send_Info(error);
     }
 }
 
@@ -823,6 +932,7 @@ function HLS_Player(url = "", type = "application/x-mpegURL") {
 
                     PlayerHLS = videojs('hls_player', {
                         liveui: true,
+                        loadingSpinner: false,
                         sources: [{
                             type: type,
                             src: url
@@ -840,9 +950,10 @@ function HLS_Player(url = "", type = "application/x-mpegURL") {
                         PlayerHLS.play();
                         Send_Info();
                     });
-                    PlayerHLS.on(['play', 'playing', 'durationchange', 'loadedmetadata', 'loadeddata', 'loadstart', 'durationchange', 'canplay', 'canplaythrough', 'waiting', 'ended', 'pause', 'error', 'suspend', 'abort', 'interruptbegin', 'interruptend', 'stalled', 'seeked', 'seeking'], function (e) { //resize
+                    PlayerHLS.on(['play', 'playing', 'durationchange', 'loadedmetadata', 'loadeddata', 'loadstart', 'durationchange', 'canplay', 'canplaythrough', 'waiting', 'ended', 'pause', 'error', 'suspend', 'abort', 'interruptbegin', 'interruptend', 'stalled'], function (e) { //resize       , 'seeked', 'seeking'                 
 
                         hls_playing = e.type;
+                        //Send_Info(hls_playing);
 
                         // API ERROR CHECK
                         try {
@@ -850,7 +961,7 @@ function HLS_Player(url = "", type = "application/x-mpegURL") {
                             var view_error = PlayerHLS.error();
                             if (view_error) {
 
-                                Send_Info(view_error.message, true);
+                                last_info = view_error.message;
 
                                 if (view_error.message.includes("disabled")) {
 
@@ -909,75 +1020,78 @@ function HLS_Player(url = "", type = "application/x-mpegURL") {
     }
 }
 
-function is_hls_bad(i = true) {
-    if (i) {
-        icon_player("fal fa-camera");
-        hls_playing = 'disabled';
-        hls_need_reload = true;
-        snp_stop = false;
-        $('#html5_player').show();
-        $('#hls_player').hide();
-    } else {
-        icon_player("fal fa-satellite-dish");
-        //hls_playing = 'disabled';
-        hls_need_reload = false;
-        snp_stop = true;
-        $('#html5_player').hide();
-        $('#hls_player').show();
-        hls_error = 0;
-    }
-}
-
 // LOOP
-var wait_reload = 30;
+var wait_reload = 5;
 var tmp_wait_reload = 0;
 var check_live = 3600;
 var tmp_check_live = 0;
+var cek_pause;
 setInterval(function () {
 
     // Time
-    var dt = moment().tz(zona).format('DD/MM/YYYY HH:mm:ss');
+    var tdt = moment().tz(zona).format('DD/MM/YYYY HH:mm:ss');
     if (document.getElementById("settime")) {
-        document.getElementById("settime").innerHTML = dt;
+        document.getElementById("settime").innerHTML = tdt;
     }
 
-    if (isdirect !== "true")
+    // ICON PAUSE
+    if (!pause) {
+        $("#iconplay").attr('class', 'fal fa-pause');
+    } else {
+        $("#iconplay").attr('class', 'fal fa-play');
+    }
+    // ICON MUTE
+    if (isaudio) {
+        $("#icon_audio").show();
+    } else {
+        $("#icon_audio").hide();
+    }
+
+    // OBS
+    if (OBSMode) {
+        Play(true, OBS_ON ? 0 : 1);
+        if (!OBS_ON)
+            return null
+    }
+
+    // HLS STUFF ONLY
+    if (player_format !== 2)
         return null
 
-    // IF PLAYER BROKEN
-    /*
-    if (hls_playing == "disabled")
-        return null;
-*/
-    // STATS PLAYER
-    if (hls_playing == "pause" || hls_playing == "durationchange") {
-        // IF PAUSE
-    } else if (hls_playing == "play" || hls_playing == "playing" || hls_playing == "canplaythrough") {
-        // IF NORMAL
+    pause = hls_pause;
+    if (hls_pause)
+        return null; //Send_Info('PAUSE MANUAL!');
+
+    // STA PLAYER
+    if (hls_playing == "play" || hls_playing == "playing" || hls_playing == "canplaythrough" || hls_playing == "loadedmetadata") {
         Send_Info();
         is_hls_bad(false);
-    } else {
-        // IF ERROR IS UNKNOWN
+    } else if (hls_playing == "pause" || hls_playing == "waiting") {
         if (!hls_need_reload) {
-            Send_Info("Camera: " + hls_playing + " (" + hls_error + ") ", true);
-            if (hls_error > 10) {
-                hls_error = 0;
-                Send_Info('maybe link down?', true);
+            if (hls_temp_bad_wait >= hls_bad_wait) {
+                last_info = 'Too slow for realtime :(';
+                hls_temp_bad_wait = 0;
                 is_hls_bad();
             } else {
-                hls_error++;
+                hls_temp_bad_wait++;
+                Send_Info("BAD WAIT " + hls_temp_bad_wait);
+                icon_player("fal fa-spinner fa-spin");
             }
         }
+    } else {
+        // IF ERROR
+        is_hls_bad();
+        //console.log(hls_playing);
     }
 
-    // CHECK Expire Time
+    // Check Expire Time
     if (dt) {
 
         // TYPE FORMAT
         if (dt.type == 3) {
             // YOUTUBE
             var tm = dt.expire1_time_yt - Math.floor(Date.now() / 1000);
-            //title('Youtube: ' + tm);
+            $("#debug_youtube_time").html("Youtube expire link " + tm + " in sec");
             if (dt.tm > 0) {
                 is_hls_bad();
             }
@@ -985,28 +1099,40 @@ setInterval(function () {
 
     }
 
-    // CHECK AUDIO
-    try {
-        var ismutep = "fas fa-volume";
-        if (PlayerHLS.muted()) {
-            ismutep = "fas fa-volume-mute";
-        }
-        if (document.getElementById("icon_audio")) {
-            $("#icon_audio").attr('class', ismutep);
-        }
-    } catch (error) {
-
-    }
-
     // CHECK NEW URL
     if (hls_need_reload) {
-        if (tmp_wait_reload > wait_reload) {
+        if (tmp_wait_reload >= wait_reload) {
             tmp_wait_reload = 0;
-            Send_Info('Doing check...', true);
+
+            if (tmp_try_link >= try_link) {
+
+                tmp_try_link = 0;
+
+                if (!isEmpty(cambk)) {
+                    last_info = 'Looks like camera is offline trying to find an alternative';
+                    // if not found id last try add it id camera backup
+                    if (cambk !== idcam_last) {
+                        idcam_last = cambk;
+                        camid = cambk;
+                    } else {
+                        //if found id cam last try back to id cam
+                        camid = idcam_last;
+                        idcam_last = cambk;
+                    }
+                } else {
+                    last_info = 'Looks like camera is offline, please wait for operator to change camera manually';
+                }
+
+            } else {
+                //last_info = 'Doing check';
+                tmp_try_link++;
+            }
+
             Direct(true);
+
         } else {
             tmp_wait_reload++;
-            Send_Info('Check new link in ' + (wait_reload - tmp_wait_reload) + ' sec', true);
+            Send_Info('Check new link in ' + (wait_reload - tmp_wait_reload) + ' sec | ' + tmp_try_link + 'X | ' + last_info, true);
         }
     }
 
@@ -1023,32 +1149,31 @@ setInterval(function () {
         tmp_check_live++;
     }
 
-    Snapshot();
+    //Snapshot();
+
+    // CHECK AUDIO
+    if (PlayerHLS) {
+        isaudio = !PlayerHLS.muted();
+    }
 
 }, 1000 * 1);
 
 async function Snapshot() {
 
-    if (isdirect !== "true")
-        return null
-
-    if (snp_stop)
-        return null
-
     try {
         var aw;
-        if (tmp_wait >= snp_reload) {
-            tmp_wait = 0;
+        if (snp_tmp_wait >= snp_reload) {
+            snp_tmp_wait = 0;
             aw = await Addimg(URL_IMG);
         } else {
-            tmp_wait++;
+            snp_tmp_wait++;
         }
         if (aw) {
             //cek last error
             if (aw.code !== 200) {
                 SendLog("Error load img");
             } else {
-                stream_data({
+                ProxyData({
                     image: true,
                     format: 'image2',
                     buffer: aw.data
@@ -1057,7 +1182,7 @@ async function Snapshot() {
         }
 
     } catch (e) {
-        console.log('Error update img: ', e);
+        Send_Info(e);
     }
 }
 
@@ -1066,102 +1191,19 @@ function title(msg) {
     document.getElementById("text_me").innerHTML = msg;
 }
 
-var last_icon = "";
 
-function icon_player(t = 'fal fa-spinner fa-spin') {
-    if (last_icon !== t) {
-        if (document.getElementById("icon_player")) {
-            last_icon = t;
-            $("#icon_player").attr('class', t);
-        }
-    }
-}
 
-if (isdirect == "true") {
-
-    Direct();
-
-} else {
-
-    $('#hls_player').hide();
-
-    // API IO PROXY
-
-    IoPlayer = io(URL_APP + 'camera', {
-        query: getdata()
-    });
-    IoPlayer.on('connect', function (e) {
-        icon_player("fad fa-wifi-2");
-        noenter = true;
-    });
-    IoPlayer.on('error', (error) => {
-        Send_Info(error);
-    });
-    //var reconnect_tmp = null;
-    IoPlayer.on('disconnect', function () {
-
-        //clear player?
-
-        count_down++;
-        if (count_down >= 2) {
-            count_down = 0;
-            if (live) {
-                if (isreconnect !== "true") {
-                    StopStart('dcio');
-                    Send_Info('Your internet or server seems slow respon, please reload manually', true);
-                } else {
-                    //keep loop
-                }
-            } else {
-                Send_Info('Looks like its disconnected, please reload manually', true);
-            }
-        } else {
-            if (isEmpty(!reason)) {
-                Send_Info('Camera Disconnected (' + count_down + 'x):<br>' + reason + '', true);
-            } else {
-                //keep loop
-            }
-        }
-
-        /*
-        if (isreconnect == "true") {
-            //this bug fix later
-            if (reason.includes("Stream stop")) {
-                if (reconnect_tmp) {
-                    clearTimeout(reconnect_tmp);
-                }
-                reconnect_tmp = setTimeout(function () {
-                    StopStart('cnio');
-                }, 5000);
-            } else {
-                Send_Info(reason, 'debug_tes');
-            }
-        }
-        */
-
-        icon_player(reason_icon);
-        StopStart('meow', false);
-        live = false;
-        noenter = true;
-    });
-
-    IoPlayer.on('stream', function (e) {
-        stream_data(e);
-    });
-
-    function getdata() {
-        return {
-            cam: camid,
-            token_p2p: "",
-            token_user: token_user,
-            direct: isdirect,
-            format: isplayer,
-            version: IoPlayerVersion,
-            referrer: document.referrer,
-            iframe: inIframe(),
-            url: URL_APP
-        };
-    }
+function getdata() {
+    return {
+        cam: camid,
+        token_p2p: "",
+        token_user: token_user,
+        format: player_format,
+        version: IoPlayerVersion,
+        referrer: document.referrer,
+        iframe: inIframe(),
+        url: URL_APP
+    };
 }
 
 var playerx;
@@ -1170,12 +1212,10 @@ var total_bit = 0;
 var last_bit = 0;
 var totalframe = 0;
 
-function stream_data(e) {
+function ProxyData(e) {
     if (e) {
 
-        if (debug_info == "2") {
-            console.log(e);
-        }
+        //Send_Info(e);
 
         if (e.image) {
 
@@ -1186,7 +1226,7 @@ function stream_data(e) {
                 // $('#hls_player').hide();
 
                 last_format = e.format;
-                console.log('format pindah ke ' + last_format);
+                Send_Info('format pindah ke ' + last_format);
 
                 ctx_player = null;
                 // PlayerJSMpeg = null;
@@ -1207,6 +1247,7 @@ function stream_data(e) {
 
             if (e.format == "image2pipe" || e.format == "image2") {
                 draw_image('data:image/webp;base64,' + base64ArrayBuffer(e.buffer));
+                isaudio = false;
             } else {
                 /*
                 if (!PlayerJSMpeg) {
@@ -1234,8 +1275,8 @@ function stream_data(e) {
             //re ping?
             if (noenter) {
                 noenter = false;
-                live = true;
-                StopStart('meow', true);
+                offline = false;
+                //StopStart('meow', true);
                 Send_Info();
             }
 
@@ -1245,10 +1286,10 @@ function stream_data(e) {
             }
         } else {
 
-            // Send_Info(e);
+            Send_Info(e);
 
             noenter = true;
-            StopStart('meow', false);
+            //StopStart('meow', false);
 
             if (e.data.code == 601) {
                 //info camera                
@@ -1261,7 +1302,7 @@ function stream_data(e) {
             } else if (e.data.code == 0) {
                 //exit camera
                 reason = e.data.message;
-                StopStart('dcio');
+                Play(true, 2);
             } else if (e.data.code == 309) {
                 //sleep mode, wait snapshot
                 icon_player("fas fa-robot fa-spin");
@@ -1383,8 +1424,6 @@ $('#proses').on('click', function (e) {
         });
     } else if (whattype == 2) {
 
-        StopStart('dcio');
-
         PrPlayer.clear();
         $('#getinfo').hide();
         // $('#loadff').show();
@@ -1474,32 +1513,48 @@ $('#what_use').change(function (e) {
 });
 
 // OBS API
-if (isobson == "true") {
-    try {
-        Send_Info('OBS Debug: ', window.obsstudio.pluginVersion);
-        window.addEventListener('obsSceneChanged', function (event) {
-            Send_Info('obsSceneChanged: ', event);
+try {
+    var OBS_VER = window.obsstudio.pluginVersion;
+    if (!isEmpty(OBS_VER)) {
+        OBSMode = true;
+        window.addEventListener('obsSceneChanged', function (e) {
+            Send_Info({
+                info: "obsSceneChanged",
+                data: e
+            });
         });
-        window.obsstudio.getStatus(function (status) {
-            Send_Info('Status OBS: ', status);
+        window.obsstudio.getStatus(function (e) {
+            Send_Info({
+                info: "OBS: Status",
+                data: e
+            });
         });
-        window.obsstudio.getCurrentScene(function (scene) {
-            Send_Info('OBS Secene: ', scene);
+        window.obsstudio.getCurrentScene(function (e) {
+            Send_Info({
+                info: "OBS: CurrentScene",
+                data: e
+            });
         })
-        window.obsstudio.onVisibilityChange = function (visibility) {
-            Send_Info('OBS Visibility? ', visibility);
+        window.obsstudio.onVisibilityChange = function (e) {
+            /*
+            Send_Info({
+                info: "OBS: VisibilityChange",
+                data: e
+            });
+            */
+            OBS_ON = e;
         };
-        window.obsstudio.onActiveChange = function (active) {
-            Send_Info('OBS Active? ', active);
-            if (active) {
-                StopStart('cnio');
-            } else {
-                StopStart('dcio');
-            }
+        window.obsstudio.onActiveChange = function (e) {
+            Send_Info({
+                info: "OBS: ActiveChange",
+                data: e
+            });
         };
-    } catch (error) {
-        Send_Info(error);
+    } else {
+        Send_Info("NO OBS SUPPORT!!!");
     }
+} catch (error) {
+    Send_Info(error);
 }
 
 function NextText(i) {
@@ -1516,7 +1571,23 @@ function NextText(i) {
 }
 NextText(0);
 
+var last_msg;
+
 function Send_Info(msg = "", gui = false, gui2 = false, type = 0, log = true) {
+
+    // STOP SPAM!
+    if (last_msg == msg) {
+        return null;
+    }
+
+    last_msg = msg;
+
+    // Object
+    if (watchlog == "true" || gui) {
+        if (typeof msg == 'object') {
+            msg = (JSON && JSON.stringify ? JSON.stringify(msg, undefined, 2) : msg) + '<br>';
+        }
+    }
 
     // IF BLANK
     if (isEmpty(msg)) {
@@ -1525,25 +1596,26 @@ function Send_Info(msg = "", gui = false, gui2 = false, type = 0, log = true) {
     } else {
         // RAW LOG
         if (log) {
-            console.log(msg)
+            if (watchlog !== "true") {
+                console.log(msg);
+            }
         }
         // LOG GUI NOTIF
         if (gui) {
             try {
-                $("#error").html('<div class="alert alert-primary" role="alert"><h3>' + msg + '</h3></div>');
+                $("#error").html('<div class="toast fade show position-absolute top-50 start-50 translate-middle"><div class="toast-header"><strong class="me-auto">VolcanoYT</strong><small>INFO</small></div><div class="toast-body"><h1>' + msg + '</h1></div></div>');
             } catch (error) {
                 //skip
             }
         }
         // LOG CONSOLE GUI
-        if (gui2) {
+        if (watchlog == "true") {
             try {
-                //var homeTown = document.getElementById("console_gui_input").value;
-                //document.getElementById("console_gui_input").value += homeTown;
-                if (typeof msg == 'object') {
-                    msg += (JSON && JSON.stringify ? JSON.stringify(msg, undefined, 2) : msg) + '<br>';
-                }
-                $('#console_gui_input').append(msg);
+                var g = document.getElementById("console_gui_input");
+                g.scrollTop = g.scrollHeight;
+                $('#console_gui_input').append(msg + '\n');
+                //homeTown.scrollIntoView(false);
+                //document.getElementById("console_gui_input").value += homeTown;                
             } catch (error) {
                 //skip
             }
@@ -1579,17 +1651,35 @@ $('#set_end').datetimepicker({
 
 // IF ALL READY
 $(document).ready(function () {
-
-    // Get filters JSManipulate
-    Object.values(JSManipulate).forEach((val, index) => {
-        if (!isEmpty(val.valueRanges.amount)) {
-            $("#putimgset").append('<div class="row"><label class="form-label" for="config_' + index + '">' + val.name + '</label><input id="config_' + index + '" type="range" class="form-range" min="' + val.valueRanges.amount.min + '" max="' + val.valueRanges.amount.max + '" step="0.01" value="' + val.defaultValues.amount + '"></div>');
-        } else {
-            // console.log('debug ', val);
-        }
-    });
-
+    // TODO
 });
+
+function is_hls_bad(i = true) {
+    if (i) {
+        hls_need_reload = true;
+        $('#html5_player').show();
+        $('#hls_player').hide();
+        icon_player("fa fa-exclamation-triangle");
+    } else {
+        hls_need_reload = false;
+        tmp_wait_reload = 0;
+        hls_temp_bad_wait = 0;
+        $('#html5_player').hide();
+        $('#hls_player').show();
+        icon_player("fal fa-satellite-dish");
+    }
+}
+
+var last_icon = "";
+
+function icon_player(t = 'fal fa-spinner fa-spin') {
+    if (last_icon !== t) {
+        if (document.getElementById("icon_player")) {
+            last_icon = t;
+            $("#icon_player").attr('class', t);
+        }
+    }
+}
 
 function formatBytes(bytes, decimals = 2) {
     if (bytes === 0) return '0 Bytes';
