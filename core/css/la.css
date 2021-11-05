@@ -30,6 +30,9 @@ img {
     text-align: center;
     font-family: 'Courier New', monospace;
 }
+.bawah_tengah:empty { 
+    border: none;
+}
 
 .bar {
     font-size: 20px;
@@ -42,15 +45,19 @@ img {
     font-family: 'Courier New', monospace;
 }
 
+.bar div {
+    display: none
+}
+
 .atas_kanan {
     position: fixed;
     top: 10px;
     right: 10px;
-    font-size: 37px;
+    font-size: 30px;
     color: #fff;
     letter-spacing: 7.73px;
     z-index: 999;
-    background-color: rgb(57 66 70 / 51%);
+    background-color: rgb(57 66 70 / 90%);
     border-radius: 14px;
     border: 2px solid #92939b;
     text-align: center;

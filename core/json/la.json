@@ -29,34 +29,42 @@
   },
   {
     "url": "https://cdn.volcanoyt.com/timelapse/390/raw.jpg",
-    "name": "La Palma (C4)"
+    "name": "La Palma (S1)"
   },
   {
     "url": "https://cdn.volcanoyt.com/timelapse/391/raw.jpg",
-    "name": "La Palma (C5)"
-  },
-  {
-    "url": "https://cdn.volcanoyt.com/timelapse/395/raw.jpg",
-    "name": "La Palma (C8)"
+    "name": "La Palma (S2)"
   },
   {
     "url": "https://cdn.volcanoyt.com/timelapse/396/raw.jpg",
-    "name": "La Palma (C9)"
+    "name": "La Palma (S3)"
   },
   {
     "url": "https://cdn.volcanoyt.com/timelapse/403/raw.jpg",
-    "name": "La Palma (C###MM###)"
+    "name": "La Palma (S4)"
   },
   {
     "url": "https://cdn.volcanoyt.com/timelapse/404/raw.jpg",
-    "name": "La Palma (C11)"
+    "name": "La Palma (S5)"
+  },
+  {
+    "url": "https://cdn.volcanoyt.com/timelapse/405/raw.jpg",
+    "name": "La Palma (S6)"
   },
   {
     "url": "https://cdn.volcanoyt.com/timelapse/406/raw.jpg",
-    "name": "La Palma (C13)"
+    "name": "La Palma (S7)"
   },
   {
     "url": "https://cdn.volcanoyt.com/timelapse/407/raw.jpg",
-    "name": "La Palma (C14)"
+    "name": "La Palma (S8)"
+  },
+  {
+    "url": "https://cdn.volcanoyt.com/timelapse/411/raw.jpg",
+    "name": "La Palma (S9)"
+  },
+  {
+    "url": "https://cdn.volcanoyt.com/timelapse/412/raw.jpg",
+    "name": "La Palma (S10)"
   }
 ]

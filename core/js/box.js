@@ -26,9 +26,7 @@ function replaceURLMarkers(url) {
 }
 
 async function updatecek() {
-
     if (time) {
-
         try {
             GetJson(set_url)
                 .then((async (data) => {
@@ -41,17 +39,23 @@ async function updatecek() {
                 }))
                 .catch(error => {
                     console.log(error);
+                    setTimeout(function () {
+                        updatecek();
+                    }, 5000);
                 });
         } catch (error) {
             console.log(error);
-        }
-        
+            setTimeout(function () {
+                updatecek();
+            }, 5000);
+        }        
     }else{
         setTimeout(function () {
             updatecek();
         }, 5000);
     }
 }
+updatecek();
 
 function get(addme) {
     return new Promise(resolve => {
@@ -112,11 +116,4 @@ function get(addme) {
             resolve(405);
         }
     });
-}
-updatecek();
-
-function convertTZ(date, tzString) {
-    return new Date((typeof date === "string" ? new Date(date) : date).toLocaleString("en-US", {
-        timeZone: tzString
-    }));
 }
