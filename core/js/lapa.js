@@ -417,19 +417,37 @@ if (!isEmpty(set_radio)) {
             info: "ended",
             data: evt
         });
+        audio_reload();
     });
     audio.addEventListener("error", function (evt) {
         Send_Info({
             info: "error",
             data: evt
         });
+        audio_reload();
     });
     audio.addEventListener("abort", function (evt) {
         Send_Info({
             info: "abort",
             data: evt
         });
+        audio_reload();
     });
+
+    var loop_radio = null;
+
+    function audio_reload() {
+        if (loop_radio == null) {
+            loop_radio = setTimeout(function () {
+                Send_Info('Audio reload at "ended" mode');
+                audio.src = set_radio;
+                // Maybe need audio.play; ?
+                loop_radio = null;
+            }, 3000);
+        } else {
+            Send_Info('Wait reload...');
+        }
+    }
 }
 
 var last_msg;
