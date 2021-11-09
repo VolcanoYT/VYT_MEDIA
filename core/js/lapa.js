@@ -98,6 +98,8 @@ function int() {
         datap = x.data;
         if (x.type == "earthquake") {
 
+            console.log(datap);
+
             /*
             // fiter source
             var sumber = datap.properties.sources;
@@ -126,7 +128,7 @@ function int() {
             var lot1 = datap.geometry.coordinates[0];
 
             var timeutc = datap.properties.time;
-            var timelocal = moment.utc(timeutc, 'DD/MM/YYYY HH:mm:ss').local();
+            var timelocal = moment.utc(timeutc, 'YYYY/MM/DD HH:mm:ss').local();
             var lefttime = timelocal.local().fromNow();
 
             var tod = distance(lat1, lot1, lat, lot).toFixed(0);
@@ -164,12 +166,12 @@ function int() {
                 whereeq = datap.properties.country;
 
                 if (statsid == 3) {
-                    Speak("update quake magnitude" + mag + " already  " + cont + " time updates so far " + whereeq + " with depth " + deept + " km occurs in " + lefttime + "");
+                    Speak("update quake " + whereeq + " with magnitude " + mag + " and depth " + deept + " km already " + cont + " time so far " + lefttime + "");
                 } else {
                     if (tod <= 100) {
-                        Speak("New quake magnitude" + mag + " has been detected from a distance " + tod + " km from Volcano " + name_volcano + " with depth " + deept + " km occurs in " + lefttime + "");
+                        Speak("New quake magnitude " + mag + " has been detected from a distance " + tod + " km from volcano " + name_volcano + " with depth " + deept + " km " + lefttime + "");
                     } else {
-                        Speak("new quake magnitude " + mag + " causing shaking " + whereeq + " depth " + deept + " km occurs in " + lefttime + "");
+                        Speak("new quake magnitude " + mag + " causing shaking " + whereeq + " with depth " + deept + " km " + lefttime + "");
                     }
                 }
             }
@@ -259,10 +261,12 @@ function data_volcano(data) {
 
         document.getElementById("LOC").innerHTML = 'NEWS ' + namap + ': ' + getinfo;
     } else {
+        /*
         Send_Info({
             info: "NEW VOLCANO",
             data: data
         });
+        */
     }
 }
 
@@ -351,7 +355,10 @@ loopme();
 
 function Speak(msga) {
     NotifMe("", msga, "", true, 'en');
-    console.log(msga);
+    Send_Info({
+        info: "voice",
+        data: msga
+    });
     /*
     try {
         responsiveVoice.enableEstimationTimeout = false;
