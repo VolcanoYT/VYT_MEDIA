@@ -56,7 +56,6 @@ var hls_playing = "Wait";
 var hls_stop = false;
 var hls_pause = false;
 var hls_need_reload = false;
-var hls_bad_wait = 5;
 var hls_temp_bad_wait = 0;
 // SNAPSHOT (OFFLINE)
 var snp_tmp_wait = 0;
@@ -65,7 +64,15 @@ var snp_reload = 0;
 var last_frame = null;
 var proxy_offline = 0;
 
+var try_link = 6;
+var hls_bad_wait = 30;
+var wait_reload = 5;
+
 // ETC
+var tmp_wait_reload = 0;
+var check_live = 3600;
+var tmp_check_live = 0;
+var cek_pause;
 var type = "live";
 var noenter = true;
 var reason = "";
@@ -102,7 +109,6 @@ var ht = 40;
 var interval = 60;
 var online = 1;
 var zona = "Asia/Makassar";
-var try_link = 3;
 var tmp_try_link = 0;
 var idcam_last = camid;
 var last_info = "";
@@ -950,7 +956,7 @@ function HLS_Player(url = "", type = "application/x-mpegURL") {
                         PlayerHLS.play();
                         Send_Info();
                     });
-                    PlayerHLS.on(['play', 'playing', 'durationchange', 'loadedmetadata', 'loadeddata', 'loadstart', 'durationchange', 'canplay', 'canplaythrough', 'waiting', 'ended', 'pause', 'error', 'suspend', 'abort', 'interruptbegin', 'interruptend', 'stalled'], function (e) { //resize       , 'seeked', 'seeking'                 
+                    PlayerHLS.on(['play', 'playing', 'loadedmetadata', 'loadeddata', 'loadstart', 'canplay', 'canplaythrough', 'waiting', 'ended', 'pause', 'error', 'suspend', 'abort', 'interruptbegin', 'interruptend', 'stalled'], function (e) { //resize       , 'seeked', 'seeking'                 
 
                         hls_playing = e.type;
                         //Send_Info(hls_playing);
@@ -1021,12 +1027,10 @@ function HLS_Player(url = "", type = "application/x-mpegURL") {
 }
 
 // LOOP
-var wait_reload = 5;
-var tmp_wait_reload = 0;
-var check_live = 3600;
-var tmp_check_live = 0;
-var cek_pause;
 setInterval(function () {
+
+    //console.log(hls_playing);
+    //console.log('hello');
 
     // Time
     var tdt = moment().tz(zona).format('DD/MM/YYYY HH:mm:ss');
@@ -1386,6 +1390,9 @@ $('#proses').on('click', function (e) {
     var tweet = $('#tweet').val();
     var whattype = $('#what_use').val();
 
+    var whathd  = $('#what_hd').val();
+    var whatfps = $('#what_fps').val();
+
     Send_Info('' + set_start + ' - ' + set_end + ' - ' + title + ' - ' + whattype);
 
     if (whattype == '1') {
@@ -1403,8 +1410,8 @@ $('#proses').on('click', function (e) {
                 title: title,
                 tweet: tweet,
                 id: camid,
-                fps: 15,
-                hd: 0,
+                fps: whatfps,
+                hd: whathd,
                 interval: interval
             },
             url: URL_API + 'camera/timelapse/create.json',
@@ -1657,15 +1664,15 @@ $(document).ready(function () {
 function is_hls_bad(i = true) {
     if (i) {
         hls_need_reload = true;
-        $('#html5_player').show();
-        $('#hls_player').hide();
+        //$('#html5_player').show();
+        //$('#hls_player').hide();
         icon_player("fa fa-exclamation-triangle");
     } else {
         hls_need_reload = false;
         tmp_wait_reload = 0;
         hls_temp_bad_wait = 0;
-        $('#html5_player').hide();
-        $('#hls_player').show();
+        //$('#html5_player').hide();
+        //$('#hls_player').show();
         icon_player("fal fa-satellite-dish");
     }
 }

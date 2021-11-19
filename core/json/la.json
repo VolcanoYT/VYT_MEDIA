@@ -1,5 +1,4 @@
-[
-  {
+[{
     "url": "https://www.ign.es/web/resources/volcanologia/DATOS/2021/###MM###/PA01/imagenes_sismica/DIA/PA01_2021-###MM###-###DD###_F1.jpg",
     "name": "STA TBT (La Palma) (24 hour)"
   },
@@ -26,6 +25,22 @@
   {
     "url": "http://www.ign.es/web/resources/volcanologia/GPS/jpg/PA_GPS_LP03_90d.png",
     "name": "GPS LP3 90 day"
+  },
+  {
+    "url": "http://www.ign.es/web/resources/volcanologia/SIS/jpg/PA_SIS_eventos_03D.jpg",
+    "name": "MAP EQ"
+  },
+  {
+    "url": "http://www.ign.es/web/resources/volcanologia/SIS/jpg/PA_SIS_histograma_15D.jpg",
+    "name": "Total EQ (IGN)"
+  },
+  {
+    "url": "https://volcanodiscovery.de/fileadmin/charts/quakes-v643.png",
+    "name": "Total EQ (VD)"
+  },
+  {
+    "url": "https://www.mirovaweb.it/S2MIR_Last/VOLCANOES/LaPalma/LaPalma_S2MIR_Last.png",
+    "name": "MirovaWeb"
   },
   {
     "url": "https://cdn.volcanoyt.com/timelapse/390/raw.jpg",

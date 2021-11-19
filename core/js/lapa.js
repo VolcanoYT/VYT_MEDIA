@@ -17,6 +17,7 @@ var name_volcano = "";
 var time;
 var nodev = true;
 var time_reload_wt = 600;
+var near_volcano = 100;
 
 if (p_time == "left_top") {
     $('.atas_kanan').css('right', 'auto').css('left', '10px');
@@ -98,7 +99,7 @@ function int() {
         datap = x.data;
         if (x.type == "earthquake") {
 
-            console.log(datap);
+            //console.log(datap);
 
             /*
             // fiter source
@@ -137,7 +138,7 @@ function int() {
             var start_audio = false;
 
             // IF NEAR EQ
-            if (tod <= 100) {
+            if (tod <= near_volcano) {
                 start_audio = true;
                 show_notif = true;
             }
@@ -165,10 +166,14 @@ function int() {
                 //deept = deept.replace(".", ",");            
                 whereeq = datap.properties.country;
 
-                if (statsid == 3) {
-                    Speak("update quake " + whereeq + " with magnitude " + mag + " and depth " + deept + " km already " + cont + " time so far " + lefttime + "");
+                if (statsid == 3) {                    
+                    if (tod <= near_volcano) {
+                        Speak("update quake volcano " + name_volcano + " with magnitude " + mag + " and depth " + deept + " km already " + cont + " time so far " + lefttime + "");
+                    } else {
+                        Speak("update quake " + whereeq + " with magnitude " + mag + " and depth " + deept + " km already " + cont + " time so far " + lefttime + "");
+                    }
                 } else {
-                    if (tod <= 100) {
+                    if (tod <= near_volcano) {
                         Speak("New quake magnitude " + mag + " has been detected from a distance " + tod + " km from volcano " + name_volcano + " with depth " + deept + " km " + lefttime + "");
                     } else {
                         Speak("new quake magnitude " + mag + " causing shaking " + whereeq + " with depth " + deept + " km " + lefttime + "");
@@ -355,26 +360,11 @@ loopme();
 
 function Speak(msga) {
     NotifMe("", msga, "", true, 'en');
+    /*
     Send_Info({
         info: "voice",
         data: msga
     });
-    /*
-    try {
-        responsiveVoice.enableEstimationTimeout = false;
-        responsiveVoice.speak(msga);
-    } catch (error) {
-        console.log(error);
-    } 
-    */
-    /*
-    var msg = new SpeechSynthesisUtterance();
-    msg.lang = "en";
-    msg.text = msga;
-    if(!isEmpty(idvc)){
-        msg.voice = voices[idvc];
-    }    
-    window.speechSynthesis.speak(msg);
     */
 }
 
