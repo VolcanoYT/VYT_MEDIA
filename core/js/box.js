@@ -11,12 +11,15 @@ setInterval(async () => {
 
 function replaceURLMarkers(url) {
 
-    var hour = time.format('HH');
-    var hour1 = time.subtract(1, "hours").format('HH');
-    var month = time.format('MM');
-    var date = time.format('DD');
+    var hour    = time.format('HH');
+    var hour1   = time.subtract(1, "hours").format('HH');
+    var minutes = time.format('mm').slice(0, -1);
+    var month   = time.format('MM');
+    var date    = time.format('DD');
+    var yy      = time.format('YY');
 
-    // url = url.replace("###YYYY###", "?");   
+    url = url.replace(/###ZZ###/g, minutes);  
+    url = url.replace(/###YY###/g, yy);   
     url = url.replace(/###MM###/g, month);
     url = url.replace(/###DD###/g, date);
     url = url.replace(/###HH###/g, hour);

@@ -1,0 +1,38 @@
+[
+  {
+    "url": "http://hraun.vedur.is/ja/drumplot/drumplot/faf_highpass_2.0.png",
+    "name": "STA FAF"
+  },
+  {
+    "url": "http://hraun.vedur.is/ja/oroi/faf.gif",
+    "name": "RSAM Fagradalsfjall"
+  },
+  {
+    "url": "https://en.vedur.is/photos/jarisls/21###MM######DD###_###HH######ZZ###0.png",
+    "name": "MAP EQ"
+  },
+  {
+    "url": "https://en.vedur.is/photos/jarisls_rit/21###MM######DD###_###HH######ZZ###0.png",
+    "name": "Total EQ (IMO)"
+  },
+  {
+    "url": "https://volcanodiscovery.de/fileadmin/charts/quakes-v6154.png",
+    "name": "Total EQ (VD)"
+  },
+  {
+    "url": "https://www.vedur.is/photos/volcanoes/SENG-plate-90d.png",
+    "name": "GPS 90 DAY (SENG)"
+  },
+  {
+    "url": "http://brunnur.vedur.is/gps/eldfjoll/reykjanes/KRIV-plate-90d.png",
+    "name": "GPS 90 DAY (KRIV)"
+  },
+  {
+    "url": "http://brunnur.vedur.is/gps/eldfjoll/reykjanes_rt/kriv-seng_up.png",
+    "name": "CK1"
+  },
+  {
+    "url": "http://brunnur.vedur.is/gps/eldfjoll/reykjanes_rt/kriv-lisk_up.png",
+    "name": "CK2"
+  }
+]

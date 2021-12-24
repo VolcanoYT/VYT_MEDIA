@@ -1078,7 +1078,7 @@ setInterval(function () {
                 is_hls_bad();
             } else {
                 hls_temp_bad_wait++;
-                Send_Info("BAD WAIT " + hls_temp_bad_wait);
+                Send_Info("BAD WAIT " + hls_temp_bad_wait,false,false,0,false);
                 icon_player("fal fa-spinner fa-spin");
             }
         }

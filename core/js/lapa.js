@@ -293,6 +293,7 @@ function cuaca() {
             var cloud = data.current.cloud;
             var pressure = data.current.pressure_mb;
             var nowp = data.current.condition.text;
+            var rain = data.current.precip_mm;
 
             // var pm2_5 = parseFloat(data.current.air_quality.pm2_5).toFixed(1);
             // var airQuality = parseFloat(data.current.air_quality.pm10).toFixed(2);
@@ -312,7 +313,7 @@ function cuaca() {
             //  var lefttime = timelocal.local().fromNow();
             //https://github.com/abhigyantrips/Butternaan-Crisp/blob/5449f501554a362b4fa776c92bbdee532d701bb9/cmds-slash/slash-cmd-weather.py
             //https://github.com/KillahDillah/My-Dashboard/blob/d99cca152ecfc7dd6261e55f06a4664ec79feeb2/src/Temperature.js
-            document.getElementById("WTA").innerHTML = 'Weather ' + timeutc + '->' + nowp + '|<i class="fas fa-temperature-high"></i>' + suhu + '°C <i class="fas fa-windsock"></i> ' + wind + ' MPH (' + dir + ') <i class="fas fa-humidity"></i>' + humidity + '% <i class="fas fa-cloud"></i>' + cloud + '% <i class="fab fa-cloudversify"></i>' + pressure + 'mb ' + icon + ' ' + airQuality + 'pm';
+            document.getElementById("WTA").innerHTML = 'Weather ' + timeutc + '->' + nowp + '|<i class="fas fa-temperature-high"></i>' + suhu + '°C <i class="fas fa-windsock"></i> ' + wind + ' MPH (' + dir + ') <i class="fas fa-humidity"></i>' + humidity + '% <i class="fas fa-cloud"></i>' + cloud + '% <i class="fab fa-cloudversify"></i>' + pressure + 'mb ' + icon + ' ' + airQuality + 'pm <i class="fas fa-cloud-rain"></i>' + rain + 'mm';
 
 
         });

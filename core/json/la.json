@@ -32,7 +32,11 @@
   },
   {
     "url": "http://www.ign.es/web/resources/volcanologia/SIS/jpg/PA_SIS_histograma_15D.jpg",
-    "name": "Total EQ (IGN)"
+    "name": "Total EQ (IGN) (15 Day)"
+  },
+  {
+    "url": "https://www.ign.es/web/resources/volcanologia/SIS/jpg/PA_SIS_histograma_us.jpg",
+    "name": "Total EQ (IGN) (7 Day)"
   },
   {
     "url": "https://volcanodiscovery.de/fileadmin/charts/quakes-v643.png",
@@ -81,5 +85,9 @@
   {
     "url": "https://cdn.volcanoyt.com/timelapse/412/raw.jpg",
     "name": "La Palma (S10)"
+  },
+  {
+    "url": "https://cdn.volcanoyt.com/timelapse/422/raw.jpg",
+    "name": "La Palma (S11)"
   }
 ]
