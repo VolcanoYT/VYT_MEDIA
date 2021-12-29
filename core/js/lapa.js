@@ -19,6 +19,10 @@ var nodev = true;
 var time_reload_wt = 600;
 var near_volcano = 100;
 
+var audio;
+var real_vol = (parseInt(set_volume_radio) / 100);
+var last_vol = real_vol;
+
 if (p_time == "left_top") {
     $('.atas_kanan').css('right', 'auto').css('left', '10px');
 }
@@ -56,16 +60,13 @@ function int() {
     get_info_volcano();
 
     // GUI
-    var show_bar = false;
     setInterval(async () => {
         time = moment();
-        document.getElementById("time").innerHTML = time.format("HH:mm:ss<br>DD/MM/YYYY") + "<br>" + name_volcano;
-        if (show_bar) {
-            document.getElementById("gempa").style.display = "";
+        if (p_time == "small") {
+            document.getElementById("time_small").innerHTML = time.format("HH:mm:ss DD/MM/YYYY") + " ";
         } else {
-            document.getElementById("gempa").style.display = "none";
+            document.getElementById("atas_kanan").innerHTML = time.format("HH:mm:ss<br>DD/MM/YYYY") + "<br>" + name_volcano;
         }
-        //TODO: hide info error?
     }, 1000 * 1);
 
     //API Socket
@@ -93,13 +94,13 @@ function int() {
     });
 
     //New Data Info
-    var close_seimo;
+    var close_notif;
 
     function OnData(x) {
         datap = x.data;
         if (x.type == "earthquake") {
 
-            //console.log(datap);
+            console.log(datap);
 
             /*
             // fiter source
@@ -154,19 +155,48 @@ function int() {
 
             var whereeq = '' + Number(datap.properties.distance).toFixed(2) + ' km of ' + datap.properties.city + ' - ' + datap.properties.country + " (" + tod + " km <i class='fas fa-location-arrow'></i>)";
 
+            document.getElementById("eq_small").innerHTML = "Earthquake " + icon_mag + " " + icon_dee + " " + whereeq + " " + icon_tcp + "";
+
             if (show_notif) {
+
+                // if found close notif stop it aka reset
+                if(close_notif){
+                    clearTimeout(close_notif);
+                    close_notif = null;
+                }
+
+                // if no found close notif make it
+                if (!close_notif) {
+                    close_notif = setTimeout(function () {
+
+                        close_notif = null;
+                        document.getElementById("gempa").innerHTML = "";
+
+                        if (audio) {
+                            console.log('done eq now back normal?');
+                            audio.volume = real_vol;
+                        }
+
+                    }, 1000 * 60);
+                }
+
+                // show notif
                 document.getElementById("gempa").innerHTML = "Earthquake " + icon_mag + " " + icon_dee + "<br>" + whereeq + "<br>" + icon_tcp + "";
-                show_bar = true;
             }
 
             if (start_audio) {
+
+                if (audio) {
+                    console.log('found eq set volume music for little');
+                    audio.volume = 0.05;
+                }
 
                 //hack
                 mag = mag.replace(".", ",");
                 //deept = deept.replace(".", ",");            
                 whereeq = datap.properties.country;
 
-                if (statsid == 3) {                    
+                if (statsid == 3) {
                     if (tod <= near_volcano) {
                         Speak("update quake volcano " + name_volcano + " with magnitude " + mag + " and depth " + deept + " km already " + cont + " time so far " + lefttime + "");
                     } else {
@@ -179,13 +209,6 @@ function int() {
                         Speak("new quake magnitude " + mag + " causing shaking " + whereeq + " with depth " + deept + " km " + lefttime + "");
                     }
                 }
-            }
-
-            if (!close_seimo) {
-                setTimeout(function () {
-                    show_bar = false;
-                    close_seimo = null;
-                }, 1000 * 60);
             }
 
         } else if (x.type == "volcano") {
@@ -337,7 +360,7 @@ function distance(lat1, lon1, lat2, lon2) {
 
 function news(name) {
     try {
-        $('#bar').children().hide();
+        $('#news').children().hide();
         $('#' + name).show();
     } catch (error) {
         console.log(error);
@@ -345,15 +368,29 @@ function news(name) {
 };
 
 function loopme() {
+
     news("WTA");
+
     setTimeout(function () {
 
         news("LOC");
 
-        // BACK
         setTimeout(function () {
-            loopme();
-        }, 1000 * 120);
+
+            news("eq_small");
+
+            setTimeout(function () {
+
+                news("music");
+
+                // BACK
+                setTimeout(function () {
+                    loopme();
+                }, 1000 * 30);
+
+            }, 1000 * 60);
+
+        }, 1000 * 60);
 
     }, 1000 * 60);
 };
@@ -371,12 +408,29 @@ function Speak(msga) {
 
 if (!isEmpty(set_radio)) {
 
+    if (set_radio.includes("stream.laut.fm")) {
+        var fmradio = new URL(set_radio).pathname;
+        console.log("Found FM RADIO: " + fmradio);
+
+        function get_info_next() {
+            $.getJSON('https://api.laut.fm/station' + fmradio + '/current_song', function (fmdata) {
+                console.log(fmdata);
+                document.getElementById("music").innerHTML = 'Radio ' + fmradio + ' currently playing ' + fmdata.title + ' (' + fmdata.artist.name + ')';
+            });
+        }
+        // https://laut.fm/fm-api/station
+        setInterval(() => {
+            get_info_next();
+        }, 1000 * 60);
+        get_info_next();
+    }
+
     Send_Info({
         info: "Radio Online",
         data: set_radio
     });
 
-    var audio = new Audio();
+    audio = new Audio();
     audio.src = set_radio;
     audio.controls = true;
     audio.autoplay = true;
@@ -386,7 +440,7 @@ if (!isEmpty(set_radio)) {
             info: "Audio Radio Set",
             data: set_volume_radio
         });
-        audio.volume = (parseInt(set_volume_radio) / 100);
+        audio.volume = real_vol;
     }
     document.body.appendChild(audio);
     audio.addEventListener("loadstart", function (evt) {

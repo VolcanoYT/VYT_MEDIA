@@ -30,7 +30,8 @@ img {
     text-align: center;
     font-family: 'Courier New', monospace;
 }
-.bawah_tengah:empty { 
+
+.bawah_tengah:empty {
     border: none;
 }
 
@@ -46,6 +47,10 @@ img {
 }
 
 .bar div {
+    display: inline
+}
+
+.news div {
     display: none
 }
 
@@ -84,4 +89,8 @@ video {
     width: 50%;
     height: 20%;
     top: auto;
+}
+
+div:empty {
+    display: none;
 }
