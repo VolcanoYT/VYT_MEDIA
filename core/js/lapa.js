@@ -28,30 +28,39 @@ if (p_time == "left_top") {
 }
 
 // API Info
-$.getJSON('https://beta.volcanoyt.com/volcano/view.json?id=' + set_id, function (r) {
-    if (r.code == 200) {
-        lat = r.data.location.latitude;
-        lot = r.data.location.longitude;
-        name_volcano = r.data.name;
-        $.getJSON('https://api.weatherapi.com/v1/timezone.json?key=' + key + '&q=' + lat + ',' + lot + '', function (z) {
-            if (z.location) {
-                zone = z.location.tz_id;
-                moment.tz.setDefault(zone);
-                int();
-            } else {
-                Send_Info({
-                    info: "Weather API: faild get loca",
-                    data: z
-                });
-            }
-        });
-    } else {
-        Send_Info({
-            info: "faild get info volcano (0)",
-            data: r
-        });
-    }
-});
+if (!isEmpty(set_id)) {
+    console.log("found id: ", set_id);
+    get_volcano(set_id);
+} else {
+    int();
+}
+
+function get_volcano(set_id) {
+    $.getJSON('https://beta.volcanoyt.com/volcano/view.json?id=' + set_id, function (r) {
+        if (r.code == 200) {
+            lat = r.data.location.latitude;
+            lot = r.data.location.longitude;
+            name_volcano = r.data.name;
+            $.getJSON('https://api.weatherapi.com/v1/timezone.json?key=' + key + '&q=' + lat + ',' + lot + '', function (z) {
+                if (z.location) {
+                    zone = z.location.tz_id;
+                    moment.tz.setDefault(zone);
+                    int();
+                } else {
+                    Send_Info({
+                        info: "Weather API: faild get loca",
+                        data: z
+                    });
+                }
+            });
+        } else {
+            Send_Info({
+                info: "faild get info volcano (0)",
+                data: r
+            });
+        }
+    });
+}
 
 function int() {
 
@@ -160,7 +169,7 @@ function int() {
             if (show_notif) {
 
                 // if found close notif stop it aka reset
-                if(close_notif){
+                if (close_notif) {
                     clearTimeout(close_notif);
                     close_notif = null;
                 }
@@ -277,28 +286,34 @@ function get_info_volcano() {
 
 function data_volcano(data) {
 
-    var namap = data['identity'];
+    var namap   = data['identity'];
+    var getinfo = data['info'];
+    var gettite = data['title'];
 
-    if (namap === name_volcano) {
+    if (!isEmpty(set_id)) {
 
-        var getinfo = data['info'];
-        var gettite = data['title'];
-        if (isEmpty(getinfo)) {
-            getinfo = gettite;
+        // JIKA ADA ID, HANYA ID VOLCANO YANG TAMPIL?        
+        if (namap === name_volcano) {
+
+
+            if (isEmpty(getinfo)) {
+                getinfo = gettite;
+            }
+            document.getElementById("LOC").innerHTML = 'NEWS ' + namap + ': ' + getinfo;
+
         }
 
-        document.getElementById("LOC").innerHTML = 'NEWS ' + namap + ': ' + getinfo;
     } else {
-        /*
-        Send_Info({
-            info: "NEW VOLCANO",
-            data: data
-        });
-        */
+        // JIKA TIDAK ADA ID TAMPIL SEMUA
+        document.getElementById("LOC").innerHTML = 'NEWS ' + namap + ': ' + getinfo;
     }
+
 }
 
 function cuaca() {
+    if (isEmpty(set_id)) {
+        return;
+    }
     try {
         $.getJSON('https://api.weatherapi.com/v1/current.json?key=' + key + '&q=' + lat + ',' + lot + '&aqi=yes', function (data) {
 
@@ -369,7 +384,11 @@ function news(name) {
 
 function loopme() {
 
-    news("WTA");
+    if (isEmpty(set_id)) {
+        news("LOC");
+    } else {
+        news("WTA");
+    }
 
     setTimeout(function () {
 
@@ -408,9 +427,15 @@ function Speak(msga) {
 
 if (!isEmpty(set_radio)) {
 
+    Send_Info({
+        info: "Radio Online",
+        data: set_radio
+    });
+
     if (set_radio.includes("stream.laut.fm")) {
         var fmradio = new URL(set_radio).pathname;
         console.log("Found FM RADIO: " + fmradio);
+        radio_start(set_radio, set_volume_radio);
 
         function get_info_next() {
             $.getJSON('https://api.laut.fm/station' + fmradio + '/current_song', function (fmdata) {
@@ -423,13 +448,15 @@ if (!isEmpty(set_radio)) {
             get_info_next();
         }, 1000 * 60);
         get_info_next();
+    } else if (set_radio.includes("youtube")) {
+        console.log("Found Youtube");
+    } else {
+        radio_start(set_radio, set_volume_radio);
     }
 
-    Send_Info({
-        info: "Radio Online",
-        data: set_radio
-    });
+}
 
+function radio_start(set_radio, set_volume_radio) {
     audio = new Audio();
     audio.src = set_radio;
     audio.controls = true;
@@ -485,20 +512,20 @@ if (!isEmpty(set_radio)) {
         });
         audio_reload();
     });
+}
 
-    var loop_radio = null;
+var loop_radio = null;
 
-    function audio_reload() {
-        if (loop_radio == null) {
-            loop_radio = setTimeout(function () {
-                Send_Info('Audio reload at "ended" mode');
-                audio.src = set_radio;
-                // Maybe need audio.play; ?
-                loop_radio = null;
-            }, 3000);
-        } else {
-            Send_Info('Wait reload...');
-        }
+function audio_reload() {
+    if (loop_radio == null) {
+        loop_radio = setTimeout(function () {
+            Send_Info('Audio reload at "ended" mode');
+            audio.src = set_radio;
+            // Maybe need audio.play; ?
+            loop_radio = null;
+        }, 3000);
+    } else {
+        Send_Info('Wait reload...');
     }
 }
 
