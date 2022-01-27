@@ -30,6 +30,8 @@ var camid = parseInt(getAllUrlParams().cam); // ID CAMERA
 var cambk = parseInt(getAllUrlParams().cam_bk); // ID CAMERA
 var ismute = getAllUrlParams().mute || "true";
 
+var set_room = getAllUrlParams().room; // set room buat ganti kamera
+
 // API
 var URL_HLS = URL_APP + 'live/' + camid + '/hls.m3u8';
 var URL_IMG = URL_CDN + "timelapse/" + camid + "/raw.jpg";
@@ -43,14 +45,19 @@ if (!isEmpty(IO_API)) {
 
 // PLAYER STUFF
 var offline = false;
-var pause = false;
+var ispause = false;
 var isaudio = false;
+
 var isplayer = getAllUrlParams().format || "jpg"; // FORMAT (JPG,HLS,?)
 var isdirect = getAllUrlParams().direct || "false"; // Direct link with TOKEN USER
-var player_format = 0; // 0 = Proxy (JPG), 1 Proxy (HLS), 2 Direct Link (HLS)
 
+// 0 = Proxy (JPG), 1 Proxy (HLS), 2 Direct Link (HLS)
+var player_format = 0; // for faildback
+var user_player = 0; // for user
+
+// ASK Direct
 if (isdirect == "true") {
-    player_format = 2;
+    user_player = 2;
 }
 
 // HLS
@@ -58,17 +65,15 @@ var hls_playing = "Wait";
 var hls_stop = false;
 var hls_pause = false;
 var hls_need_reload = false;
-var hls_bad_wait = 5;
+var hls_lock_wait = false;
+var hls_bad_wait = 60;
 var hls_temp_bad_wait = 0;
-// SNAPSHOT (OFFLINE)
-var snp_tmp_wait = 0;
-var snp_reload = 0;
+
 // SNAPSHOT (ONLINE)
 var last_frame = null;
 var proxy_offline = 0;
 
 // ETC
-
 var playerx;
 var last_format = "";
 var total_bit = 0;
@@ -78,11 +83,13 @@ var totalframe = 0;
 var type = "live";
 
 var reason = "";
-var reason_icon = "fad fa-wifi-slash";
+
 var div_ld = "#loading";
 var div_live = "#html5_player";
+var div_hls = "#hls_player";
 var div_tl_raw = "player_timelapse_raw";
 var div_tl_vd = "#player_timelapse_video";
+
 var name_cam = "Unknown?";
 var source_cam = "Unknown?";
 
@@ -100,11 +107,21 @@ var istes = getAllUrlParams().tes; // RAW
 var watchlog = getAllUrlParams().log; // GUI
 var debug_info = getAllUrlParams().debug; // DEBUG INFO (FPS,BIT)
 var debug2 = getAllUrlParams().debug2;
-//var nopower = getAllUrlParams().nopower; // NO INFO CLOUD
+//var nopower         = getAllUrlParams().nopower; // NO INFO CLOUD
 var fake_url = getAllUrlParams().fake;
 var isbackup = getAllUrlParams().backup;
+var urldirect = getAllUrlParams().url_direct;
+
 var canvas_player = document.getElementById("html5_player");
 var fullscreen_player = document.getElementById("full1");
+
+var wait_reload = 10;
+var tmp_wait_reload = 0;
+var check_live = 3600;
+var tmp_check_live = 0;
+var cek_pause;
+var set_icon = "";
+
 var ctx_player;
 var wt = 110;
 var ht = 40;
@@ -126,15 +143,16 @@ var next_title = [add_time, '', ''];
 
 var dt;
 
-$('#hls_player').hide();
-
-// Send cmd
-function getdata() {
-    return {
+// Send Config
+function getdata(set_id) {
+    if(!isEmpty(set_id)){
+        camid = set_id;
+    }
+    return {        
         cam: camid,
-        token_p2p: "",
+        room: set_room,
         token_user: token_user,
-        format: player_format,
+        format: user_player,
         version: IoPlayerVersion,
         referrer: document.referrer,
         iframe: inIframe(),
@@ -142,55 +160,95 @@ function getdata() {
     };
 }
 
-IoPlayer = io(URL_APP + 'camera', {
-    query: getdata()
-});
-IoPlayer.on('connect', function (e) {
-    Send_Info({
-        status: "IO: CONNECT",
-        data: e
+IoPlayer = io(URL_APP + 'camera');
+
+// Send Console Commands
+function cmd(d) {
+    if (IoPlayer) {
+        IoPlayer.emit('cmd', d);
+    } else {
+        console.log('cmd faild, not connect?');
+    }
+}
+
+function change_camera(id){
+    cmd({
+        type: 'request',
+        data: {
+            room: set_room,
+            id: id,
+            type: 'change_camera'
+        }
     });
-});
+}
+
+
 IoPlayer.on('error', (error) => {
+
     Send_Info({
         status: "IO: ERROR",
         data: error
     });
+
 });
+
+IoPlayer.on('connect', function (e) {
+
+    Send_Info({
+        status: "IO: CONNECT",
+        data: e
+    });
+
+    // start call camera
+    cmd({
+        type: 'call',
+        data: getdata()
+    });
+
+});
+
 IoPlayer.on('disconnect', function (e) {
 
-    icon_player(reason_icon);
+    set_icon = "fad fa-wifi-slash";
 
     Send_Info({
         status: "IO: DC",
         data: e
     });
 
-    proxy_offline++;
-    if (proxy_offline >= 2) {
-        proxy_offline = 0;
-        Send_Info('Your internet or server seems slow respon, please reload manually', true);
-    } else {
-        if (isEmpty(!reason)) {
-            Send_Info('Camera Disconnected (' + proxy_offline + 'x):<br>' + reason + '', true);
-        }
-    }
+    Send_Info('Camera Disconnected (' + proxy_offline + 'x):<br>' + reason + '', true);
 
 });
+
 IoPlayer.on('info', function (e) {
 
+    // LOG
     Send_Info({
         "type": "info",
         "data": e
     });
 
-    if (e.code == 601) {
+    // API Player
+    try {
+        window.parent.postMessage({
+            "api": "player_update",
+            "data": e.data
+        }, "*");
+    } catch (error) {
+        Send_Info('error send data');
+    }
 
-        // INFO PLAYER AND TODO CHECK IF USE LINK RED               
+    if (e.code == 601) {
+        // INFO CAMERA
+
+        set_icon = "fal fa-file-invoice";
+
         try {
 
+            // Lainnya
             interval = e.info.interval;
             zona = e.info.time.timezone;
+            urldirect = e.info.url;
 
             // Name Camera
             if (!isEmpty(ctname)) {
@@ -206,103 +264,86 @@ IoPlayer.on('info', function (e) {
             Send_Info(error);
         }
 
-        icon_player("fal fa-file-invoice");
+    } else if (e.code == 200) {
+
+        // ALL OK?
+        //hls_lock_wait = false;
 
     } else if (e.code == 0) {
+        // STOP CAMERA
 
-        // KILL CAMERA
         reason = e.message;
         Play(true, 2);
 
     } else if (e.code == 309) {
-
         // Sleep Mode, wait Snapshot new
-        icon_player("fas fa-robot fa-spin");
 
     } else if (e.code == 204) {
-
         // Loading Normal
-        icon_player("fal fa-spinner fa-spin");
+
+        set_icon = "fal fa-spinner fa-spin";
 
     } else if (e.code == 600) {
-
         // NEW USER ONLINE
+
         online = e.online;
 
-    } else if (e.code == 666) {
-
-        // HLS PLAYER?
-
     } else if (e.code == 555) {
-
-        // System Chat
-        // http://localhost:3000/camera/control.json?user=Yuki&id_user=YT123&cmd=!cam%20chat%20344%20hello
-        // {message: "hello", nick: "Yuki", id: "YT123", code: 555}
-        /*
-        try {
-            Toastify({
-                text: e.nick + ' : ' + e.message,
-                duration: 9000
-            }).showToast();
-        } catch (error) {
-
-        }
-        */
+        // CHAT
 
     } else {
-
         // IF ALL
 
-        Send_Info('' + e.message + '', true);
-        icon_player("fal fa-exclamation-triangle");
+        Send_Info(e.message, true);
+        set_icon = "fal fa-exclamation-triangle";
     }
-
-    //API Player
-    try {
-        window.parent.postMessage({
-            "api": "player_update",
-            "data": e.data
-        }, "*");
-    } catch (error) {
-        Send_Info('error send data');
-    }
-
-
 });
+
 IoPlayer.on('proxy', function (e) {
 
-    /*
-    Send_Info({
-        "type": "proxy",
-        "data": e
-    });
-    */
+    if (debug2 == 'true')
+        Send_Info({
+            "type": "proxy",
+            "data": e
+        });
 
     if (e) {
 
-        // Check Format
+        // Check Format and clear Something
         if (last_format !== e.format) {
+
             last_format = e.format;
             Send_Info('Format: ' + last_format);
-            ctx_player = null;
-            var newCvs = canvas_player.cloneNode(false);
-            canvas_player.parentNode.replaceChild(newCvs, canvas_player);
-            canvas_player = newCvs;
-            ctx_player = canvas_player.getContext("2d");
+
+            if (e.format == "image2pipe" || e.format == "image2") {
+                ctx_player = null;
+                var newCvs = canvas_player.cloneNode(false);
+                canvas_player.parentNode.replaceChild(newCvs, canvas_player);
+                canvas_player = newCvs;
+                ctx_player = canvas_player.getContext("2d");
+            } else if (e.format == "direct") {
+
+            }
+
         }
 
         if (e.format == "image2pipe" || e.format == "image2") {
-            draw_image('data:image/webp;base64,' + base64ArrayBuffer(e.buffer));
-            isaudio = false;
-        } else {
-            Send_Info('Format No Support: '+e.format);
-        }
 
-        // IS LIVE
-        if (e.live) {
-            icon_player("fal fa-satellite-dish");
+            draw_image('data:image/webp;base64,' + base64ArrayBuffer(e.buffer), e.live);
+
+        } else if (e.format == "direct") {
+
+            // Jika Direct dan itu Youtube dan HLS
+            if (e.type == 2 || e.type == 3) {
+                if (!isEmpty(e.url)) {
+                    hls_lock_wait = false;
+                    player_format = 2;                    
+                    HLS_Player(e.url);
+                }
+            }
+
         } else {
-            icon_player("fal fa-camera");
+            Send_Info('Format No Support: ' + e.format);
         }
 
     } else {
@@ -310,6 +351,124 @@ IoPlayer.on('proxy', function (e) {
     }
 
 });
+
+// LOOP CHECK
+setInterval(function () {
+
+    var log_check = false;
+
+    // BUG Stuff
+    $('#hls_player_html5_api').show();
+
+    // Time
+    var tdt = moment().tz(zona).format('DD/MM/YYYY HH:mm:ss');
+    if (document.getElementById("settime")) {
+        document.getElementById("settime").innerHTML = tdt;
+    }
+
+    // ICON PAUSE
+    if (!ispause) {
+        $("#iconplay").attr('class', 'fal fa-pause');
+    } else {
+        $("#iconplay").attr('class', 'fal fa-play');
+    }
+
+    // ICON MUTE
+    if (isaudio) {
+        $("#icon_audio").show();
+    } else {
+        $("#icon_audio").hide();
+    }
+
+    // ICON PLAYER
+    if (!isEmpty(set_icon)) {
+        if (document.getElementById("icon_player")) {
+            $("#icon_player").attr('class', set_icon);
+        }
+    }
+
+    // HLS Stuff
+    if (player_format == 2) {
+
+        // PAUSE
+        if (hls_pause)
+            return Send_Info('PAUSE MANUAL!');
+
+        if (hls_lock_wait)
+            return Send_Info('LOCK');
+
+        // HLS PLAYING (KEEP)
+        if (hls_playing == "play" || hls_playing == "playing" || hls_playing == "canplaythrough" || hls_playing == "loadedmetadata") {
+
+            Send_Info();
+            is_hls_bad(false,true);
+            hls_need_reload = false;
+
+        } else if (hls_playing == "pause" || hls_playing == "waiting") {
+
+            if (!hls_need_reload) {
+                if (hls_temp_bad_wait >= hls_bad_wait) {
+                    last_info = 'Too slow for realtime :(';
+                    hls_temp_bad_wait = 0;
+                    hls_need_reload = true;
+                    is_hls_bad();
+                } else {
+                    hls_temp_bad_wait++;
+                    Send_Info("BAD WAIT " + hls_temp_bad_wait);
+                    set_icon = "fal fa-spinner fa-spin";
+                }
+            }
+
+        } else {
+            // IF ERROR
+            log_check = true;
+            is_hls_bad(true,true);
+        }
+
+        // CHECK NEW URL
+        if (hls_need_reload) {
+
+            // HARD RESTART
+            if (tmp_wait_reload >= wait_reload) {
+                tmp_wait_reload = 0;
+                last_info = 'Looks like camera is offline, please wait for operator to change camera manually';
+                if (IoPlayer) {
+                    cmd({
+                        type: 'request',
+                        data: {
+                            user: IoPlayer.id,
+                            id: camid,
+                            type: 'get_new_info'
+                        }
+                    });
+
+                    hls_lock_wait = true; // false jika sudah dapat
+                    //hls_need_reload = false; // jika sudah dapat?
+
+                } else {
+                    console.log('No connection');
+                }
+
+            } else {
+
+                // NORMAL RESTART
+                tmp_wait_reload++;
+                Send_Info('Check new link in ' + (wait_reload - tmp_wait_reload) + ' sec | ' + tmp_try_link + 'X | ' + last_info, true);
+
+            }
+
+            log_check = true;
+
+        }
+
+    } else {
+        is_hls_bad(); // Hide HLS
+    }
+
+   // if (log_check)
+        Send_Info('Player format (2) ' + player_format + ' | hls ' + hls_playing + ' | pause ' + hls_pause + ' | hls reload ' + hls_need_reload + ' | hls_temp_bad_wait ' + hls_temp_bad_wait + ' | tmp_wait_reload ' + tmp_wait_reload + ' | hls no hide ' + $(div_hls).is(":visible") + ' | html5 no hide ' + $(div_live).is(":visible") + ' | '+last_info+' ');
+
+}, 1000 * 1);
 
 /*
 API Start
@@ -381,30 +540,15 @@ function Play(manual = false, metode = 0) {
     }
 }
 
-// API Exit Player FF
-function exitff() {
-    Send_Info("exit ", type);
-    if (type == 'raw_ff') {
-        $('.goplayback').hide();
-        PrPlayer.clear();
-    }
-    //StopStart('cnio');
-    $('#exitbt').hide();
-}
-
 // Api Control
 document.addEventListener('keydown', (event) => {
     try {
-        /*
-                // Correct:
-                if (map[17] && map[16] && map[13]) { // CTRL+SHIFT+ENTER
-                    alert('Whoa, mr. power user');
-                } else if (map[17] && map[13]) { // CTRL+ENTER
-                    alert('You found me');
-                } else if (map[13]) { // ENTER
-                    alert('You pressed Enter. You win the prize!')
-                }
-        */
+
+        Send_Info({
+            "type": "keydown",
+            "data": event
+        });
+
         switch (event.key) {
             case "ArrowLeft":
                 if (type == 'raw_ff')
@@ -419,6 +563,7 @@ document.addEventListener('keydown', (event) => {
                     PrPlayer.main();
                 break;
         }
+
     } catch (error) {
         Send_Info(error);
     }
@@ -520,7 +665,7 @@ var PlayBack;
     },
     set: function (index) {
         try {
-            draw_image(this.frame[index].src);
+            draw_image(this.frame[index].src, false);
             this.index = index;
         } catch (error) {
             Send_Info('faild set?', error);
@@ -951,7 +1096,7 @@ function OnImg(f = null) {
     ctx_player.fillStyle = '#444';
 
     //Show Debug
-    if (debug_info == "true") {
+    if (debug2 == "true") {
         // GET FPS
         if (!lastCalledTime) {
             lastCalledTime = Date.now();
@@ -995,8 +1140,7 @@ function HLS_Player(url = "", type = "application/x-mpegURL") {
 
                 // NEW OPEN
                 if (videojs.getAllPlayers().length == 0) {
-
-                    PlayerHLS = videojs('hls_player', {
+                    PlayerHLS = videojs(div_hls, {
                         liveui: true,
                         loadingSpinner: false,
                         sources: [{
@@ -1013,15 +1157,17 @@ function HLS_Player(url = "", type = "application/x-mpegURL") {
                         if (ismute == "true") {
                             PlayerHLS.muted(true);
                         }
-                        PlayerHLS.play();
-                        Send_Info();
+
+                        setTimeout(function () {
+                            PlayerHLS.play();
+                        }, 1000 * 3);
+
                     });
-                    PlayerHLS.on(['play', 'playing', 'durationchange', 'loadedmetadata', 'loadeddata', 'loadstart', 'durationchange', 'canplay', 'canplaythrough', 'waiting', 'ended', 'pause', 'error', 'suspend', 'abort', 'interruptbegin', 'interruptend', 'stalled'], function (e) { //resize       , 'seeked', 'seeking'                 
+                    PlayerHLS.on(['play', 'playing', 'loadedmetadata', 'loadeddata', 'loadstart', 'canplay', 'canplaythrough', 'waiting', 'ended', 'pause', 'error', 'suspend', 'abort', 'interruptbegin', 'interruptend', 'stalled'], function (e) {
 
                         hls_playing = e.type;
-                        //Send_Info(hls_playing);
+                        Send_Info(hls_playing);
 
-                        // API ERROR CHECK
                         try {
 
                             var view_error = PlayerHLS.error();
@@ -1029,24 +1175,20 @@ function HLS_Player(url = "", type = "application/x-mpegURL") {
 
                                 last_info = view_error.message;
 
-                                if (view_error.message.includes("disabled")) {
+                                if (view_error.message.includes("disabled") || view_error.message.includes("not supported")) {
 
-                                    is_hls_bad();
-
-                                } else if (view_error.message.includes("not supported")) {
-
-                                    is_hls_bad();
+                                    is_hls_bad(true,true);
 
                                 } else if (view_error.message.includes("corruption")) {
-                                    // JUST SKIP
+
                                     is_hls_bad(false);
+
                                 } else {
                                     // JUST SKIP
                                 }
 
                             } else {
                                 // JUST SKIP
-                                is_hls_bad(false);
                             }
 
                         } catch (error) {
@@ -1067,14 +1209,6 @@ function HLS_Player(url = "", type = "application/x-mpegURL") {
                     PlayerHLS.play();
                 }
 
-                /*
-                PlayerHLS.reloadSourceOnError({
-                    getSource: function (r) {
-                    },
-                    errorInterval: 6
-                });
-                */
-
             } catch (error) {
                 Send_Info(error);
             }
@@ -1086,177 +1220,9 @@ function HLS_Player(url = "", type = "application/x-mpegURL") {
     }
 }
 
-// LOOP
-var wait_reload = 5;
-var tmp_wait_reload = 0;
-var check_live = 3600;
-var tmp_check_live = 0;
-var cek_pause;
-setInterval(function () {
-
-    // Time
-    var tdt = moment().tz(zona).format('DD/MM/YYYY HH:mm:ss');
-    if (document.getElementById("settime")) {
-        document.getElementById("settime").innerHTML = tdt;
-    }
-
-    // ICON PAUSE
-    if (!pause) {
-        $("#iconplay").attr('class', 'fal fa-pause');
-    } else {
-        $("#iconplay").attr('class', 'fal fa-play');
-    }
-    // ICON MUTE
-    if (isaudio) {
-        $("#icon_audio").show();
-    } else {
-        $("#icon_audio").hide();
-    }
-
-    // OBS
-    if (OBSMode) {
-        Play(true, OBS_ON ? 0 : 1);
-        if (!OBS_ON)
-            return null
-    }
-
-   // console.log(player_format);
-
-    return null;
-
-    pause = hls_pause;
-    if (hls_pause)
-        return null; //Send_Info('PAUSE MANUAL!');
-
-    // STA PLAYER
-    if (hls_playing == "play" || hls_playing == "playing" || hls_playing == "canplaythrough" || hls_playing == "loadedmetadata") {
-        Send_Info();
-        is_hls_bad(false);
-    } else if (hls_playing == "pause" || hls_playing == "waiting") {
-        if (!hls_need_reload) {
-            if (hls_temp_bad_wait >= hls_bad_wait) {
-                last_info = 'Too slow for realtime :(';
-                hls_temp_bad_wait = 0;
-                is_hls_bad();
-            } else {
-                hls_temp_bad_wait++;
-                Send_Info("BAD WAIT " + hls_temp_bad_wait);
-                icon_player("fal fa-spinner fa-spin");
-            }
-        }
-    } else {
-        // IF ERROR
-        is_hls_bad();
-        //console.log(hls_playing);
-    }
-
-    // Check Expire Time
-    if (dt) {
-
-        // TYPE FORMAT
-        if (dt.type == 3) {
-            // YOUTUBE
-            var tm = dt.expire1_time_yt - Math.floor(Date.now() / 1000);
-            $("#debug_youtube_time").html("Youtube expire link " + tm + " in sec");
-            if (dt.tm > 0) {
-                is_hls_bad();
-            }
-        }
-
-    }
-
-    // CHECK NEW URL
-    if (hls_need_reload) {
-        if (tmp_wait_reload >= wait_reload) {
-            tmp_wait_reload = 0;
-
-            if (tmp_try_link >= try_link) {
-
-                tmp_try_link = 0;
-
-                if (!isEmpty(cambk)) {
-                    last_info = 'Looks like camera is offline trying to find an alternative';
-                    // if not found id last try add it id camera backup
-                    if (cambk !== idcam_last) {
-                        idcam_last = cambk;
-                        camid = cambk;
-                    } else {
-                        //if found id cam last try back to id cam
-                        camid = idcam_last;
-                        idcam_last = cambk;
-                    }
-                } else {
-                    last_info = 'Looks like camera is offline, please wait for operator to change camera manually';
-                }
-
-            } else {
-                //last_info = 'Doing check';
-                tmp_try_link++;
-            }
-
-            Direct(true);
-
-        } else {
-            tmp_wait_reload++;
-            Send_Info('Check new link in ' + (wait_reload - tmp_wait_reload) + ' sec | ' + tmp_try_link + 'X | ' + last_info, true);
-        }
-    }
-
-    // KEEP LOW LC
-    if (tmp_check_live > check_live) {
-        tmp_check_live = 0;
-        try {
-            Direct();
-            //PlayerHLS.liveTracker.seekToLiveEdge();
-        } catch (error) {
-
-        }
-    } else {
-        tmp_check_live++;
-    }
-
-    //Snapshot();
-
-    // CHECK AUDIO
-    if (PlayerHLS) {
-        isaudio = !PlayerHLS.muted();
-    }
-
-}, 1000 * 1);
-
-async function Snapshot() {
-
-    try {
-        var aw;
-        if (snp_tmp_wait >= snp_reload) {
-            snp_tmp_wait = 0;
-            aw = await Addimg(URL_IMG);
-        } else {
-            snp_tmp_wait++;
-        }
-        if (aw) {
-            //cek last error
-            if (aw.code !== 200) {
-                SendLog("Error load img");
-            } else {
-                ProxyData({
-                    image: true,
-                    format: 'image2',
-                    buffer: aw.data
-                });
-            }
-        }
-
-    } catch (e) {
-        Send_Info(e);
-    }
-}
-
-
 function title(msg) {
     document.getElementById("text_me").innerHTML = msg;
 }
-
 
 function ProxyData(e) {
     console.log(e);
@@ -1445,12 +1411,10 @@ try {
                 });
             })
             window.obsstudio.onVisibilityChange = function (e) {
-                /*
                 Send_Info({
                     info: "OBS: VisibilityChange",
                     data: e
                 });
-                */
                 OBS_ON = e;
             };
             window.obsstudio.onActiveChange = function (e) {
@@ -1564,30 +1528,22 @@ $(document).ready(function () {
     // TODO
 });
 
-function is_hls_bad(i = true) {
+function is_hls_bad(i = true,need_reload=false) {
+
+    if(need_reload) {
+        hls_need_reload = i;
+    }
+
     if (i) {
-        hls_need_reload = true;
-        $('#html5_player').show();
-        $('#hls_player').hide();
-        icon_player("fa fa-exclamation-triangle");
+        $(div_live).show();
+        $(div_hls).hide();
+
     } else {
-        hls_need_reload = false;
         tmp_wait_reload = 0;
         hls_temp_bad_wait = 0;
-        $('#html5_player').hide();
-        $('#hls_player').show();
-        icon_player("fal fa-satellite-dish");
-    }
-}
-
-var last_icon = "";
-
-function icon_player(t = 'fal fa-spinner fa-spin') {
-    if (last_icon !== t) {
-        if (document.getElementById("icon_player")) {
-            last_icon = t;
-            $("#icon_player").attr('class', t);
-        }
+        $(div_live).hide();
+        $(div_hls).show();
+        set_icon = "fal fa-satellite-dish";
     }
 }
 
@@ -1723,12 +1679,24 @@ function saveAs(blob, fileName) {
     }, 1000);
 }
 
-function draw_image(imgdata) {
+function draw_image(imgdata, islive = false) {
+
     var image = new Image();
     image.onload = function () {
         OnImg(image);
     };
     image.src = imgdata;
+
+    // IS LIVE
+    if (islive) {
+        set_icon = "fal fa-satellite-dish";
+    } else {
+        set_icon = "fal fa-camera";
+    }
+
+    // Clear Error if found new image
+    //Send_Info();
+
 }
 
 function inIframe() {

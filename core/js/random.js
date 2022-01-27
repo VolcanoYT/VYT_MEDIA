@@ -22,7 +22,7 @@ async function updatecek() {
 
 function get(addme) {
     return new Promise(resolve => {
-        if(![192,191].includes(addme.id)) {
+        if(![420,436].includes(addme.id)) {
             jQuery.ajax({
                 url: URL_CDN+"timelapse/" + addme.id + "/raw.webp",
                 cache: false,

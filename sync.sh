@@ -169,7 +169,7 @@ npmjs animate.css 4.1.1
 npmjs interactjs 1.10.11 dist
 # npmjs peerjs 1.3.2 dist
 npmjs immutable 4.0.0-rc.15 dist
-
+npmjs satellite.js 4.1.3 dist
 cd $tmp || exit
 
 echo "Download CDN...."

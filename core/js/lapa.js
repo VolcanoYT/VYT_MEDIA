@@ -164,7 +164,7 @@ function int() {
 
             var whereeq = '' + Number(datap.properties.distance).toFixed(2) + ' km of ' + datap.properties.city + ' - ' + datap.properties.country + " (" + tod + " km <i class='fas fa-location-arrow'></i>)";
 
-            document.getElementById("eq_small").innerHTML = "Earthquake " + icon_mag + " " + icon_dee + " " + whereeq + " " + icon_tcp + "";
+            document.getElementById("eq_small").innerHTML = "Earthquake:<span>" + icon_mag + " " + icon_dee + " " + whereeq + " " + icon_tcp + "</span>";
 
             if (show_notif) {
 
@@ -286,7 +286,7 @@ function get_info_volcano() {
 
 function data_volcano(data) {
 
-    var namap   = data['identity'];
+    var namap = data['identity'];
     var getinfo = data['info'];
     var gettite = data['title'];
 
@@ -299,7 +299,7 @@ function data_volcano(data) {
             if (isEmpty(getinfo)) {
                 getinfo = gettite;
             }
-            document.getElementById("LOC").innerHTML = 'NEWS ' + namap + ': ' + getinfo;
+            document.getElementById("LOC").innerHTML = 'NEWS:<span>' + namap + ': ' + getinfo + '</span>';
 
         }
 
@@ -351,7 +351,7 @@ function cuaca() {
             //  var lefttime = timelocal.local().fromNow();
             //https://github.com/abhigyantrips/Butternaan-Crisp/blob/5449f501554a362b4fa776c92bbdee532d701bb9/cmds-slash/slash-cmd-weather.py
             //https://github.com/KillahDillah/My-Dashboard/blob/d99cca152ecfc7dd6261e55f06a4664ec79feeb2/src/Temperature.js
-            document.getElementById("WTA").innerHTML = 'Weather ' + timeutc + '->' + nowp + '|<i class="fas fa-temperature-high"></i>' + suhu + '°C <i class="fas fa-windsock"></i> ' + wind + ' MPH (' + dir + ') <i class="fas fa-humidity"></i>' + humidity + '% <i class="fas fa-cloud"></i>' + cloud + '% <i class="fab fa-cloudversify"></i>' + pressure + 'mb ' + icon + ' ' + airQuality + 'pm <i class="fas fa-cloud-rain"></i>' + rain + 'mm';
+            document.getElementById("WTA").innerHTML = 'Weather:<span>' + timeutc + '->' + nowp + '|<i class="fas fa-temperature-high"></i>' + suhu + '°C <i class="fas fa-windsock"></i> ' + wind + ' MPH (' + dir + ') <i class="fas fa-humidity"></i>' + humidity + '% <i class="fas fa-cloud"></i>' + cloud + '% <i class="fab fa-cloudversify"></i>' + pressure + 'mb ' + icon + ' ' + airQuality + 'pm <i class="fas fa-cloud-rain"></i>' + rain + 'mm</span>';
 
 
         });
@@ -376,7 +376,7 @@ function distance(lat1, lon1, lat2, lon2) {
 function news(name) {
     try {
         $('#news').children().hide();
-        $('#' + name).show();
+        $('#' + name).show();        
     } catch (error) {
         console.log(error);
     }
