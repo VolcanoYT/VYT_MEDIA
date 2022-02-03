@@ -243,7 +243,7 @@ function clean_map(cleanid = "") {
     // Clean by Time
     var toDelete = [];
     var set_color = getRandomColor();
-    var currentdate = new Date(moment().utc().format('YYYY-MM-DD HH:mm:ss')); //GMT NOW
+    var currentdate = new Date(moment().utc().format('YYYY-MM-DD HH:mm:ss')); //UTC NOW
 
     counter++;
 
@@ -403,7 +403,7 @@ function add(spawn, notif = false) {
         }
 
         var link_gempa = 'https://volcanoyt.com/earthquake/track/' + ecid;
-        var msgpop = '<strong>' + whereeq + '</strong><br><b>Location: </b><br>' + lokasi + ' <br>' + mt + '' + magnitudetwo + ' | depth ' + depthtwo + 'km <br><br>' + timeutc + ' GMT<br>' + timelocal.format("YYYY-MM-DD HH:mm:ss") + ' ' + get_zona + '<br><br>Source ' + provider + '<br>Status: ' + mystatus + '<br>Update: ' + timeupd + ' UTC (' + cont + 'x)<br><br>Share: <a href="https://www.facebook.com/sharer/sharer.php?u=' + link_gempa + '" target="_blank">Facebook</a> | <a href="https://twitter.com/intent/tweet/?text=' + link_gempa + '" target="_blank">Twitter</a> | <a href="whatsapp://send?text=' + link_gempa + '" target="_blank">WhatsApp</a>';
+        var msgpop = '<strong>' + whereeq + '</strong><br><b>Location: </b><br>' + lokasi + ' <br>' + mt + '' + magnitudetwo + ' | depth ' + depthtwo + 'km <br><br>' + timeutc + ' UTC<br>' + timelocal.format("YYYY-MM-DD HH:mm:ss") + ' ' + get_zona + '<br><br>Source ' + provider + '<br>Status: ' + mystatus + '<br>Update: ' + timeupd + ' UTC (' + cont + 'x)<br><br>Share: <a href="https://www.facebook.com/sharer/sharer.php?u=' + link_gempa + '" target="_blank">Facebook</a> | <a href="https://twitter.com/intent/tweet/?text=' + link_gempa + '" target="_blank">Twitter</a> | <a href="whatsapp://send?text=' + link_gempa + '" target="_blank">WhatsApp</a>';
 
         var iconpz = L.divIcon({
             iconSize: null,

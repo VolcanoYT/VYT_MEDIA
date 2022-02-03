@@ -286,26 +286,30 @@ function get_info_volcano() {
 
 function data_volcano(data) {
 
+    console.log('volcano',data);
+
     var namap = data['identity'];
     var getinfo = data['info'];
     var gettite = data['title'];
 
+    var timeutc = data.time.input;
+    var timelocal = moment.utc(timeutc, 'YYYY/MM/DD HH:mm:ss').local();
+    var lefttime = timelocal.local().fromNow();
+
+    if (isEmpty(getinfo)) {
+        getinfo = gettite;
+    }
+
     if (!isEmpty(set_id)) {
 
         // JIKA ADA ID, HANYA ID VOLCANO YANG TAMPIL?        
-        if (namap === name_volcano) {
-
-
-            if (isEmpty(getinfo)) {
-                getinfo = gettite;
-            }
-            document.getElementById("LOC").innerHTML = 'NEWS:<span>' + namap + ': ' + getinfo + '</span>';
-
+        if (namap === name_volcano) {            
+            document.getElementById("LOC").innerHTML = 'INFO: <span>' + getinfo + ' | Update '+lefttime+'</span>';
         }
 
     } else {
         // JIKA TIDAK ADA ID TAMPIL SEMUA
-        document.getElementById("LOC").innerHTML = 'NEWS ' + namap + ': ' + getinfo;
+        document.getElementById("LOC").innerHTML = 'INFO ' + namap + ': <span>' + getinfo + ' | Update '+lefttime+'</span>';
     }
 
 }
@@ -376,7 +380,7 @@ function distance(lat1, lon1, lat2, lon2) {
 function news(name) {
     try {
         $('#news').children().hide();
-        $('#' + name).show();        
+        $('#' + name).show();
     } catch (error) {
         console.log(error);
     }

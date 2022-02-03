@@ -74,6 +74,8 @@ var last_frame = null;
 var proxy_offline = 0;
 
 // ETC
+var io_force_close = false;
+
 var playerx;
 var last_format = "";
 var total_bit = 0;
@@ -145,10 +147,10 @@ var dt;
 
 // Send Config
 function getdata(set_id) {
-    if(!isEmpty(set_id)){
+    if (!isEmpty(set_id)) {
         camid = set_id;
     }
-    return {        
+    return {
         cam: camid,
         room: set_room,
         token_user: token_user,
@@ -161,6 +163,7 @@ function getdata(set_id) {
 }
 
 IoPlayer = io(URL_APP + 'camera');
+// , {reconnection: false}
 
 // Send Console Commands
 function cmd(d) {
@@ -171,7 +174,7 @@ function cmd(d) {
     }
 }
 
-function change_camera(id){
+function change_camera(id) {
     cmd({
         type: 'request',
         data: {
@@ -199,24 +202,31 @@ IoPlayer.on('connect', function (e) {
         data: e
     });
 
-    // start call camera
-    cmd({
-        type: 'call',
-        data: getdata()
-    });
+    if (!io_force_close) {
+        cmd({
+            type: 'call',
+            data: getdata()
+        });
+    }else{
+        set_icon = "fal fa-exclamation-triangle";
+        Send_Info('Please reload manually to continue: '+reason, true);
+    }
 
 });
 
 IoPlayer.on('disconnect', function (e) {
-
-    set_icon = "fad fa-wifi-slash";
 
     Send_Info({
         status: "IO: DC",
         data: e
     });
 
-    Send_Info('Camera Disconnected (' + proxy_offline + 'x):<br>' + reason + '', true);
+    if(isEmpty(reason)){
+        Send_Info('Camera Disconnected...', true);
+    }else{
+        Send_Info(reason, true);
+    }
+    set_icon = "far fa-times-circle";
 
 });
 
@@ -239,8 +249,8 @@ IoPlayer.on('info', function (e) {
     }
 
     if (e.code == 601) {
-        // INFO CAMERA
 
+        // INFO CAMERA
         set_icon = "fal fa-file-invoice";
 
         try {
@@ -270,32 +280,35 @@ IoPlayer.on('info', function (e) {
         //hls_lock_wait = false;
 
     } else if (e.code == 0) {
-        // STOP CAMERA
 
+        // STOP CAMERA
+        io_force_close = true;
         reason = e.message;
-        Play(true, 2);
 
     } else if (e.code == 309) {
+
         // Sleep Mode, wait Snapshot new
 
     } else if (e.code == 204) {
-        // Loading Normal
 
+        // Loading Normal
         set_icon = "fal fa-spinner fa-spin";
 
     } else if (e.code == 600) {
-        // NEW USER ONLINE
 
+        // NEW USER ONLINE
         online = e.online;
 
     } else if (e.code == 555) {
+
         // CHAT
 
     } else {
-        // IF ALL
 
+        // IF ALL
         Send_Info(e.message, true);
-        set_icon = "fal fa-exclamation-triangle";
+        set_icon = "fad fa-bug";
+
     }
 });
 
@@ -337,7 +350,7 @@ IoPlayer.on('proxy', function (e) {
             if (e.type == 2 || e.type == 3) {
                 if (!isEmpty(e.url)) {
                     hls_lock_wait = false;
-                    player_format = 2;                    
+                    player_format = 2;
                     HLS_Player(e.url);
                 }
             }
@@ -401,7 +414,7 @@ setInterval(function () {
         if (hls_playing == "play" || hls_playing == "playing" || hls_playing == "canplaythrough" || hls_playing == "loadedmetadata") {
 
             Send_Info();
-            is_hls_bad(false,true);
+            is_hls_bad(false, true);
             hls_need_reload = false;
 
         } else if (hls_playing == "pause" || hls_playing == "waiting") {
@@ -422,7 +435,7 @@ setInterval(function () {
         } else {
             // IF ERROR
             log_check = true;
-            is_hls_bad(true,true);
+            is_hls_bad(true, true);
         }
 
         // CHECK NEW URL
@@ -465,8 +478,8 @@ setInterval(function () {
         is_hls_bad(); // Hide HLS
     }
 
-   // if (log_check)
-        Send_Info('Player format (2) ' + player_format + ' | hls ' + hls_playing + ' | pause ' + hls_pause + ' | hls reload ' + hls_need_reload + ' | hls_temp_bad_wait ' + hls_temp_bad_wait + ' | tmp_wait_reload ' + tmp_wait_reload + ' | hls no hide ' + $(div_hls).is(":visible") + ' | html5 no hide ' + $(div_live).is(":visible") + ' | '+last_info+' ');
+    // if (log_check)
+    Send_Info('Player format (2) ' + player_format + ' | hls ' + hls_playing + ' | pause ' + hls_pause + ' | hls reload ' + hls_need_reload + ' | hls_temp_bad_wait ' + hls_temp_bad_wait + ' | tmp_wait_reload ' + tmp_wait_reload + ' | hls no hide ' + $(div_hls).is(":visible") + ' | html5 no hide ' + $(div_live).is(":visible") + ' | ' + last_info + ' ');
 
 }, 1000 * 1);
 
@@ -1177,7 +1190,7 @@ function HLS_Player(url = "", type = "application/x-mpegURL") {
 
                                 if (view_error.message.includes("disabled") || view_error.message.includes("not supported")) {
 
-                                    is_hls_bad(true,true);
+                                    is_hls_bad(true, true);
 
                                 } else if (view_error.message.includes("corruption")) {
 
@@ -1260,6 +1273,9 @@ $('#proses').on('click', function (e) {
     var tweet = $('#tweet').val();
     var whattype = $('#what_use').val();
 
+    var whathd  = $('#what_hd').val();
+    var whatfps = $('#what_fps').val();
+
     Send_Info('' + set_start + ' - ' + set_end + ' - ' + title + ' - ' + whattype);
 
     if (whattype == '1') {
@@ -1277,8 +1293,8 @@ $('#proses').on('click', function (e) {
                 title: title,
                 tweet: tweet,
                 id: camid,
-                fps: 15,
-                hd: 0,
+                fps: whatfps,
+                hd: whathd,
                 interval: interval
             },
             url: URL_API + 'camera/timelapse/create.json',
@@ -1446,6 +1462,7 @@ function NextText(i) {
 NextText(0);
 
 var last_msg;
+var clear_msg;
 
 function Send_Info(msg = "", gui = false, gui2 = false, type = 0, log = true) {
 
@@ -1455,6 +1472,10 @@ function Send_Info(msg = "", gui = false, gui2 = false, type = 0, log = true) {
     }
 
     last_msg = msg;
+    if (clear_msg) {
+        clearTimeout(clear_msg);
+        clear_msg = null;
+    }
 
     // Object
     if (watchlog == "true" || gui) {
@@ -1465,9 +1486,12 @@ function Send_Info(msg = "", gui = false, gui2 = false, type = 0, log = true) {
 
     // IF BLANK
     if (isEmpty(msg)) {
+
         // Hide ERROR
         $("#error").html('');
+
     } else {
+
         // RAW LOG
         if (log) {
             if (watchlog !== "true") {
@@ -1495,6 +1519,13 @@ function Send_Info(msg = "", gui = false, gui2 = false, type = 0, log = true) {
             }
         }
         // TODO: TO SERVER
+
+        // clear msg after 10 seconds
+        clear_msg = setTimeout(function () {
+            $("#error").html('');
+        }, 1000 * 10);
+
+
     }
 }
 
@@ -1528,9 +1559,9 @@ $(document).ready(function () {
     // TODO
 });
 
-function is_hls_bad(i = true,need_reload=false) {
+function is_hls_bad(i = true, need_reload = false) {
 
-    if(need_reload) {
+    if (need_reload) {
         hls_need_reload = i;
     }
 
@@ -1693,10 +1724,6 @@ function draw_image(imgdata, islive = false) {
     } else {
         set_icon = "fal fa-camera";
     }
-
-    // Clear Error if found new image
-    //Send_Info();
-
 }
 
 function inIframe() {
