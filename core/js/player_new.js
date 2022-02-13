@@ -411,13 +411,13 @@ setInterval(function () {
             return Send_Info('LOCK');
 
         // HLS PLAYING (KEEP)
-        if (hls_playing == "play" || hls_playing == "playing" || hls_playing == "canplaythrough" || hls_playing == "loadedmetadata") {
+        if (hls_playing == "play" || hls_playing == "playing" || hls_playing == "canplaythrough") {
 
             Send_Info();
             is_hls_bad(false, true);
             hls_need_reload = false;
 
-        } else if (hls_playing == "pause" || hls_playing == "waiting") {
+        } else if (hls_playing == "pause" || hls_playing == "waiting" || hls_playing == "loadedmetadata") {
 
             if (!hls_need_reload) {
                 if (hls_temp_bad_wait >= hls_bad_wait) {
@@ -1145,7 +1145,12 @@ function AutoConfig(d) {
 
 function HLS_Player(url = "", type = "application/x-mpegURL") {
 
-    if (!isEmpty(url)) {
+    if (!isEmpty(url)) { 
+
+        if (url.includes("mpd")) {
+            type = "application/dash+xml";
+        }
+
         if (!isEmpty(type)) {
             try {
 
