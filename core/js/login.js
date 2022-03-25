@@ -2,7 +2,7 @@
 if (location.protocol != 'https:') {
     location.replace('https:' + window.location.href.substring(window.location.protocol.length));
 }
-var URL_API = "https://beta.volcanoyt.com/";
+var URL_API = "https://api.volcanoyt.com/";
 var wtf = "Login";
 var url_cek = 'login';
 var autoclose = getAllUrlParams().autoclose;

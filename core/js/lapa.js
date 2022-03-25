@@ -36,7 +36,7 @@ if (!isEmpty(set_id)) {
 }
 
 function get_volcano(set_id) {
-    $.getJSON('https://beta.volcanoyt.com/volcano/view.json?id=' + set_id, function (r) {
+    $.getJSON('https://api.volcanoyt.com/volcano/view.json?id=' + set_id, function (r) {
         if (r.code == 200) {
             lat = r.data.location.latitude;
             lot = r.data.location.longitude;
@@ -271,7 +271,7 @@ function int() {
 
 function get_info_volcano() {
     try {
-        $.getJSON('https://beta.volcanoyt.com/report/list.json?limit=1&search=' + name_volcano, function (data) {
+        $.getJSON('https://api.volcanoyt.com/report/list.json?limit=1&search=' + name_volcano, function (data) {
             for (let b in data['results']) {
                 data_volcano(data['results'][b]);
             }

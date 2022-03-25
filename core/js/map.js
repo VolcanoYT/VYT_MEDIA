@@ -354,6 +354,7 @@ function add(spawn, notif = false) {
         var mystatus = EarthquakeStatus(statsid);
 
         var magnitudetwo = Number(spawn.properties.mag).toFixed(1);
+        var magnitudeone = Number(spawn.properties.mag).toFixed(0);
         var depthtwo = Number(spawn.geometry.coordinates[2]).toFixed(0);
 
         var latx = spawn.geometry.coordinates[1];
@@ -508,31 +509,34 @@ function add(spawn, notif = false) {
             // Audio Notif, if source BMKG use Indonesia audio auto
             if (magnitudetwo >= 2.5) {
                 if (audiois == "true") {
-                    //hack
-                    magnitudetwo = magnitudetwo.replace(".", ",");
-                    depthtwo = depthtwo.replace(".", ",");
+                    //hack                    
+                    //magnitudetwo = magnitudetwo.replace(".", ",");
+                    //depthtwo = depthtwo.replace(".", ",");
+                    
                     whereeq = spawn.properties.city + ' ' + spawn.properties.country;
-                    /*
+                    
                     if (provider == 'BMKG') {
                         lefttime = timelocal.locale("id").local().fromNow();
                     }
-                    */
+                    
                     if (statsid == 3) {
-                        /*
+
                         if (provider == 'BMKG') {
-                            NotifMe("", "Pembaruan Gempa yang ke " + cont + " di lokasi " + whereeq + " dengan magnitudo " + magnitudetwo + " pada kedalaman " + depthtwo + " kilometer yang telah terjadi " + lefttime + " data dari b m k g", "", true, 'id');
-                        } else {                            
+                            NotifMe("", "Pembaruan Gempa yang ke " + cont + " di lokasi " + whereeq + " dengan magnitudo " + magnitudeone + " pada kedalaman " + depthtwo + " kilometer yang telah terjadi " + lefttime + " data dari bmkg", "", true, 'id',0.8);
+                        }else{
+                            NotifMe("", "update quake " + magnitudeone + " magnitude already  " + cont + " time updates so far " + whereeq + " with depth " + depthtwo + " km occurs in " + lefttime + "", "", true, 'en',0.8);
                         }
-                        */
-                        NotifMe("", "update quake " + magnitudetwo + " magnitude already  " + cont + " time updates so far " + whereeq + " with depth " + depthtwo + " km occurs in " + lefttime + "", "", true, 'en');
+
                     } else {
-                        /*
+                        
+
                         if (provider == 'BMKG') {
-                            NotifMe("", "Telah terjadi gempa pada status " + mystatus + " di lokasi " + whereeq + " dengan magnitudo " + magnitudetwo + " pada kedalaman " + depthtwo + " kilometer yang telah terjadi " + lefttime + " data dari b m k g", "", true, 'id');
-                        } else {                            
+                            NotifMe("", "Telah terjadi gempa dengan status " + mystatus + " di lokasi " + whereeq + " dengan magnitudo " + magnitudeone + " pada kedalaman " + depthtwo + " kilometer yang telah terjadi " + lefttime + " data dari bmkg", "", true, 'id',0.8);
+                        }else{
+                            NotifMe("", "new quake with magnitude " + magnitudeone + " status " + mystatus + " causing shaking near " + whereeq + " with depth " + depthtwo + " km occurs in " + lefttime + "", "", true, 'en',0.8);
                         }
-                        */
-                        NotifMe("", "new quake with magnitude " + magnitudetwo + " status " + mystatus + " causing shaking near " + whereeq + " with depth " + depthtwo + " km occurs in " + lefttime + "", "", true, 'en');
+
+                        
                     }
                 }
             }
