@@ -1,8 +1,8 @@
 var eqwatch = [];
 var vvwatch = [];
 var pertama = true;
-var limit = 10;
-var en = getAllUrlParams().en;
+var limit = 4;
+
 var source_volcano = getAllUrlParams().sv;
 var name_volcano = getAllUrlParams().nv;
 var source_eq = getAllUrlParams().sq;
@@ -10,25 +10,11 @@ var read_volcano = getAllUrlParams().rv;
 var hidebar = getAllUrlParams().hidebar;
 var hidenews = getAllUrlParams().hidenews;
 var notifme = getAllUrlParams().notif;
-if (hidebar == "true") {
-    $('.bar').css("display", "none");
-}
-if (hidenews == "true") {
-    $('.ticker-wrap').css("display", "none");
-}
-/*
-if(en == 'id'){
-    en = 'Google Bahasa Indonesia';
-}else{
-    en='Google US English';
-}
-*/
-if (isEmpty(en)) {
-    en = 'en';
-}
-if (en == 'id') {
-    moment.locale('id-ID');
-}
+
+setInterval(async () => {
+    time = moment();
+    document.getElementById("time").innerHTML = time.format("HH:mm:ss DD/MM/YYYY");
+}, 1000 * 1);
 
 var got = {
     features: {
@@ -49,11 +35,11 @@ function GetApi() {
         data: {
             update: localDate,
             limit: limit,
-            upto: 2.4,
+            upto: 2,
             source: source_eq
         },
-        url: URL_API+"earthquake/geo.json",
-    }).done(function(data) {
+        url: URL_API + "earthquake/geo.json",
+    }).done(function (data) {
         if (data && data.meta) {
             if (data.meta.code == 200) {
                 if (data.features) {
@@ -67,16 +53,16 @@ function GetApi() {
                     }
                     GetVolcano();
                 } else {
-                    // NotifMe("Earthquake: Data not available right now.");
+                    console.log("Earthquake: Data not available right now.");
                 }
             } else {
-                // NotifMe(data.meta.status);
+                console.log(data.meta.status);
             }
         } else {
-            // NotifMe("Earthquake: Unknown problem");
+            console.log("Earthquake: Unknown problem");
         }
-    }).fail(function(a) {
-        //tifMe("Earthquake: Failed to update!");
+    }).fail(function (a) {
+        console.log(a);
     });
 }
 
@@ -99,8 +85,8 @@ function GetVolcano() {
             allow_by: 'source',
             search: name_volcano,
         },
-        url: URL_API+"report/list.json",
-    }).done(function(data) {
+        url: URL_API + "report/list.json",
+    }).done(function (data) {
         if (data && data.results) {
             data.results.sort(comp2);
             for (var b in data.results) {
@@ -113,12 +99,12 @@ function GetVolcano() {
         } else {
             // NotifMe("Earthquake: Unknown problem");
         }
-    }).fail(function(a) {
+    }).fail(function (a) {
         //tifMe("Earthquake: Failed to update!");
     });
 }
 GetApi();
-setInterval(function() {
+setInterval(function () {
     try {
         GetApi();
     } catch (error) {
@@ -142,44 +128,7 @@ function vv(spawn, audio = false) {
     var lefttime = timelocal.local().fromNow();
     var fff = spawn.title.replace(/(?:https?|ftp):\/\/[\n\S]+/g, '').replace(/#/g, "").replace(/[{()}]/g, ''); //.replace (/:/g, "");
 
-    if (hidenews !== "true") {
-        $('.ticker').prepend('<div class="s">Volcano ' + spawn.name + ': ' + fff + ' (' + spawn.time.input + ' UTC) (' + spawn.source + ')</div>');
-    }
-
     if (noproblem) {
-        if (notifme == "true") {
-            //$('.eqinfo').html('<div class="alert alert-warning" role="alert"><h2>' + spawn.name + ': ' + fff + '<br>' + lefttime + ' (' + spawn.source + ')</h2></div>');
-            //setTimeout(() => $('.eqinfo').html(''), 1000 * 30);
-        }
-        if (en == 'id') {
-            if (spawn.source == "Mirova") {
-                fff = 'Titik panas ' + spawn.mirova.power + 'mw terdeteksi dekat gunung pada ' + lefttime;
-            }
-        }
-        if (audio) {
-            if (read_volcano == 'true') {
-                //NotifMe("", fff, "", true, en, 0.8)
-                    //saySomething(fff,en);
-                    /*
-                    listaudio.push({
-                        url: fff,
-                        volume: 0.8,
-                        en:en,
-                        type:2
-                      });
-
-                      listaudio.push({
-                        url: "ini sudah",
-                        volume: 0.8,
-                        en:en,
-                        type:2
-                      });
-                      */
-            } else {
-                //NotifMe("", 'there is activity volcano ' + spawn.name + ' occurred on ' + lefttime + '', "", true, en, 0.8)
-            }
-
-        }
         var vv = '<tr><th scope="row"><time data-now="' + spawn.time.input + '"></time> - ' + spawn.name + ': ' + fff + '</th></tr>';
         cek(list, vv);
         vvwatch.push({
@@ -216,57 +165,23 @@ function add(spawn, audio = false) {
     var magnitudetwo = Number(magnitude).toFixed(1);
     var depth = spawn.geometry.coordinates[2];
     var depthtwo = Number(depth).toFixed(0);
+    var counttwo = spawn.properties.count;
     var mystatus = getstatus(spawn.properties.status);
 
-    if (hidenews !== "true") {
-        $('.ticker').prepend('<div class="s">Earthquake ' + mt + '' + magnitudetwo + ' in ' + whereeq + ' with depth ' + depthtwo + ' km (' + timeutc + ' UTC) (' + provider + ')</div>');
-    }
-
     if (noproblem) {
-        var pesan = 'earthquake occurred in ' + whereeq + ' with magnitude ' + magnitudetwo + '  status ' + mystatus + ' and a Depth of ' + depthtwo + ' kilometers   occurred on ' + lefttime + ' source by ' + provider + '';
-        if (en == 'id') {
-            pesan = 'telah terjadi gempa bumi di ' + whereeq + ' dengan besarnya ' + magnitudetwo + '  dan Kedalaman ' + depthtwo + ' kilometer pada ' + lefttime + ' sumber dari ' + provider + ''
-        }
-        var pesangempa = "Info Earthquake";
-        if (en == 'id') {
-            pesangempa = "Gempa Bumi";
-        }
-        if (audio) {
-            //NotifMe("", pesan, "", true, en, 0.8)
-            if (notifme == "true") {
-                $('.eqinfo').html('<div class="lindu"><h3 class="margin-bottom-10 center felt">' + pesangempa + '</h3><h5 class="center">' + timeutc + ' UTC (' + provider + ')</h5><div id="map"></div><ul class="infolindu"><li><img src="https://warning.bmkg.go.id/img/magnitude.png">' + mt + '' + magnitudetwo + '</li> <li><img src="https://warning.bmkg.go.id/img/kedalaman.png">' + depthtwo + ' km<span>Kedalaman</span></li><li><img src="https://warning.bmkg.go.id/img/koordinat.png">' + whereeq + '</li></ul>');
 
-                var map = L.map('map', {
-                    zoomControl: false,
-                    attributionControl: false
-                }).setView([latx, lotx], 6);
-                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-                    maxZoom: 12,
-                    minZoom: 3
-                }).addTo(map);
-                var marker = L.marker([latx, lotx]).addTo(map);
+        console.log(spawn);
 
-                var counter = 0;
-                var i = setInterval(function() {
-                    circle.setRadius(counter);
-                    counter = counter + 1000;
-                    if (counter > 70000) {
-                        counter = 0;
-                    }
-                }, 30);
+        document.getElementById("eqname1").innerHTML = spawn.properties.country;
+        document.getElementById("eqname2").innerHTML = spawn.properties.city;
+        document.getElementById("eqnum").innerHTML = magnitudetwo;
 
-                var circle = L.circle([latx, lotx], 70000, {
-                    weight: 3,
-                    color: '#ff185a',
-                    opacity: 0.75,
-                    fillColor: '#ff185a',
-                    fillOpacity: 0.25
-                }).addTo(map);
-                setTimeout(function() {
-                    $('.eqinfo').html('');
-                }, 1000 * 20);
-            }
-        }
+        document.getElementById("eqtime").innerHTML = "" + timeutc + " UTC";
+        document.getElementById("eqtime1").innerHTML = '<time data-now="' + timeutc + '"></time>';
+
+        document.getElementById("eqlocal").innerHTML = " " + lokasi + " | " + depthtwo + "KM";
+        document.getElementById("eqstatus").innerHTML = "SC: " + provider + " / " + mystatus + " (" + counttwo + "X)";
+
         var vv = '<tr><th scope="row"><time data-now="' + timeutc + '"></time> - ' + mt + '' + magnitudetwo + ' (' + depthtwo + 'Km) | ' + whereeq + ' | ' + provider + ' with ' + mystatus + '</th></tr>'; //(<time data-now="'+timeutc+'"></time>)
         cek(list, vv);
         eqwatch.push({
@@ -277,6 +192,27 @@ function add(spawn, audio = false) {
         //TODO: update eq
     }
 }
+
+function loopme() {
+
+    setTimeout(function () {
+
+        document.getElementById("nav-vc-tab").click();
+
+        setTimeout(function () {
+
+            document.getElementById("nav-eq-tab").click();
+
+            // BACK
+            setTimeout(function () {
+                loopme();
+            }, 1000 * 120);
+
+        }, 1000 * 60);
+
+    }, 1000 * 60);
+};
+loopme();
 
 function cek(list, vv) {
     list.prepend(vv);
@@ -320,7 +256,7 @@ function saySomething(whatToSay, s = "Google US English") {
 
 function getVoice(voiceName, synth) {
     return new Promise((resolve, reject) => {
-        synth.onvoiceschanged = function() {
+        synth.onvoiceschanged = function () {
             const voices = synth.getVoices();
 
             console.log("see all available languages and voices on your system: ", voices);

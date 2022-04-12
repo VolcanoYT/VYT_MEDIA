@@ -195,6 +195,8 @@ function pesanku(event) {
         } else if (data.api == 'player_update') {
             // ini data buat update data player dari ie
             data = data.data;
+            console.log(data);
+            /*
             if (data.code == 600) {
                 $("#get_live").html("(" + data.online + "  Watching)");
             }else  if (data.code == 601) {
@@ -202,6 +204,7 @@ function pesanku(event) {
             } else {
                 $("#get_message").html('<h6>Message:</h6>' + data.message);
             }
+            */
         } else if (data.api == 'push') {
             // data disini di kirim lewat push data
             data = data.data;

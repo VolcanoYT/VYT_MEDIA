@@ -1,3 +1,33 @@
+body, html {
+    width: 100%;
+    height: 100%;
+    margin:0;
+    padding:0;
+    background: #212529;
+    overflow: hidden;
+}
+
+.tab-eq {
+    width: 75%;
+    float: left;
+    height: 100%;
+}
+.tab-notif {
+    width: 25%;
+    float: right;
+    height: 100%;
+}
+
+#eqnum {
+    background-color: #95dcf0;
+    font-size: 267%;
+    font-weight: bold;
+    color: #f24324;
+    width: 69px;
+    height: 50px;
+    margin: 0px;
+}
+
 th {
     max-width: 100px;
     overflow: hidden;
@@ -69,10 +99,6 @@ th {
 .eq-list-item.bigger>.list-callout,
 .eq-list-item.bigger>.list-header {
     color: #c94749
-}
-
-* {
-    box-sizing: border-box;
 }
 
 @-webkit-keyframes ticker {
@@ -525,10 +551,6 @@ h6 {
         width: 75%;
         max-width: 960px
     }
-}
-
-body {
-    background: #fff
 }
 
 #logo img {
